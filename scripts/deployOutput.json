@@ -1,0 +1,14 @@
+{
+  "ethereum_testnet": {
+    "Maze": {
+      "address": "",
+      "verification": ""
+    }
+  },
+  "ethereum_mainnet": {
+    "Maze": {
+      "address": "",
+      "verification": ""
+    }
+  }
+}
