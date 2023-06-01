@@ -30,12 +30,12 @@ module.exports = {
       url: "http://127.0.0.1:8545",
     },
     ethereum_mainnet: {
-        url: `https://mainnet.infura.io/v3/${INFURA_API_KEY}`,
-        accounts: [ACC_PRIVATE_KEY],
+      url: `https://mainnet.infura.io/v3/${INFURA_API_KEY}`,
+      accounts: [ACC_PRIVATE_KEY],
     },
     ethereum_testnet: {
-        url: `https://goerli.infura.io/v3/${INFURA_API_KEY}`,
-        accounts: [ACC_PRIVATE_KEY],
+      url: `https://goerli.infura.io/v3/${INFURA_API_KEY}`,
+      accounts: [ACC_PRIVATE_KEY],
     },
   },
   mocha: {
