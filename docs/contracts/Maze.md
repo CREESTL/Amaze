@@ -133,6 +133,23 @@ See {IMaze-balanceOf}
 |---|---|---|
 | _0 | uint256 | undefined |
 
+### blacklist
+
+```solidity
+function blacklist() external view returns (address)
+```
+
+The address of the Blacklist contract
+
+
+
+
+#### Returns
+
+| Name | Type | Description |
+|---|---|---|
+| _0 | address | undefined |
+
 ### burn
 
 ```solidity
