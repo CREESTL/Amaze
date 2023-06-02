@@ -2,19 +2,22 @@
 
 pragma solidity ^0.8.12;
 
-import "@openzeppelin/contracts/utils/Context.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
 import "./interfaces/IMaze.sol";
+import "./interfaces/IBlacklist.sol";
 
 /// @title ERC20 token with RFI logi
 /// @dev NOTE: This contract uses the principals of RFI tokens
 ///            for detailed documentation please see:
 ///            https://reflect-contract-doc.netlify.app/#a-technical-whitepaper-for-reflect-contracts
-contract Maze is Context, IMaze, Ownable, Pausable {
+contract Maze is IMaze, Ownable, Pausable {
     using SafeMath for uint256;
+
+    /// @notice The address of the Blacklist contract
+    address public blacklist;
 
     /// @dev Balances in r-space
     mapping(address => uint256) private _rOwned;
@@ -55,7 +58,17 @@ contract Maze is Context, IMaze, Ownable, Pausable {
     ///         Expressed in basis points
     uint256 public feeInBP;
 
-    constructor() {
+    /// @notice Checks that account is not blacklisted
+    modifier ifNotBlacklisted(address account) {
+        require(
+            !IBlacklist(blacklist).checkBlacklisted(account),
+            "Maze: account is blacklisted"
+        );
+        _;
+    }
+
+    constructor(address blacklist_) {
+        blacklist = blacklist_;
         // Set default fees to 2%
         setFees(200);
     }
@@ -165,14 +178,18 @@ contract Maze is Context, IMaze, Ownable, Pausable {
     }
 
     /// @notice See {IMaze-setFees}
-    function setFees(uint256 _feeInBP) public whenNotPaused onlyOwner {
+    function setFees(
+        uint256 _feeInBP
+    ) public whenNotPaused ifNotBlacklisted(msg.sender) onlyOwner {
         require(_feeInBP < 1e4, "Maze: fee too high");
         feeInBP = _feeInBP;
         emit SetFees(_feeInBP);
     }
 
     /// @notice See {IMaze-addToWhitelist}
-    function addToWhitelist(address account) public whenNotPaused onlyOwner {
+    function addToWhitelist(
+        address account
+    ) public whenNotPaused ifNotBlacklisted(msg.sender) onlyOwner {
         whitelist[account] = true;
         emit AddToWhitelist(account);
     }
@@ -180,25 +197,25 @@ contract Maze is Context, IMaze, Ownable, Pausable {
     /// @notice See {IMaze-removeFromWhitelist}
     function removeFromWhitelist(
         address account
-    ) public whenNotPaused onlyOwner {
+    ) public whenNotPaused ifNotBlacklisted(msg.sender) onlyOwner {
         whitelist[account] = false;
         emit RemoveFromWhitelist(account);
     }
 
     /// @notice See {IMaze-pause}
-    function pause() public onlyOwner {
+    function pause() public ifNotBlacklisted(msg.sender) onlyOwner {
         _pause();
     }
 
     /// @notice See {IMaze-unpause}
-    function unpause() public onlyOwner {
+    function unpause() public ifNotBlacklisted(msg.sender) onlyOwner {
         _unpause();
     }
 
     /// @notice See {IMaze-includeIntoStakers}
     function includeIntoStakers(
         address account
-    ) public whenNotPaused onlyOwner {
+    ) public whenNotPaused ifNotBlacklisted(msg.sender) onlyOwner {
         require(_isExcluded[account], "Maze: Account is already included");
         for (uint256 i = 0; i < _excluded.length; i++) {
             // Remove account from list of exluded
@@ -217,7 +234,7 @@ contract Maze is Context, IMaze, Ownable, Pausable {
     /// @notice See {IMaze-excludeFromStakers}
     function excludeFromStakers(
         address account
-    ) public whenNotPaused onlyOwner {
+    ) public whenNotPaused ifNotBlacklisted(msg.sender) onlyOwner {
         require(!_isExcluded[account], "Maze: Account is already excluded");
         // Update owned amount in t-space before excluding
         if (_rOwned[account] > 0) {
@@ -335,7 +352,11 @@ contract Maze is Context, IMaze, Ownable, Pausable {
     /// @param owner Owner's address
     /// @param spender Spender's address
     /// @param amount The amount of tokens spender is allowed to spend
-    function _approve(address owner, address spender, uint256 amount) private {
+    function _approve(
+        address owner,
+        address spender,
+        uint256 amount
+    ) private ifNotBlacklisted(owner) ifNotBlacklisted(spender) {
         require(owner != address(0), "Maze: approve from the zero address");
         require(spender != address(0), "Maze: approve to the zero address");
         _allowances[owner][spender] = amount;
@@ -345,7 +366,16 @@ contract Maze is Context, IMaze, Ownable, Pausable {
     /// @dev Creates new tokens and transfers them to the user
     /// @param to Recipient's address
     /// @param amount Amount of tokens to mint
-    function _mint(address to, uint256 amount) private {
+    function _mint(
+        address to,
+        uint256 amount
+    )
+        private
+        // Mint function can only be called by the owner, but that doesn't mean he
+        // cannot be blacklisted
+        ifNotBlacklisted(msg.sender)
+        ifNotBlacklisted(to)
+    {
         require(to != address(0), "Maze: mint to the zero address");
         require(
             _tTotal + amount <= _tMax,
@@ -368,7 +398,10 @@ contract Maze is Context, IMaze, Ownable, Pausable {
     /// @notice Destroys tokens of the user
     /// @param from Address to burn tokens from
     /// @param amount The amount of tokens to burn
-    function _burn(address from, uint256 amount) private {
+    function _burn(
+        address from,
+        uint256 amount
+    ) private ifNotBlacklisted(from) {
         require(from != address(0), "Maze: burn from the zero address");
         uint256 balance = _rOwned[from]; //_tTotal here?
         require(balance > amount, "Maze: burn amount exceeds balance");
@@ -390,7 +423,11 @@ contract Maze is Context, IMaze, Ownable, Pausable {
     /// @param from Sender's address
     /// @param to Recipient's address
     /// @param amount The amount of tokens to send
-    function _transfer(address from, address to, uint256 amount) private {
+    function _transfer(
+        address from,
+        address to,
+        uint256 amount
+    ) private ifNotBlacklisted(from) ifNotBlacklisted(to) {
         require(from != address(0), "Maze: transfer from the zero address");
         require(to != address(0), "Maze: transfer to the zero address");
         require(amount > 0, "Maze: Transfer amount must be greater than zero");
