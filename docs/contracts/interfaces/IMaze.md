@@ -52,7 +52,7 @@ Returns the amount of tokens that spender is allowed to spend on behalf of owner
 ### approve
 
 ```solidity
-function approve(address spender, uint256 amount) external nonpayable
+function approve(address spender, uint256 amount) external nonpayable returns (bool)
 ```
 
 Allows spender to spend tokens on behalf of the transaction sender via transferFrom
@@ -65,6 +65,12 @@ Allows spender to spend tokens on behalf of the transaction sender via transferF
 |---|---|---|
 | spender | address | Spender&#39;s address |
 | amount | uint256 | The amount of tokens spender is allowed to spend |
+
+#### Returns
+
+| Name | Type | Description |
+|---|---|---|
+| _0 | bool | Boolean value indicating that operation succeded |
 
 ### balanceOf
 
@@ -88,10 +94,26 @@ Returns the balance of the user
 |---|---|---|
 | _0 | uint256 | undefined |
 
+### burn
+
+```solidity
+function burn(uint256 amount) external nonpayable
+```
+
+Destroys tokens of the user calling this function
+
+
+
+#### Parameters
+
+| Name | Type | Description |
+|---|---|---|
+| amount | uint256 | The amount of tokens to burn |
+
 ### decreaseAllowance
 
 ```solidity
-function decreaseAllowance(address spender, uint256 subtractedValue) external nonpayable
+function decreaseAllowance(address spender, uint256 subtractedValue) external nonpayable returns (bool)
 ```
 
 Decrease the amount of tokens to spend on behalf of an owner
@@ -104,6 +126,12 @@ Decrease the amount of tokens to spend on behalf of an owner
 |---|---|---|
 | spender | address | Spender&#39;s address |
 | subtractedValue | uint256 | Amount of tokens to subtract from allowance |
+
+#### Returns
+
+| Name | Type | Description |
+|---|---|---|
+| _0 | bool | Boolean value indicating that operation succeded |
 
 ### excludeFromStakers
 
@@ -140,7 +168,7 @@ Includes the user to the stakers list.         Included users get shares of fees
 ### increaseAllowance
 
 ```solidity
-function increaseAllowance(address spender, uint256 addedValue) external nonpayable
+function increaseAllowance(address spender, uint256 addedValue) external nonpayable returns (bool)
 ```
 
 Increases the amount of tokens to spend on behalf of an owner
@@ -153,6 +181,12 @@ Increases the amount of tokens to spend on behalf of an owner
 |---|---|---|
 | spender | address | Spender&#39;s address |
 | addedValue | uint256 | Amount of tokens to add to allowance |
+
+#### Returns
+
+| Name | Type | Description |
+|---|---|---|
+| _0 | bool | Boolean value indicating that operation succeded |
 
 ### maxTotalSupply
 
@@ -170,6 +204,23 @@ Returns the maximum possible amount of tokens
 | Name | Type | Description |
 |---|---|---|
 | _0 | uint256 | undefined |
+
+### mint
+
+```solidity
+function mint(address to, uint256 amount) external nonpayable
+```
+
+Creates new tokens and transfers them to the user
+
+
+
+#### Parameters
+
+| Name | Type | Description |
+|---|---|---|
+| to | address | Recipient&#39;s address |
+| amount | uint256 | Amount of tokens to mint |
 
 ### pause
 
@@ -234,7 +285,7 @@ Returns the amount of tokens in existence.
 ### transfer
 
 ```solidity
-function transfer(address to, uint256 amount) external nonpayable
+function transfer(address to, uint256 amount) external nonpayable returns (bool)
 ```
 
 Transfers tokens to the given address
@@ -248,10 +299,16 @@ Transfers tokens to the given address
 | to | address | Recipient&#39;s address |
 | amount | uint256 | The amount of tokens to send |
 
+#### Returns
+
+| Name | Type | Description |
+|---|---|---|
+| _0 | bool | Boolean value indicating that operation succeded |
+
 ### transferFrom
 
 ```solidity
-function transferFrom(address from, address to, uint256 amount) external nonpayable
+function transferFrom(address from, address to, uint256 amount) external nonpayable returns (bool)
 ```
 
 Transfers tokens to a given address on behalf of the owner
@@ -265,6 +322,12 @@ Transfers tokens to a given address on behalf of the owner
 | from | address | Sender&#39;s address |
 | to | address | Recipient&#39;s address |
 | amount | uint256 | The amount of tokens to send |
+
+#### Returns
+
+| Name | Type | Description |
+|---|---|---|
+| _0 | bool | Boolean value indicating that operation succeded |
 
 ### unpause
 
@@ -314,6 +377,23 @@ Indicates that allowance from `owner` for `spender` is now equal to `allowance`
 | owner `indexed` | address | undefined |
 | spender `indexed` | address | undefined |
 | allowance  | uint256 | undefined |
+
+### Burn
+
+```solidity
+event Burn(address indexed from, uint256 amount)
+```
+
+Indicates that `amount` tokens was burnt by `from`
+
+
+
+#### Parameters
+
+| Name | Type | Description |
+|---|---|---|
+| from `indexed` | address | undefined |
+| amount  | uint256 | undefined |
 
 ### ExcludeFromStakers
 

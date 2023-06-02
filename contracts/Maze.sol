@@ -7,7 +7,6 @@ import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
-import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import "./interfaces/IMaze.sol";
 
 /// @title ERC20 token with RFI logi
@@ -16,11 +15,6 @@ import "./interfaces/IMaze.sol";
 ///            https://reflect-contract-doc.netlify.app/#a-technical-whitepaper-for-reflect-contracts
 contract Maze is Context, IMaze, Ownable, Pausable {
     using SafeMath for uint256;
-    using EnumerableSet for EnumerableSet.AddressSet;
-
-    // TODO What is farming pool?
-    /// @notice Address of the Farming Pool contract
-    address public _farming;
 
     /// @dev Balances in r-space
     mapping(address => uint256) private _rOwned;
@@ -36,7 +30,9 @@ contract Maze is Context, IMaze, Ownable, Pausable {
     address[] private _excluded;
 
     /// @dev Maximum possible amount of tokens is 100 million
-    uint256 private constant _tTotal = 100_000_000 * 1e18;
+    uint256 private constant _tMax = 100_000_000 * 1e18;
+    /// @dev Current amount of tokens in existence
+    uint256 private _tTotal;
     /// @dev RFI-special variables
     uint256 private constant MAX = ~uint256(0);
     uint256 private _rTotal = (MAX - (MAX % _tTotal));
@@ -51,11 +47,6 @@ contract Maze is Context, IMaze, Ownable, Pausable {
     /// @dev Used to convert BPs to percents and vice versa
     uint256 private constant percentConverter = 1e4;
 
-    /// @notice 44.5% of tokens have to be transferred to the farming address after deploy
-    uint256 public percentsToFarming = 4450;
-    /// @notice 55.5% of tokens have to be transferred to the owner address after deploy
-    uint256 public percentsToOwner = percentConverter.sub(percentsToFarming);
-
     /// @notice List of whitelisted accounts. Whitelisted accounts do not pay fees on token transfers.
     mapping(address => bool) public whitelist;
 
@@ -64,45 +55,23 @@ contract Maze is Context, IMaze, Ownable, Pausable {
     ///         Expressed in basis points
     uint256 public feeInBP;
 
-    constructor(address farming_) {
-        // Here rate can be calculated as ratio of total amounts of tokens rather than ratio of supplies
-        // because no excluded users exist yet
-        uint256 rate = _rTotal.div(_tTotal);
-
-        _farming = farming_;
-
-        // 44.5% are allocated to the farming pool
-        uint256 _toFarming = _tTotal.mul(percentsToFarming).div(
-            percentConverter
-        );
-        _rOwned[_farming] = _toFarming.mul(rate);
-        emit Transfer(address(0), _farming, _toFarming);
-
-        // 55.5% are allocated to the owner
-        uint256 _toOwner = _tTotal.mul(percentsToOwner).div(percentConverter);
-        _rOwned[msg.sender] = _toOwner.mul(rate);
-        emit Transfer(address(0), msg.sender, _toOwner);
-
-        // TODO why no t-space transfers are done here?
-
+    constructor() {
         // Set default fees to 2%
         setFees(200);
     }
 
     /// @notice See {IMaze-maxTotalSupply}
-    function maxTotalSupply() public view returns (uint256) {
-        return _tTotal;
+    function maxTotalSupply() public pure returns (uint256) {
+        return _tMax;
     }
 
-    // TODO for now max supply in equal to totalsupply right away. That should be
-    // changed after adding mint function
     /// @notice See {IMaze-totalSupply}
     function totalSupply() public view returns (uint256) {
         return _tTotal;
     }
 
     /// @notice See {IMaze-balanceOf}
-    function balanceOf(address account) public view override returns (uint256) {
+    function balanceOf(address account) public view returns (uint256) {
         if (_isExcluded[account]) {
             // If user is excluded from stakers, his balance is the amount of t-space tokens he owns
             return _tOwned[account];
@@ -116,7 +85,7 @@ contract Maze is Context, IMaze, Ownable, Pausable {
     function allowance(
         address owner,
         address spender
-    ) public view override returns (uint256) {
+    ) public view returns (uint256) {
         return _allowances[owner][spender];
     }
 
@@ -124,16 +93,28 @@ contract Maze is Context, IMaze, Ownable, Pausable {
     function approve(
         address spender,
         uint256 amount
-    ) public override whenNotPaused {
+    ) public whenNotPaused returns (bool) {
         _approve(msg.sender, spender, amount);
+        return true;
+    }
+
+    /// @notice See {IMaze-mint}
+    function mint(address to, uint256 amount) public onlyOwner whenNotPaused {
+        _mint(to, amount);
+    }
+
+    /// @notice See {IMaze-burn}
+    function burn(uint256 amount) public whenNotPaused {
+        _burn(msg.sender, amount);
     }
 
     /// @notice See {IMaze-transfer}
     function transfer(
         address to,
         uint256 amount
-    ) public override whenNotPaused {
+    ) public whenNotPaused returns (bool) {
         _transfer(msg.sender, to, amount);
+        return true;
     }
 
     /// @notice See {IMaze-transferFrom}
@@ -141,7 +122,7 @@ contract Maze is Context, IMaze, Ownable, Pausable {
         address sender,
         address recipient,
         uint256 amount
-    ) public whenNotPaused {
+    ) public whenNotPaused returns (bool) {
         _transfer(sender, recipient, amount);
         _approve(
             sender,
@@ -151,25 +132,27 @@ contract Maze is Context, IMaze, Ownable, Pausable {
                 "Maze: transfer amount exceeds allowance"
             )
         );
+        return true;
     }
 
     /// @notice See {IMaze-increaseAllowance}
     function increaseAllowance(
         address spender,
         uint256 addedValue
-    ) public whenNotPaused {
+    ) public whenNotPaused returns (bool) {
         _approve(
             msg.sender,
             spender,
             _allowances[msg.sender][spender].add(addedValue)
         );
+        return true;
     }
 
     /// @notice See {IMaze-decreaseAllowance}
     function decreaseAllowance(
         address spender,
         uint256 subtractedValue
-    ) public whenNotPaused {
+    ) public whenNotPaused returns (bool) {
         _approve(
             msg.sender,
             spender,
@@ -178,12 +161,12 @@ contract Maze is Context, IMaze, Ownable, Pausable {
                 "Maze: decreased allowance below zero"
             )
         );
+        return true;
     }
 
     /// @notice See {IMaze-setFees}
     function setFees(uint256 _feeInBP) public whenNotPaused onlyOwner {
-        // TODO any other limits here?
-        require(_feeInBP <= 15, "Maze: 0% >= TRANSACTION FEE <= 15%");
+        require(_feeInBP < 1e4, "Maze: fee too high");
         feeInBP = _feeInBP;
         emit SetFees(_feeInBP);
     }
@@ -195,18 +178,20 @@ contract Maze is Context, IMaze, Ownable, Pausable {
     }
 
     /// @notice See {IMaze-removeFromWhitelist}
-    function removeFromWhitelist(address account) public whenNotPaused onlyOwner {
+    function removeFromWhitelist(
+        address account
+    ) public whenNotPaused onlyOwner {
         whitelist[account] = false;
         emit RemoveFromWhitelist(account);
     }
 
     /// @notice See {IMaze-pause}
-    function pause() public {
+    function pause() public onlyOwner {
         _pause();
     }
 
     /// @notice See {IMaze-unpause}
-    function unpause() public {
+    function unpause() public onlyOwner {
         _unpause();
     }
 
@@ -223,7 +208,7 @@ contract Maze is Context, IMaze, Ownable, Pausable {
                 break;
             }
         }
-        // TODO what's that for?
+        // t-space balance gets reset when users joins r-space again
         _tOwned[account] = 0;
         _isExcluded[account] = false;
         emit IncludeIntoStakers(account);
@@ -304,7 +289,7 @@ contract Maze is Context, IMaze, Ownable, Pausable {
         uint256 tAmount,
         uint256 tFee,
         uint256 rate
-    ) private view returns (uint256, uint256, uint256) {
+    ) private pure returns (uint256, uint256, uint256) {
         // Reflect from t-space into r-space
         uint256 rAmount = tAmount.mul(rate);
         uint256 rFee = tFee.mul(rate);
@@ -331,7 +316,6 @@ contract Maze is Context, IMaze, Ownable, Pausable {
         uint256 tSupply = _tTotal;
         // Decrease supplies by amount owned by non-stakers
         for (uint256 i = 0; i < _excluded.length; i++) {
-            // TODO how is it possible?
             if (
                 _rOwned[_excluded[i]] > rSupply ||
                 _tOwned[_excluded[i]] > tSupply
@@ -341,7 +325,6 @@ contract Maze is Context, IMaze, Ownable, Pausable {
             rSupply = rSupply.sub(_rOwned[_excluded[i]]);
             tSupply = tSupply.sub(_tOwned[_excluded[i]]);
         }
-        // TODO what's that for?
         if (rSupply < _rTotal.div(_tTotal)) {
             return (_rTotal, _tTotal);
         }
@@ -357,6 +340,50 @@ contract Maze is Context, IMaze, Ownable, Pausable {
         require(spender != address(0), "Maze: approve to the zero address");
         _allowances[owner][spender] = amount;
         emit Approval(owner, spender, amount);
+    }
+
+    /// @dev Creates new tokens and transfers them to the user
+    /// @param to Recipient's address
+    /// @param amount Amount of tokens to mint
+    function _mint(address to, uint256 amount) private {
+        require(to != address(0), "Maze: mint to the zero address");
+        require(
+            _tTotal + amount <= _tMax,
+            "Maze: mint amount exceeds max token supply"
+        );
+        if (_isExcluded[to]) {
+            // Increase balances of excluded account in both r-space and t-space
+            _rOwned[to] += amount;
+            _tOwned[to] += amount;
+        } else {
+            // Increase balance of included account only in r-space
+            _rOwned[to] += amount;
+        }
+        // Increase supplies of tokens in both r-space and t-space
+        _rTotal += amount;
+        _tTotal += amount;
+        emit Transfer(address(0), to, amount);
+    }
+
+    /// @notice Destroys tokens of the user
+    /// @param from Address to burn tokens from
+    /// @param amount The amount of tokens to burn
+    function _burn(address from, uint256 amount) private {
+        require(from != address(0), "Maze: burn from the zero address");
+        uint256 balance = _rOwned[from]; //_tTotal here?
+        require(balance > amount, "Maze: burn amount exceeds balance");
+        if (_isExcluded[from]) {
+            // Decrease balances of excluded account in both r-space and t-space
+            _rOwned[from] -= amount;
+            _tOwned[from] -= amount;
+        } else {
+            // Decrease balance of included account only in r-space
+            _rOwned[from] -= amount;
+        }
+        // Decrease supplies of tokens in both r-space and t-space
+        _rTotal -= amount;
+        _tTotal -= amount;
+        emit Burn(from, amount);
     }
 
     /// @dev Transfers tokens to the given address
@@ -379,7 +406,6 @@ contract Maze is Context, IMaze, Ownable, Pausable {
         } else if (_isExcluded[from] && _isExcluded[to]) {
             _transferBothExcluded(from, to, amount);
         } else {
-            // TODO Do I need it? It's the same as case when both are not exluded
             _transferStandard(from, to, amount);
         }
     }
@@ -487,12 +513,9 @@ contract Maze is Context, IMaze, Ownable, Pausable {
     /// @param rFee Fee amount (r-space)
     /// @param tFee Fee amount (t-space)
     function _processFees(uint256 rFee, uint256 tFee) private {
-        // TODO check if logic correct here
-        // Calculate the amount of r-space tokens to distribute among holders
-        uint256 rToHolders = rFee.mul(feeInBP).div(percentConverter);
         // Decrease the total amount of r-space tokens.
         // This is the fees distribution.
-        _rTotal = _rTotal.sub(rToHolders);
+        _rTotal = _rTotal.sub(rFee);
         _tFeeTotal = _tFeeTotal.add(tFee);
     }
 }

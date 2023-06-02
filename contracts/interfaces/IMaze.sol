@@ -7,6 +7,9 @@ interface IMaze {
     /// @notice Indicates that `amount` tokens has been transferred from `from` to `to`
     event Transfer(address indexed from, address indexed to, uint256 amount);
 
+    /// @notice Indicates that `amount` tokens was burnt by `from`
+    event Burn(address indexed from, uint256 amount);
+
     /// @notice Indicates that allowance from `owner` for `spender` is now equal to `allowance`
     event Approval(
         address indexed owner,
@@ -50,31 +53,43 @@ interface IMaze {
     /// @notice Allows spender to spend tokens on behalf of the transaction sender via transferFrom
     /// @param spender Spender's address
     /// @param amount The amount of tokens spender is allowed to spend
-    function approve(address spender, uint256 amount) external;
+    /// @return Boolean value indicating that operation succeded
+    function approve(address spender, uint256 amount) external returns (bool);
 
     /// @notice Increases the amount of tokens to spend on behalf of an owner
     /// @param spender Spender's address
     /// @param addedValue Amount of tokens to add to allowance
-    function increaseAllowance(address spender, uint256 addedValue) external;
+    /// @return Boolean value indicating that operation succeded
+    function increaseAllowance(
+        address spender,
+        uint256 addedValue
+    ) external returns (bool);
 
     /// @notice Decrease the amount of tokens to spend on behalf of an owner
     /// @param spender Spender's address
     /// @param subtractedValue Amount of tokens to subtract from allowance
+    /// @return Boolean value indicating that operation succeded
     function decreaseAllowance(
         address spender,
         uint256 subtractedValue
-    ) external;
+    ) external returns (bool);
 
     /// @notice Transfers tokens to the given address
     /// @param to Recipient's address
     /// @param amount The amount of tokens to send
-    function transfer(address to, uint256 amount) external;
+    /// @return Boolean value indicating that operation succeded
+    function transfer(address to, uint256 amount) external returns (bool);
 
     /// @notice Transfers tokens to a given address on behalf of the owner
     /// @param from Sender's address
     /// @param to Recipient's address
     /// @param amount The amount of tokens to send
-    function transferFrom(address from, address to, uint256 amount) external;
+    /// @return Boolean value indicating that operation succeded
+    function transferFrom(
+        address from,
+        address to,
+        uint256 amount
+    ) external returns (bool);
 
     /// @notice Set transaction fee amount in basis points
     /// @param _feeInBP Fee amount in basis points
@@ -105,4 +120,14 @@ interface IMaze {
     ///         Excluded users do not get shares of fees from tokens transfers
     /// @param account The address of the user to exlude from stakers
     function excludeFromStakers(address account) external;
+
+    // TODO is it required?
+    /// @notice Creates new tokens and transfers them to the user
+    /// @param to Recipient's address
+    /// @param amount Amount of tokens to mint
+    function mint(address to, uint256 amount) external;
+
+    /// @notice Destroys tokens of the user calling this function
+    /// @param amount The amount of tokens to burn
+    function burn(uint256 amount) external;
 }

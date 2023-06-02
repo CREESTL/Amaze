@@ -10,23 +10,6 @@
 
 ## Methods
 
-### _farming
-
-```solidity
-function _farming() external view returns (address)
-```
-
-Address of the Farming Pool contract
-
-
-
-
-#### Returns
-
-| Name | Type | Description |
-|---|---|---|
-| _0 | address | undefined |
-
 ### _isExcluded
 
 ```solidity
@@ -108,7 +91,7 @@ See {IMaze-allowance}
 ### approve
 
 ```solidity
-function approve(address spender, uint256 amount) external nonpayable
+function approve(address spender, uint256 amount) external nonpayable returns (bool)
 ```
 
 See {IMaze-approve}
@@ -121,6 +104,12 @@ See {IMaze-approve}
 |---|---|---|
 | spender | address | undefined |
 | amount | uint256 | undefined |
+
+#### Returns
+
+| Name | Type | Description |
+|---|---|---|
+| _0 | bool | undefined |
 
 ### balanceOf
 
@@ -144,6 +133,22 @@ See {IMaze-balanceOf}
 |---|---|---|
 | _0 | uint256 | undefined |
 
+### burn
+
+```solidity
+function burn(uint256 amount) external nonpayable
+```
+
+See {IMaze-burn}
+
+
+
+#### Parameters
+
+| Name | Type | Description |
+|---|---|---|
+| amount | uint256 | undefined |
+
 ### decimals
 
 ```solidity
@@ -164,7 +169,7 @@ function decimals() external view returns (uint8)
 ### decreaseAllowance
 
 ```solidity
-function decreaseAllowance(address spender, uint256 subtractedValue) external nonpayable
+function decreaseAllowance(address spender, uint256 subtractedValue) external nonpayable returns (bool)
 ```
 
 See {IMaze-decreaseAllowance}
@@ -177,6 +182,12 @@ See {IMaze-decreaseAllowance}
 |---|---|---|
 | spender | address | undefined |
 | subtractedValue | uint256 | undefined |
+
+#### Returns
+
+| Name | Type | Description |
+|---|---|---|
+| _0 | bool | undefined |
 
 ### excludeFromStakers
 
@@ -230,7 +241,7 @@ See {IMaze-includeIntoStakers}
 ### increaseAllowance
 
 ```solidity
-function increaseAllowance(address spender, uint256 addedValue) external nonpayable
+function increaseAllowance(address spender, uint256 addedValue) external nonpayable returns (bool)
 ```
 
 See {IMaze-increaseAllowance}
@@ -244,10 +255,16 @@ See {IMaze-increaseAllowance}
 | spender | address | undefined |
 | addedValue | uint256 | undefined |
 
+#### Returns
+
+| Name | Type | Description |
+|---|---|---|
+| _0 | bool | undefined |
+
 ### maxTotalSupply
 
 ```solidity
-function maxTotalSupply() external view returns (uint256)
+function maxTotalSupply() external pure returns (uint256)
 ```
 
 See {IMaze-maxTotalSupply}
@@ -260,6 +277,23 @@ See {IMaze-maxTotalSupply}
 | Name | Type | Description |
 |---|---|---|
 | _0 | uint256 | undefined |
+
+### mint
+
+```solidity
+function mint(address to, uint256 amount) external nonpayable
+```
+
+See {IMaze-mint}
+
+
+
+#### Parameters
+
+| Name | Type | Description |
+|---|---|---|
+| to | address | undefined |
+| amount | uint256 | undefined |
 
 ### name
 
@@ -322,40 +356,6 @@ function paused() external view returns (bool)
 | Name | Type | Description |
 |---|---|---|
 | _0 | bool | undefined |
-
-### percentsToFarming
-
-```solidity
-function percentsToFarming() external view returns (uint256)
-```
-
-44.5% of tokens have to be transferred to the farming address after deploy
-
-
-
-
-#### Returns
-
-| Name | Type | Description |
-|---|---|---|
-| _0 | uint256 | undefined |
-
-### percentsToOwner
-
-```solidity
-function percentsToOwner() external view returns (uint256)
-```
-
-55.5% of tokens have to be transferred to the owner address after deploy
-
-
-
-
-#### Returns
-
-| Name | Type | Description |
-|---|---|---|
-| _0 | uint256 | undefined |
 
 ### removeFromWhitelist
 
@@ -437,7 +437,7 @@ See {IMaze-totalSupply}
 ### transfer
 
 ```solidity
-function transfer(address to, uint256 amount) external nonpayable
+function transfer(address to, uint256 amount) external nonpayable returns (bool)
 ```
 
 See {IMaze-transfer}
@@ -451,10 +451,16 @@ See {IMaze-transfer}
 | to | address | undefined |
 | amount | uint256 | undefined |
 
+#### Returns
+
+| Name | Type | Description |
+|---|---|---|
+| _0 | bool | undefined |
+
 ### transferFrom
 
 ```solidity
-function transferFrom(address sender, address recipient, uint256 amount) external nonpayable
+function transferFrom(address sender, address recipient, uint256 amount) external nonpayable returns (bool)
 ```
 
 See {IMaze-transferFrom}
@@ -468,6 +474,12 @@ See {IMaze-transferFrom}
 | sender | address | undefined |
 | recipient | address | undefined |
 | amount | uint256 | undefined |
+
+#### Returns
+
+| Name | Type | Description |
+|---|---|---|
+| _0 | bool | undefined |
 
 ### transferOwnership
 
@@ -555,6 +567,23 @@ Indicates that allowance from `owner` for `spender` is now equal to `allowance`
 | owner `indexed` | address | undefined |
 | spender `indexed` | address | undefined |
 | allowance  | uint256 | undefined |
+
+### Burn
+
+```solidity
+event Burn(address indexed from, uint256 amount)
+```
+
+Indicates that `amount` tokens was burnt by `from`
+
+
+
+#### Parameters
+
+| Name | Type | Description |
+|---|---|---|
+| from `indexed` | address | undefined |
+| amount  | uint256 | undefined |
 
 ### ExcludeFromStakers
 
