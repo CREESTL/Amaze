@@ -42,9 +42,8 @@ contract Maze is IMaze, Ownable, Pausable {
     uint256 private constant MAX = ~uint256(0);
     /// @dev _rTotal is multiple of _tTotal
     uint256 private _rTotal = (MAX - (MAX % _tTotal));
-    // TODO add getter for that
     /// @dev Total amount of fees collected in t-space
-    uint256 public _tFeeTotal;
+    uint256 private _tFeeTotal;
 
     // Basic token info
     string public name = "Maze";
@@ -74,6 +73,10 @@ contract Maze is IMaze, Ownable, Pausable {
     constructor(address blacklist_) {
         blacklist = blacklist_;
 
+        // Whole supply of tokens is assigned to owner
+        _rOwned[msg.sender] = _rTotal;
+        emit Transfer(address(0), msg.sender, _tTotal);
+
         // Set default fees to 2%
         setFees(200);
     }
@@ -81,6 +84,11 @@ contract Maze is IMaze, Ownable, Pausable {
     /// @notice See {IMaze-totalSupply}
     function totalSupply() public pure returns (uint256) {
         return _tTotal;
+    }
+
+    /// @notice See {IMaze-totalFee}
+    function totalFee() public view returns (uint256) {
+        return _tFeeTotal;
     }
 
     /// @notice See {IMaze-balanceOf}
@@ -403,6 +411,7 @@ contract Maze is IMaze, Ownable, Pausable {
         require(from != address(0), "Maze: transfer from the zero address");
         require(to != address(0), "Maze: transfer to the zero address");
         require(amount > 0, "Maze: Transfer amount must be greater than zero");
+        require(balanceOf(msg.sender) >= amount, "Maze: Transfer amount exceeds balance");
 
         // Next transfer logic depends on which accout is excluded (in any)
         // If account is excluded his t-space balance does not change

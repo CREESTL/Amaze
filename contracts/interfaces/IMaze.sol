@@ -32,6 +32,9 @@ interface IMaze {
     /// @notice Returns the amount of tokens in existence
     function totalSupply() external view returns (uint256);
 
+    /// @notice Returns total collected fee
+    function totalFee() external view returns (uint256);
+
     /// @notice Returns the balance of the user
     /// @param account The address of the user
     function balanceOf(address account) external view returns (uint256);
