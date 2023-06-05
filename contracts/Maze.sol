@@ -409,7 +409,6 @@ contract Maze is IMaze, Ownable, Pausable {
         uint256 amount
     ) private ifNotBlacklisted(from) ifNotBlacklisted(to) {
         require(from != address(0), "Maze: transfer from the zero address");
-        require(to != address(0), "Maze: transfer to the zero address");
         require(amount > 0, "Maze: Transfer amount must be greater than zero");
         require(balanceOf(msg.sender) >= amount, "Maze: Transfer amount exceeds balance");
 
