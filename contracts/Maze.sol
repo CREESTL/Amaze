@@ -9,7 +9,10 @@ import "@openzeppelin/contracts/security/Pausable.sol";
 import "./interfaces/IMaze.sol";
 import "./interfaces/IBlacklist.sol";
 
-/// @title ERC20 token with RFI logi
+// TODO remove it
+import "hardhat/console.sol";
+
+/// @title ERC20 token with RFI logic
 /// @dev NOTE: This contract uses the principals of RFI tokens
 ///            for detailed documentation please see:
 ///            https://reflect-contract-doc.netlify.app/#a-technical-whitepaper-for-reflect-contracts
@@ -28,17 +31,18 @@ contract Maze is IMaze, Ownable, Pausable {
 
     /// @notice Marks that account is exluded from staking. Exluded accounts do not
     ///         get shares of distributed fees
-    mapping(address => bool) public _isExcluded;
+    mapping(address => bool) public isExcluded;
     /// @dev The list of all exluded accounts
     address[] private _excluded;
 
     /// @dev Maximum possible amount of tokens is 100 million
-    uint256 private constant _tMax = 100_000_000 * 1e18;
-    /// @dev Current amount of tokens in existence
-    uint256 private _tTotal;
+    uint256 private constant _tTotal = 100_000_000 * 1e18;
+
     /// @dev RFI-special variables
     uint256 private constant MAX = ~uint256(0);
+    /// @dev _rTotal is multiple of _tTotal
     uint256 private _rTotal = (MAX - (MAX % _tTotal));
+    // TODO add getter for that
     /// @dev Total amount of fees collected in t-space
     uint256 public _tFeeTotal;
 
@@ -69,28 +73,28 @@ contract Maze is IMaze, Ownable, Pausable {
 
     constructor(address blacklist_) {
         blacklist = blacklist_;
+
         // Set default fees to 2%
         setFees(200);
     }
 
-    /// @notice See {IMaze-maxTotalSupply}
-    function maxTotalSupply() public pure returns (uint256) {
-        return _tMax;
-    }
-
     /// @notice See {IMaze-totalSupply}
-    function totalSupply() public view returns (uint256) {
+    function totalSupply() public pure returns (uint256) {
         return _tTotal;
     }
 
     /// @notice See {IMaze-balanceOf}
     function balanceOf(address account) public view returns (uint256) {
-        if (_isExcluded[account]) {
+        console.log("\nIn balanceOf:");
+        if (isExcluded[account]) {
             // If user is excluded from stakers, his balance is the amount of t-space tokens he owns
+            console.log("Result is: ",_tOwned[account]);
             return _tOwned[account];
         } else {
             // If users is one of stakers, his balance is calculated using r-space tokens
-            return reflectToTSpace(_rOwned[account]);
+            uint256 reflectedBalance = _reflectToTSpace(_rOwned[account]);
+            console.log("Result is: ", reflectedBalance);
+            return reflectedBalance;
         }
     }
 
@@ -109,11 +113,6 @@ contract Maze is IMaze, Ownable, Pausable {
     ) public whenNotPaused returns (bool) {
         _approve(msg.sender, spender, amount);
         return true;
-    }
-
-    /// @notice See {IMaze-mint}
-    function mint(address to, uint256 amount) public onlyOwner whenNotPaused {
-        _mint(to, amount);
     }
 
     /// @notice See {IMaze-burn}
@@ -216,7 +215,8 @@ contract Maze is IMaze, Ownable, Pausable {
     function includeIntoStakers(
         address account
     ) public whenNotPaused ifNotBlacklisted(msg.sender) onlyOwner {
-        require(_isExcluded[account], "Maze: Account is already included");
+        require(isExcluded[account], "Maze: Account is already included");
+        require(account != address(0), "Maze: Cannot include zero address");
         for (uint256 i = 0; i < _excluded.length; i++) {
             // Remove account from list of exluded
             if (_excluded[i] == account) {
@@ -225,9 +225,9 @@ contract Maze is IMaze, Ownable, Pausable {
                 break;
             }
         }
-        // t-space balance gets reset when users joins r-space again
+        // T-space balance gets reset when users joins r-space again
         _tOwned[account] = 0;
-        _isExcluded[account] = false;
+        isExcluded[account] = false;
         emit IncludeIntoStakers(account);
     }
 
@@ -235,12 +235,13 @@ contract Maze is IMaze, Ownable, Pausable {
     function excludeFromStakers(
         address account
     ) public whenNotPaused ifNotBlacklisted(msg.sender) onlyOwner {
-        require(!_isExcluded[account], "Maze: Account is already excluded");
+        require(!isExcluded[account], "Maze: Account is already excluded");
+        require(account != address(0), "Maze: Cannot exclude zero address");
         // Update owned amount in t-space before excluding
         if (_rOwned[account] > 0) {
-            _tOwned[account] = reflectToTSpace(_rOwned[account]);
+            _tOwned[account] = _reflectToTSpace(_rOwned[account]);
         }
-        _isExcluded[account] = true;
+        isExcluded[account] = true;
         _excluded.push(account);
         emit ExcludeFromStakers(account);
     }
@@ -249,12 +250,15 @@ contract Maze is IMaze, Ownable, Pausable {
     /// @param rAmount Token amount in r-space
     /// @return The reflected amount of tokens (r-space)
     /// @dev tAmount = rAmount / rate
-    function reflectToTSpace(uint256 rAmount) private view returns (uint256) {
+    function _reflectToTSpace(uint256 rAmount) private view returns (uint256) {
         require(
             rAmount <= _rTotal,
             "Maze: Amount must be less than total reflections"
         );
+        console.log("\nIn _reflectToTSpace:");
+        console.log("rAmount is: ", rAmount);
         uint256 rate = _getRate();
+        console.log("Result is: ", rAmount.div(rate));
         return rAmount.div(rate);
     }
 
@@ -318,8 +322,10 @@ contract Maze is IMaze, Ownable, Pausable {
     /// @dev Calculates current conversion rate
     /// @return Conversion rate
     function _getRate() private view returns (uint256) {
+        console.log("\nIn _getRate:");
         (uint256 rSupply, uint256 tSupply) = _getSupplies();
         // Rate is a ratio of r-space supply and t-space supply
+        console.log("Result is: ", rSupply.div(tSupply));
         return rSupply.div(tSupply);
     }
 
@@ -331,6 +337,7 @@ contract Maze is IMaze, Ownable, Pausable {
     function _getSupplies() private view returns (uint256, uint256) {
         uint256 rSupply = _rTotal;
         uint256 tSupply = _tTotal;
+        console.log("\nIn _getSupplies:");
         // Decrease supplies by amount owned by non-stakers
         for (uint256 i = 0; i < _excluded.length; i++) {
             if (
@@ -342,9 +349,16 @@ contract Maze is IMaze, Ownable, Pausable {
             rSupply = rSupply.sub(_rOwned[_excluded[i]]);
             tSupply = tSupply.sub(_tOwned[_excluded[i]]);
         }
+
         if (rSupply < _rTotal.div(_tTotal)) {
+            console.log("Result1 is: ");
+            console.log("\t", _rTotal);
+            console.log("\t", _tTotal);
             return (_rTotal, _tTotal);
         }
+        console.log("Result2 is: ");
+        console.log("\t", rSupply);
+        console.log("\t", tSupply);
         return (rSupply, tSupply);
     }
 
@@ -363,60 +377,18 @@ contract Maze is IMaze, Ownable, Pausable {
         emit Approval(owner, spender, amount);
     }
 
-    /// @dev Creates new tokens and transfers them to the user
-    /// @param to Recipient's address
-    /// @param amount Amount of tokens to mint
-    function _mint(
-        address to,
-        uint256 amount
-    )
-        private
-        // Mint function can only be called by the owner, but that doesn't mean he
-        // cannot be blacklisted
-        ifNotBlacklisted(msg.sender)
-        ifNotBlacklisted(to)
-    {
-        require(to != address(0), "Maze: mint to the zero address");
-        require(
-            _tTotal + amount <= _tMax,
-            "Maze: mint amount exceeds max token supply"
-        );
-        if (_isExcluded[to]) {
-            // Increase balances of excluded account in both r-space and t-space
-            _rOwned[to] += amount;
-            _tOwned[to] += amount;
-        } else {
-            // Increase balance of included account only in r-space
-            _rOwned[to] += amount;
-        }
-        // Increase supplies of tokens in both r-space and t-space
-        _rTotal += amount;
-        _tTotal += amount;
-        emit Transfer(address(0), to, amount);
-    }
-
-    /// @notice Destroys tokens of the user
-    /// @param from Address to burn tokens from
-    /// @param amount The amount of tokens to burn
+    /// @notice Locks tokens of the owner by transferring them to the zero address
+    /// @param from Address to withdraw tokens from
+    /// @param amount The amount of tokens to lock
     function _burn(
         address from,
         uint256 amount
     ) private ifNotBlacklisted(from) {
         require(from != address(0), "Maze: burn from the zero address");
-        uint256 balance = _rOwned[from]; //_tTotal here?
+        uint256 balance = _rOwned[from];
         require(balance > amount, "Maze: burn amount exceeds balance");
-        if (_isExcluded[from]) {
-            // Decrease balances of excluded account in both r-space and t-space
-            _rOwned[from] -= amount;
-            _tOwned[from] -= amount;
-        } else {
-            // Decrease balance of included account only in r-space
-            _rOwned[from] -= amount;
-        }
-        // Decrease supplies of tokens in both r-space and t-space
-        _rTotal -= amount;
-        _tTotal -= amount;
-        emit Burn(from, amount);
+        _transfer(from, address(0), amount);
+        emit Transfer(from, address(0), amount);
     }
 
     /// @dev Transfers tokens to the given address
@@ -434,13 +406,13 @@ contract Maze is IMaze, Ownable, Pausable {
 
         // Next transfer logic depends on which accout is excluded (in any)
         // If account is excluded his t-space balance does not change
-        if (_isExcluded[from] && !_isExcluded[to]) {
+        if (isExcluded[from] && !isExcluded[to]) {
             _transferFromExcluded(from, to, amount);
-        } else if (!_isExcluded[from] && _isExcluded[to]) {
+        } else if (!isExcluded[from] && isExcluded[to]) {
             _transferToExcluded(from, to, amount);
-        } else if (!_isExcluded[from] && !_isExcluded[to]) {
+        } else if (!isExcluded[from] && !isExcluded[to]) {
             _transferStandard(from, to, amount);
-        } else if (_isExcluded[from] && _isExcluded[to]) {
+        } else if (isExcluded[from] && isExcluded[to]) {
             _transferBothExcluded(from, to, amount);
         } else {
             _transferStandard(from, to, amount);
