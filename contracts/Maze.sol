@@ -119,6 +119,8 @@ contract Maze is IMaze, Ownable, Pausable {
         address spender,
         uint256 amount
     ) public whenNotPaused returns (bool) {
+        require(spender != address(0), "Maze: spender cannot be zero address");
+        require(amount != 0, "Maze: allowance cannot be zero");
         _approve(msg.sender, spender, amount);
         return true;
     }
