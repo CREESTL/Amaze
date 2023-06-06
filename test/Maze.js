@@ -605,5 +605,73 @@ describe("Maze token", () => {
             })
         })
 
+        describe("Allowance", () => {
+            describe("Increase allowance", () => {
+                it("Should increase allowance", async () => {
+
+                    let { maze, blacklist } = await loadFixture(
+                        deploys
+                    );
+
+                    let transferAmount = parseEther("1");
+
+                    expect(
+                        await maze.allowance(
+                            ownerAcc.address,
+                            clientAcc1.address
+                        ))
+                        .to.equal(0);
+
+                    await maze.connect(ownerAcc).approve(
+                        clientAcc1.address,
+                        transferAmount
+                    )
+
+                    expect(
+                        await maze.allowance(
+                            ownerAcc.address,
+                            clientAcc1.address
+                        ))
+                        .to.equal(transferAmount);
+                })
+
+            })
+            describe("Decrease allowance", () => {
+
+                it("Should decrease allowance", async () => {
+
+                    let { maze, blacklist } = await loadFixture(
+                        deploys
+                    );
+
+                    let transferAmount = parseEther("1");
+
+                    await maze.connect(ownerAcc).approve(
+                        clientAcc1.address,
+                        transferAmount
+                    )
+
+                    expect(
+                        await maze.allowance(
+                            ownerAcc.address,
+                            clientAcc1.address
+                        ))
+                        .to.equal(transferAmount);
+
+                    await maze.connect(ownerAcc).decreaseAllowance(
+                        clientAcc1.address,
+                        transferAmount.div(2)
+                    )
+
+                    expect(
+                        await maze.allowance(
+                            ownerAcc.address,
+                            clientAcc1.address
+                        ))
+                        .to.equal(transferAmount.div(2));
+                })
+            })
+        })
+
     });
 });
