@@ -673,5 +673,37 @@ describe("Maze token", () => {
             })
         })
 
+        describe("Set fees", () => {
+            it("Should set new fee percentage", async () => {
+
+                let { maze, blacklist } = await loadFixture(
+                    deploys
+                );
+
+                expect(await maze.feeInBP()).to.equal(200);
+
+                await expect(
+                    maze.connect(ownerAcc).setFees(100)
+                ).to.emit(maze, "SetFees")
+
+                expect(await maze.feeInBP()).to.equal(100);
+            })
+
+            describe("Fails", () => {
+
+                it("Should fail to set to high fee", async () => {
+                    let { maze, blacklist } = await loadFixture(
+                        deploys
+                    );
+
+                    await expect(
+                        maze.connect(ownerAcc).setFees(BigNumber.from("1000000000"))
+                    ).to.be.revertedWith("Maze: Fee too high");
+
+                })
+
+            })
+        })
+
     });
 });
