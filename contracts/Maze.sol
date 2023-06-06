@@ -211,6 +211,7 @@ contract Maze is IMaze, Ownable, Pausable {
         ifNotBlacklisted(msg.sender)
         onlyOwner
     {
+        require(!whitelist[account], "Maze: Account already whitelisted");
         whitelist[account] = true;
         emit AddToWhitelist(account);
     }
@@ -222,6 +223,7 @@ contract Maze is IMaze, Ownable, Pausable {
         ifNotBlacklisted(msg.sender)
         onlyOwner
     {
+        require(whitelist[account], "Maze: Account not whitelisted");
         whitelist[account] = false;
         emit RemoveFromWhitelist(account);
     }
