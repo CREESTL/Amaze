@@ -622,7 +622,7 @@ describe("Maze token", () => {
                         ))
                         .to.equal(0);
 
-                    await maze.connect(ownerAcc).approve(
+                    await maze.connect(ownerAcc).increaseAllowance(
                         clientAcc1.address,
                         transferAmount
                     )
@@ -713,13 +713,13 @@ describe("Maze token", () => {
                         deploys
                     );
 
-                    expect(await maze.whitelist(clientAcc1.address)).to.equal(false);
+                    expect(await maze.isWhitelisted(clientAcc1.address)).to.equal(false);
 
                     await expect(
                         maze.connect(ownerAcc).addToWhitelist(clientAcc1.address)
                     ).to.emit(maze, "AddToWhitelist")
 
-                    expect(await maze.whitelist(clientAcc1.address)).to.equal(true);
+                    expect(await maze.isWhitelisted(clientAcc1.address)).to.equal(true);
                 })
 
                 describe("Fails", () => {
@@ -747,13 +747,13 @@ describe("Maze token", () => {
 
                     await maze.connect(ownerAcc).addToWhitelist(clientAcc1.address);
 
-                    expect(await maze.whitelist(clientAcc1.address)).to.equal(true);
+                    expect(await maze.isWhitelisted(clientAcc1.address)).to.equal(true);
 
                     await expect(
                         maze.connect(ownerAcc).removeFromWhitelist(clientAcc1.address)
                     ).to.emit(maze, "RemoveFromWhitelist")
 
-                    expect(await maze.whitelist(clientAcc1.address)).to.equal(false);
+                    expect(await maze.isWhitelisted(clientAcc1.address)).to.equal(false);
                 })
 
                 describe("Fails", () => {
@@ -766,6 +766,114 @@ describe("Maze token", () => {
                         await expect(
                             maze.connect(ownerAcc).removeFromWhitelist(clientAcc1.address)
                         ).to.be.revertedWith("Maze: Account not whitelisted")
+                    })
+                })
+            })
+        })
+
+        // Tests for `pause` and `unpause` were made in "Paused" section
+        // Skip them here
+
+        describe("Stakers", () => {
+            describe("Exclude from stakers", () => {
+                it("Should exclude account from stakers", async () => {
+                    let { maze, blacklist } = await loadFixture(
+                        deploys
+                    );
+
+                    let clientStartBalance = await maze.balanceOf(clientAcc1.address);
+                    expect(await maze.isExcluded(clientAcc1.address))
+                        .to.equal(false);
+
+                    await maze.connect(ownerAcc).excludeFromStakers(clientAcc1.address);
+
+                    let clientEndBalance = await maze.balanceOf(clientAcc1.address);
+                    expect(await maze.isExcluded(clientAcc1.address))
+                        .to.equal(true);
+
+                    // User's balance doesn't change when he gets excluded
+                    expect(clientEndBalance).to.equal(clientStartBalance);
+
+                })
+
+                describe("Fails", () => {
+
+                    it("Should fail to exclude not included account", async () => {
+                        let { maze, blacklist } = await loadFixture(
+                            deploys
+                        );
+
+                        await maze.connect(ownerAcc).excludeFromStakers(
+                            clientAcc1.address
+                        );
+
+                        await expect(maze.connect(ownerAcc)
+                            .excludeFromStakers(clientAcc1.address))
+                            .to.be.revertedWith("Maze: Account is already excluded");
+
+                    })
+
+                    it("Should fail to exclude zero address account", async () => {
+
+                        let { maze, blacklist } = await loadFixture(
+                            deploys
+                        );
+
+                        await expect(maze.connect(ownerAcc)
+                            .excludeFromStakers(zeroAddress))
+                            .to.be.revertedWith("Maze: Cannot exclude zero address");
+
+                    })
+                })
+            })
+            describe("Include into stakers", () => {
+                it("Should include account into stakers", async () => {
+                    let { maze, blacklist } = await loadFixture(
+                        deploys
+                    );
+
+                    await maze.connect(ownerAcc).excludeFromStakers(clientAcc1.address);
+
+                    let clientStartBalance = await maze.balanceOf(clientAcc1.address);
+                    expect(await maze.isExcluded(clientAcc1.address))
+                        .to.equal(true);
+
+                    await expect(
+                        maze.connect(ownerAcc)
+                        .includeIntoStakers(clientAcc1.address))
+                        .to.emit(maze, "IncludeIntoStakers");
+
+                    let clientEndBalance = await maze.balanceOf(clientAcc1.address);
+                    expect(await maze.isExcluded(clientAcc1.address))
+                        .to.equal(false);
+
+                    // User's balance doesn't change when he gets included
+                    expect(clientEndBalance).to.equal(clientStartBalance);
+
+                })
+
+                describe("Fails", () => {
+                    it("Should fail to include already included account", async () => {
+                        let { maze, blacklist } = await loadFixture(
+                            deploys
+                        );
+
+                        await expect(maze.connect(ownerAcc)
+                            .includeIntoStakers(clientAcc1.address))
+                            .to.be.revertedWith("Maze: Account is already included");
+
+                    })
+
+                    it("Should fail to include zero address account", async () => {
+
+                        let { maze, blacklist } = await loadFixture(
+                            deploys
+                        );
+
+                        await expect(maze.connect(ownerAcc)
+                            .includeIntoStakers(zeroAddress))
+                            .to.be.revertedWith("Maze: Cannot include zero address");
+
                     })
                 })
             })
