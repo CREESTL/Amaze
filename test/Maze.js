@@ -97,7 +97,7 @@ describe("Maze token", () => {
                 // This should fail now
                 await expect(maze.connect(clientAcc1)
                     .transfer(clientAcc2.address, parseEther("0.1")))
-                    .to.be.revertedWith("Maze: account is blacklisted");
+                    .to.be.revertedWith("Maze: Account is blacklisted");
 
             })
         })
@@ -282,7 +282,7 @@ describe("Maze token", () => {
 
                 let transferAmount = parseEther("0.1");
                 await expect(maze.connect(ownerAcc).approve(zeroAddress, transferAmount))
-                    .to.be.revertedWith("Maze: spender cannot be zero address");
+                    .to.be.revertedWith("Maze: Spender cannot be zero address");
 
             })
 
@@ -294,8 +294,92 @@ describe("Maze token", () => {
 
                 let transferAmount = parseEther("0");
                 await expect(maze.connect(ownerAcc).approve(clientAcc1.address, transferAmount))
-                    .to.be.revertedWith("Maze: allowance cannot be zero");
+                    .to.be.revertedWith("Maze: Allowance cannot be zero");
 
+            })
+        })
+
+        describe("Burn", () => {
+            describe("From included accounts", () => {
+                it("Should burn tokens of the user", async () => {
+                    let { maze, blacklist } = await loadFixture(
+                        deploys
+                    );
+
+                    // Transfer some tokens to the client
+                    let transferAmount = parseEther("0.2")
+                    await maze.connect(ownerAcc).transfer(clientAcc1.address, transferAmount);
+
+                    let ownerStartBalance = await maze.balanceOf(ownerAcc.address);
+                    let clientStartBalance = await maze.balanceOf(clientAcc1.address);
+                    let startTotalSupply = await maze.totalSupply();
+
+                    let burnAmount = parseEther("0.1");
+
+                    await expect(maze.connect(ownerAcc)
+                        .burn(burnAmount))
+                        .to.emit(maze, "Transfer");
+
+                    let ownerEndBalance = await maze.balanceOf(ownerAcc.address);
+                    let clientEndBalance = await maze.balanceOf(clientAcc1.address);
+                    let endTotalSupply = await maze.totalSupply();
+
+                    expect(ownerEndBalance)
+                        .to.equal(ownerStartBalance.sub(burnAmount)
+                        );
+                    expect(endTotalSupply)
+                        .to.equal(startTotalSupply.sub(burnAmount)
+                        );
+                    expect(clientEndBalance).to.equal(clientStartBalance);
+                })
+
+
+            })
+            describe("From excluded accounts", () => {
+                it("Should burn tokens of the user", async () => {
+                    let { maze, blacklist } = await loadFixture(
+                        deploys
+                    );
+
+                    // Exclude owner
+                    await maze.connect(ownerAcc).excludeFromStakers(ownerAcc.address);
+
+                    let ownerStartBalance = await maze.balanceOf(ownerAcc.address);
+                    let startTotalSupply = await maze.totalSupply();
+
+                    let burnAmount = parseEther("0.1");
+
+                    await expect(maze.connect(ownerAcc)
+                        .burn(burnAmount))
+                        .to.emit(maze, "Transfer");
+
+                    let ownerEndBalance = await maze.balanceOf(ownerAcc.address);
+                    let endTotalSupply = await maze.totalSupply();
+
+                    expect(ownerEndBalance)
+                        .to.equal(ownerStartBalance.sub(burnAmount)
+                        );
+                    expect(endTotalSupply)
+                        .to.equal(startTotalSupply.sub(burnAmount)
+                        );
+
+                })
+
+            })
+            describe("Fails", () => {
+
+                it("Should fail to burn more tokens that user has", async () => {
+                    let { maze, blacklist } = await loadFixture(
+                        deploys
+                    );
+
+                    let burnAmount = parseEther("1000000000000000");
+
+                    await expect(maze.connect(ownerAcc)
+                        .burn(burnAmount))
+                        .to.be.revertedWith("Maze: Burn amount exceeds balance");
+
+                })
             })
         })
 
@@ -449,6 +533,33 @@ describe("Maze token", () => {
                     expect(clientEndBalance)
                         .to.equal(clientStartBalance.add(transferAmount)
                     );
+                })
+            })
+
+            describe("Fails", () => {
+                it("Should fail to transfer zero amount", async() => {
+
+                    let { maze, blacklist } = await loadFixture(
+                        deploys
+                    );
+
+                    let transferAmount = parseEther("0");
+
+                    await expect(maze.connect(ownerAcc)
+                        .transfer(clientAcc1.address, transferAmount))
+                        .to.be.revertedWith("Maze: Transfer amount must be greater than zero");
+                })
+                it("Should fail to transfer if not enough tokens", async() => {
+
+                    let { maze, blacklist } = await loadFixture(
+                        deploys
+                    );
+
+                    let transferAmount = parseEther("1000000000000000");
+
+                    await expect(maze.connect(ownerAcc)
+                        .transfer(clientAcc1.address, transferAmount))
+                        .to.be.revertedWith("Maze: Transfer amount exceeds balance");
                 })
             })
         })

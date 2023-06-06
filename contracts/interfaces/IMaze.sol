@@ -118,7 +118,7 @@ interface IMaze {
     /// @param account The address of the user to exlude from stakers
     function excludeFromStakers(address account) external;
 
-    /// @notice Locks tokens forever by transferring them to the zero address
-    /// @param amount The amount of tokens to burn (lock)
+    /// @notice Burns tokens of the user
+    /// @param amount The amount of tokens to burn
     function burn(uint256 amount) external;
 }
