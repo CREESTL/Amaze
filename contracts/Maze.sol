@@ -55,7 +55,7 @@ contract Maze is IMaze, Ownable, Pausable {
     uint256 private constant percentConverter = 1e4;
 
     /// @notice List of whitelisted accounts. Whitelisted accounts do not pay fees on token transfers.
-    mapping(address => bool) public whitelist;
+    mapping(address => bool) public isWhitelisted;
 
     /// @notice The percentage of transferred tokens to be taken as fee for any token transfers
     ///         Fee is distributed among token holders
@@ -211,8 +211,8 @@ contract Maze is IMaze, Ownable, Pausable {
         ifNotBlacklisted(msg.sender)
         onlyOwner
     {
-        require(!whitelist[account], "Maze: Account already whitelisted");
-        whitelist[account] = true;
+        require(!isWhitelisted[account], "Maze: Account already whitelisted");
+        isWhitelisted[account] = true;
         emit AddToWhitelist(account);
     }
 
@@ -223,8 +223,8 @@ contract Maze is IMaze, Ownable, Pausable {
         ifNotBlacklisted(msg.sender)
         onlyOwner
     {
-        require(whitelist[account], "Maze: Account not whitelisted");
-        whitelist[account] = false;
+        require(isWhitelisted[account], "Maze: Account not whitelisted");
+        isWhitelisted[account] = false;
         emit RemoveFromWhitelist(account);
     }
 
@@ -245,8 +245,8 @@ contract Maze is IMaze, Ownable, Pausable {
         ifNotBlacklisted(msg.sender)
         onlyOwner
     {
-        require(isExcluded[account], "Maze: Account is already included");
         require(account != address(0), "Maze: Cannot include zero address");
+        require(isExcluded[account], "Maze: Account is already included");
         for (uint256 i = 0; i < _excluded.length; i++) {
             // Remove account from list of exluded
             if (_excluded[i] == account) {
@@ -268,8 +268,8 @@ contract Maze is IMaze, Ownable, Pausable {
         ifNotBlacklisted(msg.sender)
         onlyOwner
     {
-        require(!isExcluded[account], "Maze: Account is already excluded");
         require(account != address(0), "Maze: Cannot exclude zero address");
+        require(!isExcluded[account], "Maze: Account is already excluded");
         // Update owned amount in t-space before excluding
         if (_rOwned[account] > 0) {
             _tOwned[account] = _reflectToTSpace(_rOwned[account]);
@@ -345,7 +345,7 @@ contract Maze is IMaze, Ownable, Pausable {
     {
         uint256 tFee = 0;
         // Whitelisted users don't pay fees
-        if (!whitelist[msg.sender]) {
+        if (!isWhitelisted[msg.sender]) {
             tFee = tAmountNoFee.mul(feeInBP).div(percentConverter);
         }
         // Withdrawn amount = whole amount + fees
