@@ -36,7 +36,8 @@ contract Maze is IMaze, Ownable, Pausable {
     address[] private _excluded;
 
     /// @dev Maximum possible amount of tokens is 100 million
-    uint256 private constant _tTotal = 100_000_000 * 1e18;
+    // TODO make it const if no burn
+    uint256 private _tTotal = 100_000_000 * 1e18;
 
     /// @dev RFI-special variables
     uint256 private constant MAX = ~uint256(0);
@@ -65,7 +66,7 @@ contract Maze is IMaze, Ownable, Pausable {
     modifier ifNotBlacklisted(address account) {
         require(
             !IBlacklist(blacklist).checkBlacklisted(account),
-            "Maze: account is blacklisted"
+            "Maze: Account is blacklisted"
         );
         _;
     }
@@ -82,7 +83,7 @@ contract Maze is IMaze, Ownable, Pausable {
     }
 
     /// @notice See {IMaze-totalSupply}
-    function totalSupply() public pure returns (uint256) {
+    function totalSupply() public view returns (uint256) {
         return _tTotal;
     }
 
@@ -121,8 +122,8 @@ contract Maze is IMaze, Ownable, Pausable {
         whenNotPaused
         returns (bool)
     {
-        require(spender != address(0), "Maze: spender cannot be zero address");
-        require(amount != 0, "Maze: allowance cannot be zero");
+        require(spender != address(0), "Maze: Spender cannot be zero address");
+        require(amount != 0, "Maze: Allowance cannot be zero");
         _approve(msg.sender, spender, amount);
         return true;
     }
@@ -154,7 +155,7 @@ contract Maze is IMaze, Ownable, Pausable {
             msg.sender,
             _allowances[sender][msg.sender].sub(
                 amount,
-                "Maze: transfer amount exceeds allowance"
+                "Maze: Transfer amount exceeds allowance"
             )
         );
         return true;
@@ -185,7 +186,7 @@ contract Maze is IMaze, Ownable, Pausable {
             spender,
             _allowances[msg.sender][spender].sub(
                 subtractedValue,
-                "Maze: decreased allowance below zero"
+                "Maze: Allowance cannot be below zero"
             )
         );
         return true;
@@ -198,7 +199,7 @@ contract Maze is IMaze, Ownable, Pausable {
         ifNotBlacklisted(msg.sender)
         onlyOwner
     {
-        require(_feeInBP < 1e4, "Maze: fee too high");
+        require(_feeInBP < 1e4, "Maze: Fee too high");
         feeInBP = _feeInBP;
         emit SetFees(_feeInBP);
     }
@@ -430,23 +431,40 @@ contract Maze is IMaze, Ownable, Pausable {
         address spender,
         uint256 amount
     ) private ifNotBlacklisted(owner) ifNotBlacklisted(spender) {
-        require(owner != address(0), "Maze: approve from the zero address");
-        require(spender != address(0), "Maze: approve to the zero address");
+        require(owner != address(0), "Maze: Approve from the zero address");
+        require(spender != address(0), "Maze: Approve to the zero address");
         _allowances[owner][spender] = amount;
         emit Approval(owner, spender, amount);
     }
 
-    /// @notice Locks tokens of the owner by transferring them to the zero address
-    /// @param from Address to withdraw tokens from
-    /// @param amount The amount of tokens to lock
-    function _burn(address from, uint256 amount)
-        private
-        ifNotBlacklisted(from)
-    {
-        require(from != address(0), "Maze: burn from the zero address");
-        uint256 balance = _rOwned[from];
-        require(balance > amount, "Maze: burn amount exceeds balance");
-        _transfer(from, address(0), amount);
+
+    // TODO add mint here???
+
+    /// @dev Burns user's tokens decreasing supply in both t-space and r-space
+    /// @param from The address to burn tokens from
+    /// @param amount The amount of tokens to burn
+    function _burn(
+        address from,
+        uint256 amount
+    ) private ifNotBlacklisted(from) {
+        require(from != address(0), "Maze: Burn from the zero address");
+        require(balanceOf(from) >= amount, "Maze: Burn amount exceeds balance");
+        uint256 rate = _getRate();
+        if (isExcluded[from]) {
+            // Decrease balances of excluded account in both r-space and t-space
+            _rOwned[from] = _rOwned[from].sub(amount.mul(rate));
+            _tOwned[from] = _tOwned[from].sub(amount);
+        } else {
+            // Decrease balance of included account only in r-space
+            _rOwned[from] = _rOwned[from].sub(amount.mul(rate));
+        }
+        // Decrease supplies of tokens in both r-space and t-space
+        // This does not distribute burnt tokens like fees
+        // because both supplies are reduced and the rate stays the same
+        console.log("rTotal before: ", _rTotal);
+        _rTotal = _rTotal.sub(amount.mul(rate));
+        console.log("rTotal after : ", _rTotal);
+        _tTotal = _tTotal.sub(amount);
         emit Transfer(from, address(0), amount);
     }
 
@@ -459,7 +477,7 @@ contract Maze is IMaze, Ownable, Pausable {
         address to,
         uint256 amount
     ) private ifNotBlacklisted(from) ifNotBlacklisted(to) {
-        require(from != address(0), "Maze: transfer from the zero address");
+        require(from != address(0), "Maze: Transfer from the zero address");
         require(amount > 0, "Maze: Transfer amount must be greater than zero");
         require(
             balanceOf(msg.sender) >= amount,
