@@ -480,7 +480,7 @@ contract Maze is IMaze, Ownable, Pausable {
         require(from != address(0), "Maze: Transfer from the zero address");
         require(amount > 0, "Maze: Transfer amount must be greater than zero");
         require(
-            balanceOf(msg.sender) >= amount,
+            balanceOf(from) >= amount,
             "Maze: Transfer amount exceeds balance"
         );
 
