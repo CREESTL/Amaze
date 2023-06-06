@@ -20,8 +20,8 @@ contract Blacklist is IBlacklist, Ownable, Pausable {
 
     /// @notice See {IBlacklist-addToBlacklist}
     function addToBlacklist(address account) public whenNotPaused onlyOwner {
-        require(!blacklist[account], "Blacklist: account already in blacklist");
-        require(msg.sender != account, "Blacklist: cannot blacklist yourself");
+        require(!blacklist[account], "Blacklist: Account already in blacklist");
+        require(msg.sender != account, "Blacklist: Cannot blacklist yourself");
         blacklist[account] = true;
         emit AddToBlacklist(account);
     }
@@ -30,7 +30,7 @@ contract Blacklist is IBlacklist, Ownable, Pausable {
     function removeFromBlacklist(
         address account
     ) public whenNotPaused onlyOwner {
-        require(blacklist[account], "Blacklist: account not in blacklist");
+        require(blacklist[account], "Blacklist: Account not in blacklist");
         blacklist[account] = false;
         emit RemoveFromBlacklist(account);
     }

@@ -7,9 +7,6 @@ interface IMaze {
     /// @notice Indicates that `amount` tokens has been transferred from `from` to `to`
     event Transfer(address indexed from, address indexed to, uint256 amount);
 
-    /// @notice Indicates that `amount` tokens was burnt by `from`
-    event Burn(address indexed from, uint256 amount);
-
     /// @notice Indicates that allowance from `owner` for `spender` is now equal to `allowance`
     event Approval(
         address indexed owner,
@@ -32,11 +29,11 @@ interface IMaze {
     /// @notice Indicates that user has been excluded from stakers
     event ExcludeFromStakers(address account);
 
-    /// @notice Returns the maximum possible amount of tokens
-    function maxTotalSupply() external view returns (uint256);
-
-    /// @notice Returns the amount of tokens in existence.
+    /// @notice Returns the amount of tokens in existence
     function totalSupply() external view returns (uint256);
+
+    /// @notice Returns total collected fee
+    function totalFee() external view returns (uint256);
 
     /// @notice Returns the balance of the user
     /// @param account The address of the user
@@ -121,13 +118,7 @@ interface IMaze {
     /// @param account The address of the user to exlude from stakers
     function excludeFromStakers(address account) external;
 
-    // TODO is it required?
-    /// @notice Creates new tokens and transfers them to the user
-    /// @param to Recipient's address
-    /// @param amount Amount of tokens to mint
-    function mint(address to, uint256 amount) external;
-
-    /// @notice Destroys tokens of the user calling this function
+    /// @notice Burns tokens of the user
     /// @param amount The amount of tokens to burn
     function burn(uint256 amount) external;
 }
