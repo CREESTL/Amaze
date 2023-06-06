@@ -93,32 +93,34 @@ contract Maze is IMaze, Ownable, Pausable {
 
     /// @notice See {IMaze-balanceOf}
     function balanceOf(address account) public view returns (uint256) {
-        console.log("\nIn balanceOf:");
+        // console.log("\nIn balanceOf:");
         if (isExcluded[account]) {
             // If user is excluded from stakers, his balance is the amount of t-space tokens he owns
-            console.log("Result is: ",_tOwned[account]);
+            // console.log("Result is: ",_tOwned[account]);
             return _tOwned[account];
         } else {
             // If users is one of stakers, his balance is calculated using r-space tokens
             uint256 reflectedBalance = _reflectToTSpace(_rOwned[account]);
-            console.log("Result is: ", reflectedBalance);
+            // console.log("Result is: ", reflectedBalance);
             return reflectedBalance;
         }
     }
 
     /// @notice See {IMaze-allowance}
-    function allowance(
-        address owner,
-        address spender
-    ) public view returns (uint256) {
+    function allowance(address owner, address spender)
+        public
+        view
+        returns (uint256)
+    {
         return _allowances[owner][spender];
     }
 
     /// @notice See {IMaze-approve}
-    function approve(
-        address spender,
-        uint256 amount
-    ) public whenNotPaused returns (bool) {
+    function approve(address spender, uint256 amount)
+        public
+        whenNotPaused
+        returns (bool)
+    {
         require(spender != address(0), "Maze: spender cannot be zero address");
         require(amount != 0, "Maze: allowance cannot be zero");
         _approve(msg.sender, spender, amount);
@@ -131,10 +133,11 @@ contract Maze is IMaze, Ownable, Pausable {
     }
 
     /// @notice See {IMaze-transfer}
-    function transfer(
-        address to,
-        uint256 amount
-    ) public whenNotPaused returns (bool) {
+    function transfer(address to, uint256 amount)
+        public
+        whenNotPaused
+        returns (bool)
+    {
         _transfer(msg.sender, to, amount);
         return true;
     }
@@ -158,10 +161,11 @@ contract Maze is IMaze, Ownable, Pausable {
     }
 
     /// @notice See {IMaze-increaseAllowance}
-    function increaseAllowance(
-        address spender,
-        uint256 addedValue
-    ) public whenNotPaused returns (bool) {
+    function increaseAllowance(address spender, uint256 addedValue)
+        public
+        whenNotPaused
+        returns (bool)
+    {
         _approve(
             msg.sender,
             spender,
@@ -171,10 +175,11 @@ contract Maze is IMaze, Ownable, Pausable {
     }
 
     /// @notice See {IMaze-decreaseAllowance}
-    function decreaseAllowance(
-        address spender,
-        uint256 subtractedValue
-    ) public whenNotPaused returns (bool) {
+    function decreaseAllowance(address spender, uint256 subtractedValue)
+        public
+        whenNotPaused
+        returns (bool)
+    {
         _approve(
             msg.sender,
             spender,
@@ -187,26 +192,35 @@ contract Maze is IMaze, Ownable, Pausable {
     }
 
     /// @notice See {IMaze-setFees}
-    function setFees(
-        uint256 _feeInBP
-    ) public whenNotPaused ifNotBlacklisted(msg.sender) onlyOwner {
+    function setFees(uint256 _feeInBP)
+        public
+        whenNotPaused
+        ifNotBlacklisted(msg.sender)
+        onlyOwner
+    {
         require(_feeInBP < 1e4, "Maze: fee too high");
         feeInBP = _feeInBP;
         emit SetFees(_feeInBP);
     }
 
     /// @notice See {IMaze-addToWhitelist}
-    function addToWhitelist(
-        address account
-    ) public whenNotPaused ifNotBlacklisted(msg.sender) onlyOwner {
+    function addToWhitelist(address account)
+        public
+        whenNotPaused
+        ifNotBlacklisted(msg.sender)
+        onlyOwner
+    {
         whitelist[account] = true;
         emit AddToWhitelist(account);
     }
 
     /// @notice See {IMaze-removeFromWhitelist}
-    function removeFromWhitelist(
-        address account
-    ) public whenNotPaused ifNotBlacklisted(msg.sender) onlyOwner {
+    function removeFromWhitelist(address account)
+        public
+        whenNotPaused
+        ifNotBlacklisted(msg.sender)
+        onlyOwner
+    {
         whitelist[account] = false;
         emit RemoveFromWhitelist(account);
     }
@@ -222,9 +236,12 @@ contract Maze is IMaze, Ownable, Pausable {
     }
 
     /// @notice See {IMaze-includeIntoStakers}
-    function includeIntoStakers(
-        address account
-    ) public whenNotPaused ifNotBlacklisted(msg.sender) onlyOwner {
+    function includeIntoStakers(address account)
+        public
+        whenNotPaused
+        ifNotBlacklisted(msg.sender)
+        onlyOwner
+    {
         require(isExcluded[account], "Maze: Account is already included");
         require(account != address(0), "Maze: Cannot include zero address");
         for (uint256 i = 0; i < _excluded.length; i++) {
@@ -242,9 +259,12 @@ contract Maze is IMaze, Ownable, Pausable {
     }
 
     /// @notice See {IMaze-excludeFromStakers}
-    function excludeFromStakers(
-        address account
-    ) public whenNotPaused ifNotBlacklisted(msg.sender) onlyOwner {
+    function excludeFromStakers(address account)
+        public
+        whenNotPaused
+        ifNotBlacklisted(msg.sender)
+        onlyOwner
+    {
         require(!isExcluded[account], "Maze: Account is already excluded");
         require(account != address(0), "Maze: Cannot exclude zero address");
         // Update owned amount in t-space before excluding
@@ -256,86 +276,115 @@ contract Maze is IMaze, Ownable, Pausable {
         emit ExcludeFromStakers(account);
     }
 
-    /// @notice Reflect tokens amount from r-space to t-space
-    /// @param rAmount Token amount in r-space
+    /// @notice Reflect twhole amount and fee okens amount from r-space to t-space
+    /// @param rAmountWithFee Token amount in r-space
     /// @return The reflected amount of tokens (r-space)
-    /// @dev tAmount = rAmount / rate
-    function _reflectToTSpace(uint256 rAmount) private view returns (uint256) {
+    /// @dev tAmountWithFee = rAmountWithFee / rate
+    function _reflectToTSpace(uint256 rAmountWithFee)
+        private
+        view
+        returns (uint256)
+    {
         require(
-            rAmount <= _rTotal,
+            rAmountWithFee <= _rTotal,
             "Maze: Amount must be less than total reflections"
         );
-        console.log("\nIn _reflectToTSpace:");
-        console.log("rAmount is: ", rAmount);
+        // console.log("\nIn _reflectToTSpace:");
+        // console.log("rAmountWithFee is: ", rAmountWithFee);
         uint256 rate = _getRate();
-        console.log("Result is: ", rAmount.div(rate));
-        return rAmount.div(rate);
+        // console.log("Result is: ", rAmountWithFee.div(rate));
+        return rAmountWithFee.div(rate);
     }
 
     /// @dev Calculates 2 t-space and 3 r-space values based on one t-space amount
-    /// @param tAmount The whole transferred amount including fees (t-space)
-    /// @return Amount of tokens to be transferred to the recipient (t-space)
-    /// @return Amount of tokens to be taken as fees (t-space)
+    /// @param tAmountNoFee The transferred amount without fees (t-space)
     /// @return The whole transferred amount including fees (r-space)
     /// @return Amount of tokens to be transferred to the recipient (r-space)
     /// @return Amount of tokens to be takes as fees (r-space)
-    function _getValues(
-        uint256 tAmount
-    ) private view returns (uint256, uint256, uint256, uint256, uint256) {
-        (uint256 tTransferAmount, uint256 tFee) = _getTValues(tAmount);
+    /// @return The whole transferred amount including fees (t-space)
+    /// @return Amount of tokens to be taken as fees (t-space)
+    function _getValues(uint256 tAmountNoFee)
+        private
+        view
+        returns (
+            uint256,
+            uint256,
+            uint256,
+            uint256,
+            uint256
+        )
+    {
+        (uint256 tAmountWithFee, uint256 tFee) = _getTValues(tAmountNoFee);
         uint256 rate = _getRate();
-        (uint256 rAmount, uint256 rTransferAmount, uint256 rFee) = _getRValues(
-            tAmount,
-            tFee,
-            rate
-        );
-        return (rAmount, rTransferAmount, rFee, tTransferAmount, tFee);
+        (
+            uint256 rAmountWithFee,
+            uint256 rAmountNoFee,
+            uint256 rFee
+        ) = _getRValues(tAmountWithFee, tFee, rate);
+        console.log("\nIn _getValues:");
+        console.log("tAmountWithFee is: ", tAmountWithFee);
+        console.log("tAmountNoFee is  : ", tAmountNoFee);
+        console.log("tFee is          : ", tFee);
+        console.log("rAmountWithFee is: ", rAmountWithFee);
+        console.log("rAmountNoFee is  : ", rAmountNoFee);
+        console.log("rFee is          : ", rFee);
+        return (rAmountWithFee, rAmountNoFee, rFee, tAmountWithFee, tFee);
     }
 
     /// @dev Calculates transferred amount and fee amount in t-space
-    /// @param tAmount The whole transferred amount including fees (t-space)
-    /// @return Amount of tokens to be transferred to the recipient (t-space)
+    /// @param tAmountNoFee The transferred amount without fees (t-space)
+    /// @return Amount of tokens to be withdrawn from sender including fees (t-space)
     /// @return Amount of tokens to be taken as fees (t-space)
-    function _getTValues(
-        uint256 tAmount
-    ) private view returns (uint256, uint256) {
+    function _getTValues(uint256 tAmountNoFee)
+        private
+        view
+        returns (uint256, uint256)
+    {
         uint256 tFee = 0;
         // Whitelisted users don't pay fees
         if (!whitelist[msg.sender]) {
-            tFee = tAmount.mul(feeInBP).div(percentConverter);
+            tFee = tAmountNoFee.mul(feeInBP).div(percentConverter);
         }
-        // Received amount = whole amount - fees
-        uint256 tTransferAmount = tAmount.sub(tFee);
-        return (tTransferAmount, tFee);
+        // Withdrawn amount = whole amount + fees
+        uint256 tAmountWithFee = tAmountNoFee.add(tFee);
+        return (tAmountWithFee, tFee);
     }
 
     /// @dev Calculates reflected amounts (from t-space) in r-space
-    /// @param tAmount The whole transferred amount including fees (t-space)
+    /// @param tAmountWithFee The whole transferred amount including fees (t-space)
     /// @param tFee Fee amount (t-space)
     /// @param rate Rate of conversion between t-space and r-space
     /// @return The whole transferred amount including fees (r-space)
     /// @return Amount of tokens to be transferred to the recipient (r-space)
     /// @return Amount of tokens to be taken as fees (r-space)
     function _getRValues(
-        uint256 tAmount,
+        uint256 tAmountWithFee,
         uint256 tFee,
         uint256 rate
-    ) private pure returns (uint256, uint256, uint256) {
-        // Reflect from t-space into r-space
-        uint256 rAmount = tAmount.mul(rate);
+    )
+        private
+        pure
+        returns (
+            uint256,
+            uint256,
+            uint256
+        )
+    {
+        // Reflect whole amount and fee from t-space into r-space
+        uint256 rAmountWithFee = tAmountWithFee.mul(rate);
         uint256 rFee = tFee.mul(rate);
         // Received amount = whole amount - fees
-        uint256 rTransferAmount = rAmount.sub(rFee);
-        return (rAmount, rTransferAmount, rFee);
+        uint256 rAmountNoFee = rAmountWithFee.sub(rFee);
+        return (rAmountWithFee, rAmountNoFee, rFee);
     }
 
     /// @dev Calculates current conversion rate
     /// @return Conversion rate
     function _getRate() private view returns (uint256) {
-        console.log("\nIn _getRate:");
+        // console.log("\nIn _getRate:");
         (uint256 rSupply, uint256 tSupply) = _getSupplies();
         // Rate is a ratio of r-space supply and t-space supply
-        console.log("Result is: ", rSupply.div(tSupply));
+        // console.log("Result is: ", rSupply.div(tSupply));
         return rSupply.div(tSupply);
     }
 
@@ -347,7 +396,7 @@ contract Maze is IMaze, Ownable, Pausable {
     function _getSupplies() private view returns (uint256, uint256) {
         uint256 rSupply = _rTotal;
         uint256 tSupply = _tTotal;
-        console.log("\nIn _getSupplies:");
+        // console.log("\nIn _getSupplies:");
         // Decrease supplies by amount owned by non-stakers
         for (uint256 i = 0; i < _excluded.length; i++) {
             if (
@@ -361,14 +410,14 @@ contract Maze is IMaze, Ownable, Pausable {
         }
 
         if (rSupply < _rTotal.div(_tTotal)) {
-            console.log("Result1 is: ");
-            console.log("\t", _rTotal);
-            console.log("\t", _tTotal);
+            // console.log("Result1 is: ");
+            // console.log("\t", _rTotal);
+            // console.log("\t", _tTotal);
             return (_rTotal, _tTotal);
         }
-        console.log("Result2 is: ");
-        console.log("\t", rSupply);
-        console.log("\t", tSupply);
+        // console.log("Result2 is: ");
+        // console.log("\t", rSupply);
+        // console.log("\t", tSupply);
         return (rSupply, tSupply);
     }
 
@@ -390,10 +439,10 @@ contract Maze is IMaze, Ownable, Pausable {
     /// @notice Locks tokens of the owner by transferring them to the zero address
     /// @param from Address to withdraw tokens from
     /// @param amount The amount of tokens to lock
-    function _burn(
-        address from,
-        uint256 amount
-    ) private ifNotBlacklisted(from) {
+    function _burn(address from, uint256 amount)
+        private
+        ifNotBlacklisted(from)
+    {
         require(from != address(0), "Maze: burn from the zero address");
         uint256 balance = _rOwned[from];
         require(balance > amount, "Maze: burn amount exceeds balance");
@@ -404,7 +453,7 @@ contract Maze is IMaze, Ownable, Pausable {
     /// @dev Transfers tokens to the given address
     /// @param from Sender's address
     /// @param to Recipient's address
-    /// @param amount The amount of tokens to send
+    /// @param amount The amount of tokens to send without fees
     function _transfer(
         address from,
         address to,
@@ -412,17 +461,26 @@ contract Maze is IMaze, Ownable, Pausable {
     ) private ifNotBlacklisted(from) ifNotBlacklisted(to) {
         require(from != address(0), "Maze: transfer from the zero address");
         require(amount > 0, "Maze: Transfer amount must be greater than zero");
-        require(balanceOf(msg.sender) >= amount, "Maze: Transfer amount exceeds balance");
+        require(
+            balanceOf(msg.sender) >= amount,
+            "Maze: Transfer amount exceeds balance"
+        );
+
+        console.log("\nIn transfer:");
 
         // Next transfer logic depends on which accout is excluded (in any)
         // If account is excluded his t-space balance does not change
         if (isExcluded[from] && !isExcluded[to]) {
+            console.log("From excluded to included");
             _transferFromExcluded(from, to, amount);
         } else if (!isExcluded[from] && isExcluded[to]) {
+            console.log("From included to excluded");
             _transferToExcluded(from, to, amount);
         } else if (!isExcluded[from] && !isExcluded[to]) {
+            console.log("From included to included");
             _transferStandard(from, to, amount);
         } else if (isExcluded[from] && isExcluded[to]) {
+            console.log("From excluded to excluded");
             _transferBothExcluded(from, to, amount);
         } else {
             _transferStandard(from, to, amount);
@@ -432,100 +490,108 @@ contract Maze is IMaze, Ownable, Pausable {
     /// @dev Transfers tokens from included account to included account
     /// @param from Sender's address
     /// @param to Recipient's address
-    /// @param tAmount The amount of tokens to send
+    /// @param tAmountNoFee The amount of tokens to send without fees
     function _transferStandard(
         address from,
         address to,
-        uint256 tAmount
+        uint256 tAmountNoFee
     ) private {
         (
-            uint256 rAmount,
-            uint256 rTransferAmount,
+            uint256 rAmountWithFee,
+            uint256 rAmountNoFee,
             uint256 rFee,
-            uint256 tTransferAmount,
+            uint256 tAmountWithFee,
             uint256 tFee
-        ) = _getValues(tAmount);
+        ) = _getValues(tAmountNoFee);
         // Only change sender's and recipient's balances in r-space (they are both included)
-        _rOwned[from] = _rOwned[from].sub(rAmount);
-        _rOwned[to] = _rOwned[to].add(rTransferAmount);
+        // Sender looses whole amount plus fees
+        _rOwned[from] = _rOwned[from].sub(rAmountWithFee);
+        // Recipient recieves whole amount (fees are distributed automatically)
+        _rOwned[to] = _rOwned[to].add(rAmountNoFee);
         _processFees(rFee, tFee);
-        emit Transfer(from, to, tTransferAmount);
+        emit Transfer(from, to, tAmountNoFee);
     }
 
     /// @dev Transfers tokens from included account to excluded account
     /// @param from Sender's address
     /// @param to Recipient's address
-    /// @param tAmount The amount of tokens to send
+    /// @param tAmountNoFee The amount of tokens to send without fees
     function _transferToExcluded(
         address from,
         address to,
-        uint256 tAmount
+        uint256 tAmountNoFee
     ) private {
         (
-            uint256 rAmount,
-            uint256 rTransferAmount,
+            uint256 rAmountWithFee,
+            uint256 rAmountNoFee,
             uint256 rFee,
-            uint256 tTransferAmount,
+            uint256 tAmountWithFee,
             uint256 tFee
-        ) = _getValues(tAmount);
+        ) = _getValues(tAmountNoFee);
         // Only decrease sender's balance in r-space (he is included)
-        _rOwned[from] = _rOwned[from].sub(rAmount);
+        // Sender looses whole amount plus fees
+        _rOwned[from] = _rOwned[from].sub(rAmountWithFee);
         // Increase recipient's balance in both t-space and r-space
-        _tOwned[to] = _tOwned[to].add(tTransferAmount);
-        _rOwned[to] = _rOwned[to].add(rTransferAmount);
+        // Recipient recieves whole amount (fees are distributed automatically)
+        _tOwned[to] = _tOwned[to].add(tAmountNoFee);
+        _rOwned[to] = _rOwned[to].add(rAmountNoFee);
         _processFees(rFee, tFee);
-        emit Transfer(from, to, tTransferAmount);
+        emit Transfer(from, to, tAmountNoFee);
     }
 
     /// @dev Transfers tokens from excluded to included account
     /// @param from Sender's address
     /// @param to Recipient's address
-    /// @param tAmount The amount of tokens to send
+    /// @param tAmountNoFee The amount of tokens to send without fees
     function _transferFromExcluded(
         address from,
         address to,
-        uint256 tAmount
+        uint256 tAmountNoFee
     ) private {
         (
-            uint256 rAmount,
-            uint256 rTransferAmount,
+            uint256 rAmountWithFee,
+            uint256 rAmountNoFee,
             uint256 rFee,
-            uint256 tTransferAmount,
+            uint256 tAmountWithFee,
             uint256 tFee
-        ) = _getValues(tAmount);
+        ) = _getValues(tAmountNoFee);
         // Decrease sender's balances in both t-space and r-space
-        _tOwned[from] = _tOwned[from].sub(tAmount);
-        _rOwned[from] = _rOwned[from].sub(rAmount);
+        // Sender looses whole amount plus fees
+        _tOwned[from] = _tOwned[from].sub(tAmountWithFee);
+        _rOwned[from] = _rOwned[from].sub(rAmountWithFee);
         // Only increase recipient's balance in r-space (he is included)
-        _rOwned[to] = _rOwned[to].add(rTransferAmount);
+        // Recipient recieves whole amount (fees are distributed automatically)
+        _rOwned[to] = _rOwned[to].add(rAmountNoFee);
         _processFees(rFee, tFee);
-        emit Transfer(from, to, tTransferAmount);
+        emit Transfer(from, to, tAmountNoFee);
     }
 
     /// @dev Transfers tokens between two exluced accounts
     /// @param from Sender's address
     /// @param to Recipient's address
-    /// @param tAmount The amount of tokens to send
+    /// @param tAmountNoFee The amount of tokens to send without fees
     function _transferBothExcluded(
         address from,
         address to,
-        uint256 tAmount
+        uint256 tAmountNoFee
     ) private {
         (
-            uint256 rAmount,
-            uint256 rTransferAmount,
+            uint256 rAmountWithFee,
+            uint256 rAmountNoFee,
             uint256 rFee,
-            uint256 tTransferAmount,
+            uint256 tAmountWithFee,
             uint256 tFee
-        ) = _getValues(tAmount);
+        ) = _getValues(tAmountNoFee);
         // Decrease sender's balances in both t-space and r-space
-        _tOwned[from] = _tOwned[from].sub(tAmount);
-        _rOwned[from] = _rOwned[from].sub(rAmount);
+        // Sender looses whole amount plus fees
+        _tOwned[from] = _tOwned[from].sub(tAmountWithFee);
+        _rOwned[from] = _rOwned[from].sub(rAmountWithFee);
         // Increase recipient's balances in both t-space and r-space
-        _tOwned[to] = _tOwned[to].add(tTransferAmount);
-        _rOwned[to] = _rOwned[to].add(rTransferAmount);
+        // Recipient recieves whole amount (fees are distributed automatically)
+        _tOwned[to] = _tOwned[to].add(tAmountNoFee);
+        _rOwned[to] = _rOwned[to].add(rAmountNoFee);
         _processFees(rFee, tFee);
-        emit Transfer(from, to, tTransferAmount);
+        emit Transfer(from, to, tAmountNoFee);
     }
 
     /// @dev Distributes r-space fees among stakers
