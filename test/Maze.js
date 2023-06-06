@@ -163,6 +163,8 @@ describe("Maze token", () => {
                         .to.equal(parseEther("0"));
 
                     let transferAmount = parseEther("0.5");
+                    let feeAmount = transferAmount.div(100).mul(2);
+
                     await maze.connect(ownerAcc)
                         .transfer(clientAcc1.address, transferAmount);
 
@@ -170,24 +172,13 @@ describe("Maze token", () => {
                     let clientEndBalance = await maze.balanceOf(clientAcc1.address);
 
                     // Both owner and user get distributed fees as well
-                    // TODO calculate distributed fees here precisely
-                    // Owner loses transfer amount but recieves fees
+                    // Owner loses transfer amount and feeAmount
+                    // but recieves some share of fee amount
                     expect(ownerEndBalance)
-                        .to.be.gt(
-                            ownerStartBalance
-                            .sub(transferAmount)
-                        );
-                    expect(ownerEndBalance)
-                        .to.be.lt(
-                            ownerStartBalance
-                        );
-                    // Client recieves both transfer amount minus fees
+                        .to.be.gt(ownerStartBalance.sub(transferAmount).sub(feeAmount));
+                    // Client recieves whole transfer amount and some share of fees
                     expect(clientEndBalance)
                         .to.be.gt(
-                            clientStartBalance
-                        );
-                    expect(clientEndBalance)
-                        .to.be.lt(
                             clientStartBalance.add(transferAmount)
                         );
                 })
@@ -221,16 +212,16 @@ describe("Maze token", () => {
 
                     let feeAmount = transferAmount.div(100).mul(2)
 
+                    // Owner looses both transfer amount and fee amount
+                    // and recieves no fees
+                    // He is excluded
                     expect(ownerEndBalance)
-                        .to.equal(ownerStartBalance.sub(transferAmount));
-                    // 2% of fees get subtracted from transfer amount
+                        .to.equal(ownerStartBalance.sub(transferAmount).sub(feeAmount));
+
+                    // Client recieves whole transfer amount and no fees
+                    // He is excluded
                     expect(clientEndBalance)
-                        .to.equal(
-                            clientStartBalance
-                            .add(transferAmount
-                                .sub(feeAmount)
-                            )
-                        );
+                        .to.equal(clientStartBalance.add(transferAmount));
 
                 })
             })
@@ -262,51 +253,205 @@ describe("Maze token", () => {
         })
     });
 
+    describe("Main functions", () => {
+        describe("Approve", () => {
+            it("Should approve transfer of tokens to another user", async () => {
 
-    describe("Transfer", () => {
-        describe("Included accounts", () => {
-            it("Should transfer some tokens from one address to the other", async () => {
-            });
+                let { maze, blacklist } = await loadFixture(
+                    deploys
+                );
 
-            it("Should not increase the number of holders when transfering to the same account", async () => {
-            });
+                expect(await maze.allowance(ownerAcc.address, clientAcc1.address))
+                    .to.equal(0);
 
-            it("Should delete account from holders if all of its tokens get transferred", async () => {
-            });
+                let transferAmount = parseEther("0.1");
+                await expect(maze.connect(ownerAcc)
+                    .approve(clientAcc1.address, transferAmount))
+                    .to.emit(maze, "Approval");
 
-            it("Should keep address a holder if he transferes tokens and gets them back", async () => {
-            });
+                expect(await maze.allowance(ownerAcc.address, clientAcc1.address))
+                    .to.equal(transferAmount);
 
-            it("Should not allow a user to transfer tokens to himself", async () => {
-            });
+            })
 
-            it("Should fail to transfer tokens if receiver has zero address", async () => {
-            });
+            it("Should fail to approve for zero address spender", async () => {
 
-            it("Should fail to transfer tokens if sender has no tokens", async () => {
-            });
-        });
-        describe("Excluded accounts", () => {
-            it("Should transfer some tokens from one address to the other", async () => {
-            });
+                let { maze, blacklist } = await loadFixture(
+                    deploys
+                );
 
-            it("Should not increase the number of holders when transfering to the same account", async () => {
-            });
+                let transferAmount = parseEther("0.1");
+                await expect(maze.connect(ownerAcc).approve(zeroAddress, transferAmount))
+                    .to.be.revertedWith("Maze: spender cannot be zero address");
 
-            it("Should delete account from holders if all of its tokens get transferred", async () => {
-            });
+            })
 
-            it("Should keep address a holder if he transferes tokens and gets them back", async () => {
-            });
+            it("Should fail to approve for zero amount", async () => {
 
-            it("Should not allow a user to transfer tokens to himself", async () => {
-            });
+                let { maze, blacklist } = await loadFixture(
+                    deploys
+                );
 
-            it("Should fail to transfer tokens if receiver has zero address", async () => {
-            });
+                let transferAmount = parseEther("0");
+                await expect(maze.connect(ownerAcc).approve(clientAcc1.address, transferAmount))
+                    .to.be.revertedWith("Maze: allowance cannot be zero");
 
-            it("Should fail to transfer tokens if sender has no tokens", async () => {
-            });
-        });
+            })
+        })
+
+        describe("Transfer", () => {
+            describe("From included to included", () => {
+                it("Should transfer tokens between two users", async () => {
+                    let { maze, blacklist } = await loadFixture(
+                        deploys
+                    );
+
+                    let ownerStartBalance = await maze.balanceOf(ownerAcc.address);
+                    let clientStartBalance = await maze.balanceOf(clientAcc1.address);
+
+                    let transferAmount = parseEther("0.1");
+                    let feeAmount = transferAmount.div(100).mul(2);
+
+                    await expect(maze.connect(ownerAcc)
+                        .transfer(clientAcc1.address, transferAmount))
+                        .to.emit(maze, "Transfer");
+
+                    let ownerEndBalance = await maze.balanceOf(ownerAcc.address);
+                    let clientEndBalance = await maze.balanceOf(clientAcc1.address);
+
+
+                    // Owner looses both transfer amount and fee amount but
+                    // recieves some share of fees
+                    expect(ownerEndBalance)
+                        .to.be.gt(ownerStartBalance.sub(transferAmount).sub(feeAmount));
+
+                    // Client recieves whole transfer amount and some share of fees
+                    expect(clientEndBalance)
+                        .to.be.gt(clientStartBalance.add(transferAmount)
+                    );
+                })
+            })
+            describe("From included to excluded", () => {
+
+                it("Should transfer tokens between two users", async () => {
+
+                    let { maze, blacklist } = await loadFixture(
+                        deploys
+                    );
+
+                    // Exclude client
+                    await maze.connect(ownerAcc).excludeFromStakers(clientAcc1.address);
+
+                    let ownerStartBalance = await maze.balanceOf(ownerAcc.address);
+                    let clientStartBalance = await maze.balanceOf(clientAcc1.address);
+
+                    let transferAmount = parseEther("0.1");
+                    let feeAmount = transferAmount.div(100).mul(2);
+
+                    await expect(maze.connect(ownerAcc)
+                        .transfer(clientAcc1.address, transferAmount))
+                        .to.emit(maze, "Transfer");
+
+                    let ownerEndBalance = await maze.balanceOf(ownerAcc.address);
+                    let clientEndBalance = await maze.balanceOf(clientAcc1.address);
+
+                    // Owner looses both transfer amount and fee amount but
+                    // then recieves whole fee amount back, because he's
+                    // the only included staker
+                    expect(ownerEndBalance)
+                        .to.equal(ownerStartBalance
+                            .sub(transferAmount)
+                            .sub(feeAmount)
+                            // Explicitly show it
+                            .add(feeAmount)
+                        );
+
+                    // Client recieves whole transfer amount and NO fees
+                    expect(clientEndBalance)
+                        .to.equal(clientStartBalance.add(transferAmount)
+                        );
+                })
+            })
+            describe("From excluded to included", () => {
+
+                it("Should transfer tokens between two users", async () => {
+
+                    let { maze, blacklist } = await loadFixture(
+                        deploys
+                    );
+
+                    // Exclude owner
+                    await maze.connect(ownerAcc).excludeFromStakers(ownerAcc.address);
+
+                    let ownerStartBalance = await maze.balanceOf(ownerAcc.address);
+                    let clientStartBalance = await maze.balanceOf(clientAcc1.address);
+
+                    let transferAmount = parseEther("0.1");
+                    let feeAmount = transferAmount.div(100).mul(2);
+
+                    await expect(maze.connect(ownerAcc)
+                        .transfer(clientAcc1.address, transferAmount))
+                        .to.emit(maze, "Transfer");
+
+                    let ownerEndBalance = await maze.balanceOf(ownerAcc.address);
+                    let clientEndBalance = await maze.balanceOf(clientAcc1.address);
+
+                    // Owner looses both transfer amount and fee amount
+                    // and he gets no fee shares back
+                    expect(ownerEndBalance)
+                        .to.equal(ownerStartBalance
+                            .sub(transferAmount)
+                            .sub(feeAmount)
+                        );
+
+                    // Client recieves whole transfer amount and whole fee
+                    // because he is the only staker
+                    expect(clientEndBalance)
+                        .to.equal(clientStartBalance.add(transferAmount).add(feeAmount)
+                    );
+                })
+            })
+
+            describe("From excluded to excluded", () => {
+
+                it("Should transfer tokens between two users", async () => {
+
+                    let { maze, blacklist } = await loadFixture(
+                        deploys
+                    );
+
+                    // Exclude both accounts
+                    await maze.connect(ownerAcc).excludeFromStakers(ownerAcc.address);
+                    await maze.connect(ownerAcc).excludeFromStakers(clientAcc1.address);
+
+                    let ownerStartBalance = await maze.balanceOf(ownerAcc.address);
+                    let clientStartBalance = await maze.balanceOf(clientAcc1.address);
+
+                    let transferAmount = parseEther("0.1");
+                    let feeAmount = transferAmount.div(100).mul(2);
+
+                    await expect(maze.connect(ownerAcc)
+                        .transfer(clientAcc1.address, transferAmount))
+                        .to.emit(maze, "Transfer");
+
+                    let ownerEndBalance = await maze.balanceOf(ownerAcc.address);
+                    let clientEndBalance = await maze.balanceOf(clientAcc1.address);
+
+                    // Owner looses both transfer amount and fee amount
+                    // and he gets no fee shares back
+                    expect(ownerEndBalance)
+                        .to.equal(ownerStartBalance
+                            .sub(transferAmount)
+                            .sub(feeAmount)
+                        );
+
+                    // Client recieves whole transfer and no fees
+                    expect(clientEndBalance)
+                        .to.equal(clientStartBalance.add(transferAmount)
+                    );
+                })
+            })
+        })
+
     });
 });
