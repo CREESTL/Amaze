@@ -9,9 +9,6 @@ import "@openzeppelin/contracts/security/Pausable.sol";
 import "./interfaces/IMaze.sol";
 import "./interfaces/IBlacklist.sol";
 
-// TODO remove it
-import "hardhat/console.sol";
-
 /// @title ERC20 token with RFI logic
 /// @dev NOTE: This contract uses the principals of RFI tokens
 ///            for detailed documentation please see:
@@ -94,15 +91,12 @@ contract Maze is IMaze, Ownable, Pausable {
 
     /// @notice See {IMaze-balanceOf}
     function balanceOf(address account) public view returns (uint256) {
-        // console.log("\nIn balanceOf:");
         if (isExcluded[account]) {
             // If user is excluded from stakers, his balance is the amount of t-space tokens he owns
-            // console.log("Result is: ",_tOwned[account]);
             return _tOwned[account];
         } else {
             // If users is one of stakers, his balance is calculated using r-space tokens
             uint256 reflectedBalance = _reflectToTSpace(_rOwned[account]);
-            // console.log("Result is: ", reflectedBalance);
             return reflectedBalance;
         }
     }
@@ -270,10 +264,7 @@ contract Maze is IMaze, Ownable, Pausable {
             rAmountWithFee <= _rTotal,
             "Maze: Amount must be less than total reflections"
         );
-        // console.log("\nIn _reflectToTSpace:");
-        // console.log("rAmountWithFee is: ", rAmountWithFee);
         uint256 rate = _getRate();
-        // console.log("Result is: ", rAmountWithFee.div(rate));
         return rAmountWithFee.div(rate);
     }
 
@@ -294,13 +285,6 @@ contract Maze is IMaze, Ownable, Pausable {
             uint256 rAmountNoFee,
             uint256 rFee
         ) = _getRValues(tAmountWithFee, tFee, rate);
-        console.log("\nIn _getValues:");
-        console.log("tAmountWithFee is: ", tAmountWithFee);
-        console.log("tAmountNoFee is  : ", tAmountNoFee);
-        console.log("tFee is          : ", tFee);
-        console.log("rAmountWithFee is: ", rAmountWithFee);
-        console.log("rAmountNoFee is  : ", rAmountNoFee);
-        console.log("rFee is          : ", rFee);
         return (rAmountWithFee, rAmountNoFee, rFee, tAmountWithFee, tFee);
     }
 
@@ -344,10 +328,8 @@ contract Maze is IMaze, Ownable, Pausable {
     /// @dev Calculates current conversion rate
     /// @return Conversion rate
     function _getRate() private view returns (uint256) {
-        // console.log("\nIn _getRate:");
         (uint256 rSupply, uint256 tSupply) = _getSupplies();
         // Rate is a ratio of r-space supply and t-space supply
-        // console.log("Result is: ", rSupply.div(tSupply));
         return rSupply.div(tSupply);
     }
 
@@ -359,7 +341,6 @@ contract Maze is IMaze, Ownable, Pausable {
     function _getSupplies() private view returns (uint256, uint256) {
         uint256 rSupply = _rTotal;
         uint256 tSupply = _tTotal;
-        // console.log("\nIn _getSupplies:");
         // Decrease supplies by amount owned by non-stakers
         for (uint256 i = 0; i < _excluded.length; i++) {
             if (
@@ -373,14 +354,8 @@ contract Maze is IMaze, Ownable, Pausable {
         }
 
         if (rSupply < _rTotal.div(_tTotal)) {
-            // console.log("Result1 is: ");
-            // console.log("\t", _rTotal);
-            // console.log("\t", _tTotal);
             return (_rTotal, _tTotal);
         }
-        // console.log("Result2 is: ");
-        // console.log("\t", rSupply);
-        // console.log("\t", tSupply);
         return (rSupply, tSupply);
     }
 
@@ -422,9 +397,7 @@ contract Maze is IMaze, Ownable, Pausable {
         // Decrease supplies of tokens in both r-space and t-space
         // This does not distribute burnt tokens like fees
         // because both supplies are reduced and the rate stays the same
-        console.log("rTotal before: ", _rTotal);
         _rTotal = _rTotal.sub(amount.mul(rate));
-        console.log("rTotal after : ", _rTotal);
         _tTotal = _tTotal.sub(amount);
         emit Transfer(from, address(0), amount);
     }
@@ -445,21 +418,15 @@ contract Maze is IMaze, Ownable, Pausable {
             "Maze: Transfer amount exceeds balance"
         );
 
-        console.log("\nIn transfer:");
-
         // Next transfer logic depends on which accout is excluded (in any)
         // If account is excluded his t-space balance does not change
         if (isExcluded[from] && !isExcluded[to]) {
-            console.log("From excluded to included");
             _transferFromExcluded(from, to, amount);
         } else if (!isExcluded[from] && isExcluded[to]) {
-            console.log("From included to excluded");
             _transferToExcluded(from, to, amount);
         } else if (!isExcluded[from] && !isExcluded[to]) {
-            console.log("From included to included");
             _transferStandard(from, to, amount);
         } else if (isExcluded[from] && isExcluded[to]) {
-            console.log("From excluded to excluded");
             _transferBothExcluded(from, to, amount);
         } else {
             _transferStandard(from, to, amount);
