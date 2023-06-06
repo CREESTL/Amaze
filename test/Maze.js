@@ -330,7 +330,11 @@ describe("Maze token", () => {
                     expect(endTotalSupply)
                         .to.equal(startTotalSupply.sub(burnAmount)
                         );
+                    // Client's balance should not change. Burnt tokens are
+                    // not distributed
                     expect(clientEndBalance).to.equal(clientStartBalance);
+                    // Burnt tokens are not sent to the zero address
+                    expect(await maze.balanceOf(zeroAddress)).to.equal(0);
                 })
 
 
@@ -561,6 +565,43 @@ describe("Maze token", () => {
                         .transfer(clientAcc1.address, transferAmount))
                         .to.be.revertedWith("Maze: Transfer amount exceeds balance");
                 })
+            })
+        })
+
+        describe("TransferFrom", () => {
+            it("Should decrease allowance after transfer", async () => {
+
+                let { maze, blacklist } = await loadFixture(
+                    deploys
+                );
+
+                // Exclude all accounts to make it easier
+                await maze.connect(ownerAcc).excludeFromStakers(ownerAcc.address);
+                await maze.connect(ownerAcc).excludeFromStakers(clientAcc1.address);
+                await maze.connect(ownerAcc).excludeFromStakers(clientAcc2.address);
+
+                let transferAmount = parseEther("1");
+                let feeAmount = transferAmount.div(100).mul(2);
+                await maze.connect(ownerAcc)
+                    .approve(clientAcc1.address, transferAmount);
+
+                let startAllowance = await maze.allowance(ownerAcc.address, clientAcc1.address);
+
+                let client2StartBalance = await maze.balanceOf(clientAcc2.address);
+                await maze.connect(clientAcc1)
+                    .transferFrom(
+                        ownerAcc.address,
+                        clientAcc2.address,
+                        transferAmount
+                    )
+                let client2EndBalance = await maze.balanceOf(clientAcc2.address);
+                expect(client2EndBalance)
+                    .to.equal(client2StartBalance.add(transferAmount));
+
+                let endAllowance = await maze.allowance(ownerAcc.address, clientAcc1.address);
+                expect(endAllowance)
+                    .to.equal(startAllowance.sub(transferAmount));
+
             })
         })
 
