@@ -108,20 +108,18 @@ contract Maze is IMaze, Ownable, Pausable {
     }
 
     /// @notice See {IMaze-allowance}
-    function allowance(address owner, address spender)
-        public
-        view
-        returns (uint256)
-    {
+    function allowance(
+        address owner,
+        address spender
+    ) public view returns (uint256) {
         return _allowances[owner][spender];
     }
 
     /// @notice See {IMaze-approve}
-    function approve(address spender, uint256 amount)
-        public
-        whenNotPaused
-        returns (bool)
-    {
+    function approve(
+        address spender,
+        uint256 amount
+    ) public whenNotPaused returns (bool) {
         require(spender != address(0), "Maze: Spender cannot be zero address");
         require(amount != 0, "Maze: Allowance cannot be zero");
         _approve(msg.sender, spender, amount);
@@ -134,11 +132,10 @@ contract Maze is IMaze, Ownable, Pausable {
     }
 
     /// @notice See {IMaze-transfer}
-    function transfer(address to, uint256 amount)
-        public
-        whenNotPaused
-        returns (bool)
-    {
+    function transfer(
+        address to,
+        uint256 amount
+    ) public whenNotPaused returns (bool) {
         _transfer(msg.sender, to, amount);
         return true;
     }
@@ -162,11 +159,10 @@ contract Maze is IMaze, Ownable, Pausable {
     }
 
     /// @notice See {IMaze-increaseAllowance}
-    function increaseAllowance(address spender, uint256 addedValue)
-        public
-        whenNotPaused
-        returns (bool)
-    {
+    function increaseAllowance(
+        address spender,
+        uint256 addedValue
+    ) public whenNotPaused returns (bool) {
         _approve(
             msg.sender,
             spender,
@@ -176,11 +172,10 @@ contract Maze is IMaze, Ownable, Pausable {
     }
 
     /// @notice See {IMaze-decreaseAllowance}
-    function decreaseAllowance(address spender, uint256 subtractedValue)
-        public
-        whenNotPaused
-        returns (bool)
-    {
+    function decreaseAllowance(
+        address spender,
+        uint256 subtractedValue
+    ) public whenNotPaused returns (bool) {
         _approve(
             msg.sender,
             spender,
@@ -193,36 +188,27 @@ contract Maze is IMaze, Ownable, Pausable {
     }
 
     /// @notice See {IMaze-setFees}
-    function setFees(uint256 _feeInBP)
-        public
-        whenNotPaused
-        ifNotBlacklisted(msg.sender)
-        onlyOwner
-    {
+    function setFees(
+        uint256 _feeInBP
+    ) public whenNotPaused ifNotBlacklisted(msg.sender) onlyOwner {
         require(_feeInBP < 1e4, "Maze: Fee too high");
         feeInBP = _feeInBP;
         emit SetFees(_feeInBP);
     }
 
     /// @notice See {IMaze-addToWhitelist}
-    function addToWhitelist(address account)
-        public
-        whenNotPaused
-        ifNotBlacklisted(msg.sender)
-        onlyOwner
-    {
+    function addToWhitelist(
+        address account
+    ) public whenNotPaused ifNotBlacklisted(msg.sender) onlyOwner {
         require(!isWhitelisted[account], "Maze: Account already whitelisted");
         isWhitelisted[account] = true;
         emit AddToWhitelist(account);
     }
 
     /// @notice See {IMaze-removeFromWhitelist}
-    function removeFromWhitelist(address account)
-        public
-        whenNotPaused
-        ifNotBlacklisted(msg.sender)
-        onlyOwner
-    {
+    function removeFromWhitelist(
+        address account
+    ) public whenNotPaused ifNotBlacklisted(msg.sender) onlyOwner {
         require(isWhitelisted[account], "Maze: Account not whitelisted");
         isWhitelisted[account] = false;
         emit RemoveFromWhitelist(account);
@@ -239,12 +225,9 @@ contract Maze is IMaze, Ownable, Pausable {
     }
 
     /// @notice See {IMaze-includeIntoStakers}
-    function includeIntoStakers(address account)
-        public
-        whenNotPaused
-        ifNotBlacklisted(msg.sender)
-        onlyOwner
-    {
+    function includeIntoStakers(
+        address account
+    ) public whenNotPaused ifNotBlacklisted(msg.sender) onlyOwner {
         require(account != address(0), "Maze: Cannot include zero address");
         require(isExcluded[account], "Maze: Account is already included");
         for (uint256 i = 0; i < _excluded.length; i++) {
@@ -262,12 +245,9 @@ contract Maze is IMaze, Ownable, Pausable {
     }
 
     /// @notice See {IMaze-excludeFromStakers}
-    function excludeFromStakers(address account)
-        public
-        whenNotPaused
-        ifNotBlacklisted(msg.sender)
-        onlyOwner
-    {
+    function excludeFromStakers(
+        address account
+    ) public whenNotPaused ifNotBlacklisted(msg.sender) onlyOwner {
         require(account != address(0), "Maze: Cannot exclude zero address");
         require(!isExcluded[account], "Maze: Account is already excluded");
         // Update owned amount in t-space before excluding
@@ -283,11 +263,9 @@ contract Maze is IMaze, Ownable, Pausable {
     /// @param rAmountWithFee Token amount in r-space
     /// @return The reflected amount of tokens (r-space)
     /// @dev tAmountWithFee = rAmountWithFee / rate
-    function _reflectToTSpace(uint256 rAmountWithFee)
-        private
-        view
-        returns (uint256)
-    {
+    function _reflectToTSpace(
+        uint256 rAmountWithFee
+    ) private view returns (uint256) {
         require(
             rAmountWithFee <= _rTotal,
             "Maze: Amount must be less than total reflections"
@@ -306,17 +284,9 @@ contract Maze is IMaze, Ownable, Pausable {
     /// @return Amount of tokens to be takes as fees (r-space)
     /// @return The whole transferred amount including fees (t-space)
     /// @return Amount of tokens to be taken as fees (t-space)
-    function _getValues(uint256 tAmountNoFee)
-        private
-        view
-        returns (
-            uint256,
-            uint256,
-            uint256,
-            uint256,
-            uint256
-        )
-    {
+    function _getValues(
+        uint256 tAmountNoFee
+    ) private view returns (uint256, uint256, uint256, uint256, uint256) {
         (uint256 tAmountWithFee, uint256 tFee) = _getTValues(tAmountNoFee);
         uint256 rate = _getRate();
         (
@@ -338,11 +308,9 @@ contract Maze is IMaze, Ownable, Pausable {
     /// @param tAmountNoFee The transferred amount without fees (t-space)
     /// @return Amount of tokens to be withdrawn from sender including fees (t-space)
     /// @return Amount of tokens to be taken as fees (t-space)
-    function _getTValues(uint256 tAmountNoFee)
-        private
-        view
-        returns (uint256, uint256)
-    {
+    function _getTValues(
+        uint256 tAmountNoFee
+    ) private view returns (uint256, uint256) {
         uint256 tFee = 0;
         // Whitelisted users don't pay fees
         if (!isWhitelisted[msg.sender]) {
@@ -364,15 +332,7 @@ contract Maze is IMaze, Ownable, Pausable {
         uint256 tAmountWithFee,
         uint256 tFee,
         uint256 rate
-    )
-        private
-        pure
-        returns (
-            uint256,
-            uint256,
-            uint256
-        )
-    {
+    ) private pure returns (uint256, uint256, uint256) {
         // Reflect whole amount and fee from t-space into r-space
         uint256 rAmountWithFee = tAmountWithFee.mul(rate);
         uint256 rFee = tFee.mul(rate);
@@ -438,7 +398,6 @@ contract Maze is IMaze, Ownable, Pausable {
         _allowances[owner][spender] = amount;
         emit Approval(owner, spender, amount);
     }
-
 
     // TODO add mint here???
 

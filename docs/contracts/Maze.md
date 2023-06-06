@@ -2,52 +2,13 @@
 
 
 
-> ERC20 token with RFI logi
+> ERC20 token with RFI logic
 
 
 
 *NOTE: This contract uses the principals of RFI tokens            for detailed documentation please see:            https://reflect-contract-doc.netlify.app/#a-technical-whitepaper-for-reflect-contracts*
 
 ## Methods
-
-### _isExcluded
-
-```solidity
-function _isExcluded(address) external view returns (bool)
-```
-
-Marks that account is exluded from staking. Exluded accounts do not         get shares of distributed fees
-
-
-
-#### Parameters
-
-| Name | Type | Description |
-|---|---|---|
-| _0 | address | undefined |
-
-#### Returns
-
-| Name | Type | Description |
-|---|---|---|
-| _0 | bool | undefined |
-
-### _tFeeTotal
-
-```solidity
-function _tFeeTotal() external view returns (uint256)
-```
-
-
-
-*Total amount of fees collected in t-space*
-
-
-#### Returns
-
-| Name | Type | Description |
-|---|---|---|
-| _0 | uint256 | undefined |
 
 ### addToWhitelist
 
@@ -278,30 +239,13 @@ See {IMaze-increaseAllowance}
 |---|---|---|
 | _0 | bool | undefined |
 
-### maxTotalSupply
+### isExcluded
 
 ```solidity
-function maxTotalSupply() external pure returns (uint256)
+function isExcluded(address) external view returns (bool)
 ```
 
-See {IMaze-maxTotalSupply}
-
-
-
-
-#### Returns
-
-| Name | Type | Description |
-|---|---|---|
-| _0 | uint256 | undefined |
-
-### mint
-
-```solidity
-function mint(address to, uint256 amount) external nonpayable
-```
-
-See {IMaze-mint}
+Marks that account is exluded from staking. Exluded accounts do not         get shares of distributed fees
 
 
 
@@ -309,8 +253,35 @@ See {IMaze-mint}
 
 | Name | Type | Description |
 |---|---|---|
-| to | address | undefined |
-| amount | uint256 | undefined |
+| _0 | address | undefined |
+
+#### Returns
+
+| Name | Type | Description |
+|---|---|---|
+| _0 | bool | undefined |
+
+### isWhitelisted
+
+```solidity
+function isWhitelisted(address) external view returns (bool)
+```
+
+List of whitelisted accounts. Whitelisted accounts do not pay fees on token transfers.
+
+
+
+#### Parameters
+
+| Name | Type | Description |
+|---|---|---|
+| _0 | address | undefined |
+
+#### Returns
+
+| Name | Type | Description |
+|---|---|---|
+| _0 | bool | undefined |
 
 ### name
 
@@ -434,6 +405,23 @@ function symbol() external view returns (string)
 |---|---|---|
 | _0 | string | undefined |
 
+### totalFee
+
+```solidity
+function totalFee() external view returns (uint256)
+```
+
+See {IMaze-totalFee}
+
+
+
+
+#### Returns
+
+| Name | Type | Description |
+|---|---|---|
+| _0 | uint256 | undefined |
+
 ### totalSupply
 
 ```solidity
@@ -525,28 +513,6 @@ See {IMaze-unpause}
 
 
 
-### whitelist
-
-```solidity
-function whitelist(address) external view returns (bool)
-```
-
-List of whitelisted accounts. Whitelisted accounts do not pay fees on token transfers.
-
-
-
-#### Parameters
-
-| Name | Type | Description |
-|---|---|---|
-| _0 | address | undefined |
-
-#### Returns
-
-| Name | Type | Description |
-|---|---|---|
-| _0 | bool | undefined |
-
 
 
 ## Events
@@ -584,23 +550,6 @@ Indicates that allowance from `owner` for `spender` is now equal to `allowance`
 | owner `indexed` | address | undefined |
 | spender `indexed` | address | undefined |
 | allowance  | uint256 | undefined |
-
-### Burn
-
-```solidity
-event Burn(address indexed from, uint256 amount)
-```
-
-Indicates that `amount` tokens was burnt by `from`
-
-
-
-#### Parameters
-
-| Name | Type | Description |
-|---|---|---|
-| from `indexed` | address | undefined |
-| amount  | uint256 | undefined |
 
 ### ExcludeFromStakers
 

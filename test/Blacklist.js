@@ -8,117 +8,101 @@ const parseEther = ethers.utils.parseEther;
 let BigNumber = ethers.BigNumber;
 
 describe("Maze token", () => {
+  // Deploy all contracts before each test suite
+  async function deploys() {
+    [ownerAcc, clientAcc1, clientAcc2] = await ethers.getSigners();
 
-    // Deploy all contracts before each test suite
-    async function deploys() {
-        [ownerAcc, clientAcc1, clientAcc2] = await ethers.getSigners();
+    // Deploy blacklist
+    let blacklistFactory = await ethers.getContractFactory("Blacklist");
+    let blacklist = await blacklistFactory.deploy();
+    await blacklist.deployed();
 
-        // Deploy blacklist
-        let blacklistFactory = await ethers.getContractFactory("Blacklist");
-        let blacklist = await blacklistFactory.deploy();
-        await blacklist.deployed();
+    return {
+      blacklist,
+    };
+  }
 
-        return {
-            blacklist,
-        };
-    }
+  describe("Modifiers", () => {
+    it("Forbid any operations when contract is paused", async () => {
+      let { blacklist } = await loadFixture(deploys);
 
-    describe("Modifiers", () => {
-        it("Forbid any operations when contract is paused", async () => {
+      await blacklist.connect(ownerAcc).addToBlacklist(clientAcc1.address);
 
-            let {blacklist} = await loadFixture(
-                deploys
-            );
+      await blacklist.connect(ownerAcc).pause();
 
-            await blacklist.connect(ownerAcc).addToBlacklist(clientAcc1.address);
+      await expect(
+        blacklist.connect(ownerAcc).addToBlacklist(clientAcc1.address)
+      ).to.be.revertedWith("Pausable: paused");
 
-            await blacklist.connect(ownerAcc).pause();
+      await blacklist.connect(ownerAcc).unpause();
 
-            await expect(blacklist.connect(ownerAcc).addToBlacklist(clientAcc1.address))
-                .to.be.revertedWith("Pausable: paused");
+      await blacklist.connect(ownerAcc).addToBlacklist(clientAcc2.address);
+    });
+  });
 
-            await blacklist.connect(ownerAcc).unpause();
+  describe("Getters", () => {
+    it("Should check that user is in blacklist", async () => {
+      let { blacklist } = await loadFixture(deploys);
 
-            await blacklist.connect(ownerAcc).addToBlacklist(clientAcc2.address);
-        })
-    })
+      await expect(
+        await blacklist.checkBlacklisted(clientAcc1.address)
+      ).to.equal(false);
 
-    describe("Getters", () => {
-        it("Should check that user is in blacklist", async () => {
-            let {blacklist} = await loadFixture(
-                deploys
-            );
+      await blacklist.connect(ownerAcc).addToBlacklist(clientAcc1.address);
 
-            await expect(await blacklist.checkBlacklisted(clientAcc1.address))
-                .to.equal(false);
+      await expect(
+        await blacklist.checkBlacklisted(clientAcc1.address)
+      ).to.equal(true);
+    });
+  });
 
-            await blacklist.connect(ownerAcc).addToBlacklist(clientAcc1.address);
+  describe("Main functions", () => {
+    describe("Add to blacklist", () => {
+      it("Should add users to blacklist", async () => {
+        let { blacklist } = await loadFixture(deploys);
 
-            await expect(await blacklist.checkBlacklisted(clientAcc1.address))
-                .to.equal(true);
+        await expect(
+          await blacklist.checkBlacklisted(clientAcc1.address)
+        ).to.equal(false);
 
-        })
+        await expect(
+          blacklist.connect(ownerAcc).addToBlacklist(clientAcc1.address)
+        ).to.emit(blacklist, "AddToBlacklist");
 
-    })
+        await expect(
+          await blacklist.checkBlacklisted(clientAcc1.address)
+        ).to.equal(true);
+      });
+      describe("Fails", () => {
+        it("Should fail to blacklist already blacklisted account", async () => {
+          let { blacklist } = await loadFixture(deploys);
 
-    describe("Main functions", () => {
-        describe("Add to blacklist", () => {
+          await blacklist.connect(ownerAcc).addToBlacklist(clientAcc1.address);
 
-            it("Should add users to blacklist", async () => {
+          await expect(
+            blacklist.connect(ownerAcc).addToBlacklist(clientAcc1.address)
+          ).to.be.revertedWith("Blacklist: Account already in blacklist");
+        });
+        it("Should fail if user blacklists himself", async () => {
+          let { blacklist } = await loadFixture(deploys);
 
-                let {blacklist} = await loadFixture(
-                    deploys
-                );
+          await expect(
+            blacklist.connect(ownerAcc).addToBlacklist(ownerAcc.address)
+          ).to.be.revertedWith("Blacklist: Cannot blacklist yourself");
+        });
+      });
+    });
 
-                await expect(await blacklist.checkBlacklisted(clientAcc1.address))
-                    .to.equal(false);
+    describe("Remove from blacklist", () => {
+      describe("Fails", () => {
+        it("Should fail to remove not blacklisted account", async () => {
+          let { blacklist } = await loadFixture(deploys);
 
-                await expect(blacklist.connect(ownerAcc)
-                        .addToBlacklist(clientAcc1.address))
-                        .to.emit(blacklist, "AddToBlacklist");
-
-                await expect(await blacklist.checkBlacklisted(clientAcc1.address))
-                    .to.equal(true);
-
-            })
-            describe("Fails", () => {
-                it("Should fail to blacklist already blacklisted account", async () => {
-                    let {blacklist} = await loadFixture(
-                        deploys
-                    );
-
-                    await blacklist.connect(ownerAcc)
-                        .addToBlacklist(clientAcc1.address);
-
-                    await expect(blacklist.connect(ownerAcc)
-                        .addToBlacklist(clientAcc1.address))
-                        .to.be.revertedWith("Blacklist: Account already in blacklist");
-                })
-                it("Should fail if user blacklists himself", async () => {
-                    let {blacklist} = await loadFixture(
-                        deploys
-                    );
-
-                    await expect(blacklist.connect(ownerAcc)
-                        .addToBlacklist(ownerAcc.address))
-                        .to.be.revertedWith("Blacklist: Cannot blacklist yourself");
-                })
-            })
-        })
-
-        describe("Remove from blacklist", () => {
-            describe("Fails", () => {
-                it("Should fail to remove not blacklisted account", async () => {
-                    let {blacklist} = await loadFixture(
-                        deploys
-                    );
-
-                    await expect(blacklist.connect(ownerAcc)
-                        .removeFromBlacklist(clientAcc1.address))
-                        .to.be.revertedWith("Blacklist: Account not in blacklist");
-
-                })
-            })
-        })
-    })
-})
+          await expect(
+            blacklist.connect(ownerAcc).removeFromBlacklist(clientAcc1.address)
+          ).to.be.revertedWith("Blacklist: Account not in blacklist");
+        });
+      });
+    });
+  });
+});

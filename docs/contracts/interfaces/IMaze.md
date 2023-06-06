@@ -100,7 +100,7 @@ Returns the balance of the user
 function burn(uint256 amount) external nonpayable
 ```
 
-Destroys tokens of the user calling this function
+Burns tokens of the user
 
 
 
@@ -188,40 +188,6 @@ Increases the amount of tokens to spend on behalf of an owner
 |---|---|---|
 | _0 | bool | Boolean value indicating that operation succeded |
 
-### maxTotalSupply
-
-```solidity
-function maxTotalSupply() external view returns (uint256)
-```
-
-Returns the maximum possible amount of tokens
-
-
-
-
-#### Returns
-
-| Name | Type | Description |
-|---|---|---|
-| _0 | uint256 | undefined |
-
-### mint
-
-```solidity
-function mint(address to, uint256 amount) external nonpayable
-```
-
-Creates new tokens and transfers them to the user
-
-
-
-#### Parameters
-
-| Name | Type | Description |
-|---|---|---|
-| to | address | Recipient&#39;s address |
-| amount | uint256 | Amount of tokens to mint |
-
 ### pause
 
 ```solidity
@@ -265,13 +231,30 @@ Set transaction fee amount in basis points
 |---|---|---|
 | _feeInBP | uint256 | Fee amount in basis points |
 
+### totalFee
+
+```solidity
+function totalFee() external view returns (uint256)
+```
+
+Returns total collected fee
+
+
+
+
+#### Returns
+
+| Name | Type | Description |
+|---|---|---|
+| _0 | uint256 | undefined |
+
 ### totalSupply
 
 ```solidity
 function totalSupply() external view returns (uint256)
 ```
 
-Returns the amount of tokens in existence.
+Returns the amount of tokens in existence
 
 
 
@@ -377,23 +360,6 @@ Indicates that allowance from `owner` for `spender` is now equal to `allowance`
 | owner `indexed` | address | undefined |
 | spender `indexed` | address | undefined |
 | allowance  | uint256 | undefined |
-
-### Burn
-
-```solidity
-event Burn(address indexed from, uint256 amount)
-```
-
-Indicates that `amount` tokens was burnt by `from`
-
-
-
-#### Parameters
-
-| Name | Type | Description |
-|---|---|---|
-| from `indexed` | address | undefined |
-| amount  | uint256 | undefined |
 
 ### ExcludeFromStakers
 
