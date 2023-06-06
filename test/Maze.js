@@ -705,5 +705,71 @@ describe("Maze token", () => {
             })
         })
 
+        describe("Whitelist", () => {
+            describe("Add to whitelist", () => {
+
+                it("Should add to whitelist", async () => {
+                    let { maze, blacklist } = await loadFixture(
+                        deploys
+                    );
+
+                    expect(await maze.whitelist(clientAcc1.address)).to.equal(false);
+
+                    await expect(
+                        maze.connect(ownerAcc).addToWhitelist(clientAcc1.address)
+                    ).to.emit(maze, "AddToWhitelist")
+
+                    expect(await maze.whitelist(clientAcc1.address)).to.equal(true);
+                })
+
+                describe("Fails", () => {
+
+                    it("Should fail to add to whitelist", async () => {
+                        let { maze, blacklist } = await loadFixture(
+                            deploys
+                        );
+
+                        await maze.connect(ownerAcc).addToWhitelist(clientAcc1.address);
+
+                        await expect(
+                            maze.connect(ownerAcc).addToWhitelist(clientAcc1.address)
+                        ).to.be.revertedWith("Maze: Account already whitelisted")
+                    })
+                })
+            })
+
+            describe("Remove from whitelist", () => {
+
+                it("Should remove from whitelist", async () => {
+                    let { maze, blacklist } = await loadFixture(
+                        deploys
+                    );
+
+                    await maze.connect(ownerAcc).addToWhitelist(clientAcc1.address);
+
+                    expect(await maze.whitelist(clientAcc1.address)).to.equal(true);
+
+                    await expect(
+                        maze.connect(ownerAcc).removeFromWhitelist(clientAcc1.address)
+                    ).to.emit(maze, "RemoveFromWhitelist")
+
+                    expect(await maze.whitelist(clientAcc1.address)).to.equal(false);
+                })
+
+                describe("Fails", () => {
+
+                    it("Should fail to add to whitelist", async () => {
+                        let { maze, blacklist } = await loadFixture(
+                            deploys
+                        );
+
+                        await expect(
+                            maze.connect(ownerAcc).removeFromWhitelist(clientAcc1.address)
+                        ).to.be.revertedWith("Maze: Account not whitelisted")
+                    })
+                })
+            })
+        })
+
     });
 });
