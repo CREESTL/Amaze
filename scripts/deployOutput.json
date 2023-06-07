@@ -1,11 +1,19 @@
 {
   "ethereum_testnet": {
+    "Blacklist": {
+      "address": "0xb87E10A0357A306264C3c4c63fd08b0face6E734",
+      "verification": "https://sepolia.etherscan.io/address/0xb87E10A0357A306264C3c4c63fd08b0face6E734#code"
+    },
     "Maze": {
-      "address": "",
-      "verification": ""
+      "address": "0xfCB8AD2e7ff2b06673F6A673CE2DDeF72aC200c4",
+      "verification": "https://sepolia.etherscan.io/address/0xfCB8AD2e7ff2b06673F6A673CE2DDeF72aC200c4#code"
     }
   },
   "ethereum_mainnet": {
+    "Blacklist": {
+      "address": "",
+      "verification": ""
+    },
     "Maze": {
       "address": "",
       "verification": ""

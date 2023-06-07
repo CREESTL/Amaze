@@ -33,7 +33,6 @@ contract Maze is IMaze, Ownable, Pausable {
     address[] private _excluded;
 
     /// @dev Maximum possible amount of tokens is 100 million
-    // TODO make it const if no burn
     uint256 private _tTotal = 100_000_000 * 1e18;
 
     /// @dev RFI-special variables
@@ -373,8 +372,6 @@ contract Maze is IMaze, Ownable, Pausable {
         _allowances[owner][spender] = amount;
         emit Approval(owner, spender, amount);
     }
-
-    // TODO add mint here???
 
     /// @dev Burns user's tokens decreasing supply in both t-space and r-space
     /// @param from The address to burn tokens from

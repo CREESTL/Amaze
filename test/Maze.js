@@ -62,7 +62,6 @@ describe("Maze token", () => {
   });
 
   describe("Modifiers", () => {
-    // TODO add here check for blacklisted admin
     describe("Blacklisted", () => {
       it("Should check that user is not blacklisted", async () => {
         let { maze, blacklist } = await loadFixture(deploys);
@@ -86,6 +85,27 @@ describe("Maze token", () => {
             .connect(clientAcc1)
             .transfer(clientAcc2.address, parseEther("0.1"))
         ).to.be.revertedWith("Maze: Account is blacklisted");
+      });
+      it("Should allow one admin to blacklist another", async () => {
+        // Deploy blacklist from one account
+        let blacklistFactory = await ethers.getContractFactory("Blacklist");
+        let blacklist = await blacklistFactory.connect(clientAcc1).deploy();
+        await blacklist.deployed();
+
+        // Deploy token from the other account
+        let mazeFactory = await ethers.getContractFactory("Maze");
+        let maze = await mazeFactory
+          .connect(clientAcc2)
+          .deploy(blacklist.address);
+        await maze.deployed();
+
+        // Blacklist admin of token
+        await blacklist.connect(clientAcc1).addToBlacklist(clientAcc2.address);
+
+        // This should fail now
+        await expect(maze.connect(clientAcc2).pause()).to.be.revertedWith(
+          "Maze: Account is blacklisted"
+        );
       });
     });
 

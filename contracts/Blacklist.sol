@@ -12,9 +12,7 @@ contract Blacklist is IBlacklist, Ownable, Pausable {
     mapping(address => bool) public blacklist;
 
     /// @notice See {IBlacklist-checkBlacklisted}
-    function checkBlacklisted(
-        address account
-    ) public view whenNotPaused returns (bool) {
+    function checkBlacklisted(address account) public view returns (bool) {
         return blacklist[account];
     }
 

@@ -23,7 +23,7 @@ describe("Maze token", () => {
   }
 
   describe("Modifiers", () => {
-    it("Forbid any operations when contract is paused", async () => {
+    it("Forbid operations when contract is paused", async () => {
       let { blacklist } = await loadFixture(deploys);
 
       await blacklist.connect(ownerAcc).addToBlacklist(clientAcc1.address);
@@ -37,6 +37,17 @@ describe("Maze token", () => {
       await blacklist.connect(ownerAcc).unpause();
 
       await blacklist.connect(ownerAcc).addToBlacklist(clientAcc2.address);
+    });
+    it("Allow check blacklisted when contract is paused", async () => {
+      let { blacklist } = await loadFixture(deploys);
+
+      await blacklist.connect(ownerAcc).addToBlacklist(clientAcc1.address);
+
+      await blacklist.connect(ownerAcc).pause();
+
+      expect(
+        await blacklist.connect(ownerAcc).checkBlacklisted(clientAcc1.address)
+      ).to.equal(true);
     });
   });
 
