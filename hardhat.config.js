@@ -34,7 +34,7 @@ module.exports = {
       accounts: [ACC_PRIVATE_KEY],
     },
     ethereum_testnet: {
-      url: `https://goerli.infura.io/v3/${INFURA_API_KEY}`,
+      url: `https://sepolia.infura.io/v3/${INFURA_API_KEY}`,
       accounts: [ACC_PRIVATE_KEY],
     },
   },
@@ -67,7 +67,7 @@ module.exports = {
   etherscan: {
     apiKey: {
       mainnet: ETHERSCAN_API_KEY,
-      goerli: ETHERSCAN_API_KEY,
+      sepolia: ETHERSCAN_API_KEY,
     },
   },
 };
