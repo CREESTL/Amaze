@@ -68,6 +68,7 @@ contract Maze is IMaze, Ownable, Pausable {
     }
 
     constructor(address blacklist_) {
+        require(blacklist_ != address(0), "Maze: Blacklist cannot have zero address");
         blacklist = blacklist_;
 
         // Whole supply of tokens is assigned to owner
@@ -113,8 +114,6 @@ contract Maze is IMaze, Ownable, Pausable {
         address spender,
         uint256 amount
     ) public whenNotPaused returns (bool) {
-        require(spender != address(0), "Maze: Spender cannot be zero address");
-        require(amount != 0, "Maze: Allowance cannot be zero");
         _approve(msg.sender, spender, amount);
         return true;
     }
@@ -409,7 +408,6 @@ contract Maze is IMaze, Ownable, Pausable {
         uint256 amount
     ) private ifNotBlacklisted(from) ifNotBlacklisted(to) {
         require(from != address(0), "Maze: Transfer from the zero address");
-        require(amount > 0, "Maze: Transfer amount must be greater than zero");
         require(
             balanceOf(from) >= amount,
             "Maze: Transfer amount exceeds balance"
