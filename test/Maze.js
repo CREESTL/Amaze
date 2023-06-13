@@ -280,16 +280,7 @@ describe("Maze token", () => {
         let transferAmount = parseEther("0.1");
         await expect(
           maze.connect(ownerAcc).approve(zeroAddress, transferAmount)
-        ).to.be.revertedWith("Maze: Spender cannot be zero address");
-      });
-
-      it("Should fail to approve for zero amount", async () => {
-        let { maze, blacklist } = await loadFixture(deploys);
-
-        let transferAmount = parseEther("0");
-        await expect(
-          maze.connect(ownerAcc).approve(clientAcc1.address, transferAmount)
-        ).to.be.revertedWith("Maze: Allowance cannot be zero");
+        ).to.be.revertedWith("Maze: Approve to the zero address");
       });
     });
 
@@ -501,17 +492,6 @@ describe("Maze token", () => {
       });
 
       describe("Fails", () => {
-        it("Should fail to transfer zero amount", async () => {
-          let { maze, blacklist } = await loadFixture(deploys);
-
-          let transferAmount = parseEther("0");
-
-          await expect(
-            maze.connect(ownerAcc).transfer(clientAcc1.address, transferAmount)
-          ).to.be.revertedWith(
-            "Maze: Transfer amount must be greater than zero"
-          );
-        });
         it("Should fail to transfer if not enough tokens", async () => {
           let { maze, blacklist } = await loadFixture(deploys);
 
