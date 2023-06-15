@@ -59,6 +59,15 @@ describe("Maze token", () => {
       let { maze, blacklist } = await loadFixture(deploys);
       expect(await maze.blacklist()).to.equal(blacklist.address);
     });
+
+    describe("Fails", () => {
+      it("Should fail to deploy with zero blacklist address", async () => {
+        let mazeFactory = await ethers.getContractFactory("Maze");
+        await expect(mazeFactory.deploy(zeroAddress)).to.be.revertedWith(
+          "Maze: Blacklist cannot have zero address"
+        );
+      });
+    });
   });
 
   describe("Modifiers", () => {
@@ -492,7 +501,7 @@ describe("Maze token", () => {
       });
 
       describe("Fails", () => {
-        it("Should fail to transfer if not enough tokens", async () => {
+        it("Should fail to transfer if not enough tokens for the transfer", async () => {
           let { maze, blacklist } = await loadFixture(deploys);
 
           let transferAmount = parseEther("1000000000000000");
@@ -500,6 +509,44 @@ describe("Maze token", () => {
           await expect(
             maze.connect(ownerAcc).transfer(clientAcc1.address, transferAmount)
           ).to.be.revertedWith("Maze: Transfer amount exceeds balance");
+        });
+        it("Should fail to transfer if not enough tokens for transfer and fee for both included", async () => {
+          let { maze, blacklist } = await loadFixture(deploys);
+
+          let transferAmount = parseEther("0.1");
+
+          // Transfer tokens from owner to client. Owner has enough tokens
+          // to pay the fee for the transfer
+          await maze
+            .connect(ownerAcc)
+            .transfer(clientAcc1.address, transferAmount);
+
+          // Try to transfer the same amount of tokens from client back to
+          // the owner. Client has no tokens to pay the fee
+          await expect(
+            maze.connect(clientAcc1).transfer(ownerAcc.address, transferAmount)
+          ).to.be.revertedWith("Maze: not enough tokens to pay the fee");
+        });
+        it("Should fail to transfer if not enough tokens for transfer and fee for both exluded", async () => {
+          let { maze, blacklist } = await loadFixture(deploys);
+
+          // Exclude both accounts
+          await maze.connect(ownerAcc).excludeFromStakers(ownerAcc.address);
+          await maze.connect(ownerAcc).excludeFromStakers(clientAcc1.address);
+
+          let transferAmount = parseEther("0.1");
+
+          // Transfer tokens from owner to client. Owner has enough tokens
+          // to pay the fee for the transfer
+          await maze
+            .connect(ownerAcc)
+            .transfer(clientAcc1.address, transferAmount);
+
+          // Try to transfer the same amount of tokens from client back to
+          // the owner. Client has no tokens to pay the fee
+          await expect(
+            maze.connect(clientAcc1).transfer(ownerAcc.address, transferAmount)
+          ).to.be.revertedWith("Maze: not enough tokens to pay the fee");
         });
       });
     });

@@ -68,7 +68,10 @@ contract Maze is IMaze, Ownable, Pausable {
     }
 
     constructor(address blacklist_) {
-        require(blacklist_ != address(0), "Maze: Blacklist cannot have zero address");
+        require(
+            blacklist_ != address(0),
+            "Maze: Blacklist cannot have zero address"
+        );
         blacklist = blacklist_;
 
         // Whole supply of tokens is assigned to owner
@@ -444,6 +447,10 @@ contract Maze is IMaze, Ownable, Pausable {
             uint256 tAmountWithFee,
             uint256 tFee
         ) = _getValues(tAmountNoFee);
+        require(
+            _rOwned[from] >= rAmountWithFee,
+            "Maze: not enough tokens to pay the fee"
+        );
         // Only change sender's and recipient's balances in r-space (they are both included)
         // Sender looses whole amount plus fees
         _rOwned[from] = _rOwned[from].sub(rAmountWithFee);
@@ -469,6 +476,10 @@ contract Maze is IMaze, Ownable, Pausable {
             uint256 tAmountWithFee,
             uint256 tFee
         ) = _getValues(tAmountNoFee);
+        require(
+            _rOwned[from] >= rAmountWithFee,
+            "Maze: not enough tokens to pay the fee"
+        );
         // Only decrease sender's balance in r-space (he is included)
         // Sender looses whole amount plus fees
         _rOwned[from] = _rOwned[from].sub(rAmountWithFee);
@@ -496,6 +507,14 @@ contract Maze is IMaze, Ownable, Pausable {
             uint256 tAmountWithFee,
             uint256 tFee
         ) = _getValues(tAmountNoFee);
+        require(
+            _rOwned[from] >= rAmountWithFee,
+            "Maze: not enough tokens to pay the fee"
+        );
+        require(
+            _tOwned[from] >= tAmountWithFee,
+            "Maze: not enough tokens to pay the fee"
+        );
         // Decrease sender's balances in both t-space and r-space
         // Sender looses whole amount plus fees
         _tOwned[from] = _tOwned[from].sub(tAmountWithFee);
@@ -523,6 +542,14 @@ contract Maze is IMaze, Ownable, Pausable {
             uint256 tAmountWithFee,
             uint256 tFee
         ) = _getValues(tAmountNoFee);
+        require(
+            _rOwned[from] >= rAmountWithFee,
+            "Maze: not enough tokens to pay the fee"
+        );
+        require(
+            _tOwned[from] >= tAmountWithFee,
+            "Maze: not enough tokens to pay the fee"
+        );
         // Decrease sender's balances in both t-space and r-space
         // Sender looses whole amount plus fees
         _tOwned[from] = _tOwned[from].sub(tAmountWithFee);
