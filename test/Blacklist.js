@@ -7,7 +7,7 @@ const parseEther = ethers.utils.parseEther;
 
 let BigNumber = ethers.BigNumber;
 
-describe("Maze token", () => {
+describe("Blacklist token", () => {
   // Deploy all contracts before each test suite
   async function deploys() {
     [ownerAcc, clientAcc1, clientAcc2] = await ethers.getSigners();

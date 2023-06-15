@@ -1,0 +1,198 @@
+# IVesting
+
+
+
+
+
+Interface of the Vesting contract
+
+
+
+## Methods
+
+### claimTokens
+
+```solidity
+function claimTokens() external nonpayable
+```
+
+Allows a user to claim tokens that were vested by admin for him
+
+
+
+
+### getUserVestings
+
+```solidity
+function getUserVestings(address user) external view returns (uint256[])
+```
+
+Returns list of IDs of vestings assigned to the user
+
+
+
+#### Parameters
+
+| Name | Type | Description |
+|---|---|---|
+| user | address | The address of the user |
+
+#### Returns
+
+| Name | Type | Description |
+|---|---|---|
+| _0 | uint256[] | The list of IDs of vestings assigned to the user |
+
+### getVesting
+
+```solidity
+function getVesting(uint256 id) external view returns (address, uint256, uint256, uint256, uint256, uint256)
+```
+
+Returns information about the vesting by its ID
+
+
+
+#### Parameters
+
+| Name | Type | Description |
+|---|---|---|
+| id | uint256 | The ID of the vesting to get information about |
+
+#### Returns
+
+| Name | Type | Description |
+|---|---|---|
+| _0 | address | The recipient of tokens after cliff |
+| _1 | uint256 | The total amount of tokens to be vested |
+| _2 | uint256 | The moment vesting was started |
+| _3 | uint256 | The duration of cliff period |
+| _4 | uint256 | Percentage of tokens unlocked right after the cliff |
+| _5 | uint256 | The period after cliff when users can claim their tokens |
+
+### setFarming
+
+```solidity
+function setFarming(address newFarming) external nonpayable
+```
+
+Changes address of the Farming contract
+
+
+
+#### Parameters
+
+| Name | Type | Description |
+|---|---|---|
+| newFarming | address | The new address of the Farming contract |
+
+### setMaze
+
+```solidity
+function setMaze(address newMaze) external nonpayable
+```
+
+Changes address of the Maze token
+
+
+
+#### Parameters
+
+| Name | Type | Description |
+|---|---|---|
+| newMaze | address | The new address of the Maze token |
+
+### startVesting
+
+```solidity
+function startVesting(address to, uint256 amount, uint256 cliffDuration, uint256 cliffUnlock, uint256 claimablePeriods) external nonpayable
+```
+
+Starts vesting for a specific user
+
+
+
+#### Parameters
+
+| Name | Type | Description |
+|---|---|---|
+| to | address | The recipient of tokens after cliff |
+| amount | uint256 | The total amount of tokens to be vested |
+| cliffDuration | uint256 | The duration of cliff period        During that period tokens are locked and cannot be claimed |
+| cliffUnlock | uint256 | Percentage of tokens unlocked right after the cliff |
+| claimablePeriods | uint256 | The number of periods after cliff in which user can claim tokens |
+
+
+
+## Events
+
+### FarmingChanged
+
+```solidity
+event FarmingChanged(address newFarming)
+```
+
+Indicates that Farming contract address was changed;
+
+
+
+#### Parameters
+
+| Name | Type | Description |
+|---|---|---|
+| newFarming  | address | The new address of the Farming contract |
+
+### MazeChanged
+
+```solidity
+event MazeChanged(address newMaze)
+```
+
+Indicates that Maze token address was changed;
+
+
+
+#### Parameters
+
+| Name | Type | Description |
+|---|---|---|
+| newMaze  | address | The new address of the Maze token |
+
+### TokensClaimed
+
+```solidity
+event TokensClaimed(address to)
+```
+
+Indicates that user has claimed vested tokens
+
+
+
+#### Parameters
+
+| Name | Type | Description |
+|---|---|---|
+| to  | address | The reciever of vested tokens |
+
+### VestingStarted
+
+```solidity
+event VestingStarted(address to, uint256 amount, uint256 cliffDuration, uint256 cliffUnlock, uint256 claimablePeriods)
+```
+
+Indicates that a new vesting has 
+
+
+
+#### Parameters
+
+| Name | Type | Description |
+|---|---|---|
+| to  | address | The recipient of tokens after cliff |
+| amount  | uint256 | The total amount of tokens to be vested |
+| cliffDuration  | uint256 | The duration of cliff period |
+| cliffUnlock  | uint256 | Percentage of tokens unlocked right after the cliff |
+| claimablePeriods  | uint256 | The number of periods after cliff in which user can claim tokens |
+
+
+
