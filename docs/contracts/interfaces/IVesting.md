@@ -46,7 +46,7 @@ Returns list of IDs of vestings assigned to the user
 ### getVesting
 
 ```solidity
-function getVesting(uint256 id) external view returns (address, uint256, uint256, uint256, uint256, uint256)
+function getVesting(uint256 id) external view returns (enum IVesting.VestingStatus, address, uint256, uint256, uint256, uint256, uint256, bool, uint256, uint256)
 ```
 
 Returns information about the vesting by its ID
@@ -63,44 +63,16 @@ Returns information about the vesting by its ID
 
 | Name | Type | Description |
 |---|---|---|
-| _0 | address | The recipient of tokens after cliff |
-| _1 | uint256 | The total amount of tokens to be vested |
-| _2 | uint256 | The moment vesting was started |
-| _3 | uint256 | The duration of cliff period |
-| _4 | uint256 | Percentage of tokens unlocked right after the cliff |
-| _5 | uint256 | The period after cliff when users can claim their tokens |
-
-### setFarming
-
-```solidity
-function setFarming(address newFarming) external nonpayable
-```
-
-Changes address of the Farming contract
-
-
-
-#### Parameters
-
-| Name | Type | Description |
-|---|---|---|
-| newFarming | address | The new address of the Farming contract |
-
-### setMaze
-
-```solidity
-function setMaze(address newMaze) external nonpayable
-```
-
-Changes address of the Maze token
-
-
-
-#### Parameters
-
-| Name | Type | Description |
-|---|---|---|
-| newMaze | address | The new address of the Maze token |
+| _0 | enum IVesting.VestingStatus | The status of vesting  |
+| _1 | address | The recipient of tokens after cliff |
+| _2 | uint256 | The total amount of tokens to be vested |
+| _3 | uint256 | The total amount of claimed tokens |
+| _4 | uint256 | The moment vesting was started |
+| _5 | uint256 | The duration of cliff period |
+| _6 | uint256 | Percentage of tokens unlocked right after the cliff |
+| _7 | bool | True if cliff amount was claimed. Otherwise - false |
+| _8 | uint256 | The number of periods after cliff when user can claim his tokens |
+| _9 | uint256 | The number of the last period when user has claimed his tokens |
 
 ### startVesting
 
@@ -126,42 +98,10 @@ Starts vesting for a specific user
 
 ## Events
 
-### FarmingChanged
-
-```solidity
-event FarmingChanged(address newFarming)
-```
-
-Indicates that Farming contract address was changed;
-
-
-
-#### Parameters
-
-| Name | Type | Description |
-|---|---|---|
-| newFarming  | address | The new address of the Farming contract |
-
-### MazeChanged
-
-```solidity
-event MazeChanged(address newMaze)
-```
-
-Indicates that Maze token address was changed;
-
-
-
-#### Parameters
-
-| Name | Type | Description |
-|---|---|---|
-| newMaze  | address | The new address of the Maze token |
-
 ### TokensClaimed
 
 ```solidity
-event TokensClaimed(address to)
+event TokensClaimed(address to, uint256 amount)
 ```
 
 Indicates that user has claimed vested tokens
@@ -173,6 +113,7 @@ Indicates that user has claimed vested tokens
 | Name | Type | Description |
 |---|---|---|
 | to  | address | The reciever of vested tokens |
+| amount  | uint256 | The amount of tokens claimed |
 
 ### VestingStarted
 
@@ -180,7 +121,7 @@ Indicates that user has claimed vested tokens
 event VestingStarted(address to, uint256 amount, uint256 cliffDuration, uint256 cliffUnlock, uint256 claimablePeriods)
 ```
 
-Indicates that a new vesting has 
+Indicates that a new vesting has
 
 
 

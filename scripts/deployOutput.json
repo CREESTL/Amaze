@@ -7,6 +7,14 @@
     "Maze": {
       "address": "0xfCB8AD2e7ff2b06673F6A673CE2DDeF72aC200c4",
       "verification": "https://sepolia.etherscan.io/address/0xfCB8AD2e7ff2b06673F6A673CE2DDeF72aC200c4#code"
+    },
+    "Farming": {
+      "address": "",
+      "verification": ""
+    },
+    "Vesting": {
+      "address": "",
+      "verification": ""
     }
   },
   "ethereum_mainnet": {
@@ -15,6 +23,14 @@
       "verification": ""
     },
     "Maze": {
+      "address": "",
+      "verification": ""
+    },
+    "Farming": {
+      "address": "",
+      "verification": ""
+    },
+    "Vesting": {
       "address": "",
       "verification": ""
     }

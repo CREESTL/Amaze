@@ -5,8 +5,8 @@ pragma solidity ^0.8.12;
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "./interfaces/IFarming.sol";
-import "./interfaces/IMaze.sol";
 import "./interfaces/IBlacklist.sol";
 
 // TODO remove logs.
@@ -14,10 +14,8 @@ import "hardhat/console.sol";
 
 /// @title The rewards farming contract
 contract Farming is IFarming, Ownable, Pausable {
-    /// @notice The address of the Maze token
-    address public maze;
-    /// @notice The address of the Vesting contract
-    address public vesting;
+    using SafeERC20 for ERC20;
+
     /// @notice The address /of the Blacklist contract
     address public blacklist;
 
@@ -26,7 +24,10 @@ contract Farming is IFarming, Ownable, Pausable {
 
     /// @dev Allows only the Vesting contract to call functions
     modifier onlyVesting() {
-        require(msg.sender == vesting, "Farming: Caller is not Vesting");
+        require(
+            msg.sender == IBlacklist(blacklist).vesting(),
+            "Farming: Caller is not Vesting"
+        );
         _;
     }
 
@@ -39,34 +40,19 @@ contract Farming is IFarming, Ownable, Pausable {
         _;
     }
 
-    constructor(address maze_, address blacklist_) {
-        require(maze_ != address(0), "Farming: Maze cannot have zero address");
+    constructor(address blacklist_) {
         require(
             blacklist_ != address(0),
             "Farming: Blacklist cannot have zero address"
         );
-        maze = maze_;
         blacklist = blacklist_;
-    }
-
-    /// @notice See {IFarming-setVesting}
-    function setVesting(
-        address vesting_
-    ) public onlyOwner ifNotBlacklisted(msg.sender) {
-        require(
-            vesting_ != address(0),
-            "Farming: Vesting cannot have zero address"
-        );
-        vesting = vesting_;
-
-        emit VestingChanged(vesting_);
     }
 
     /// @notice See {IFarming-lockOnBehalf}
     function lockOnBehalf(
         address user,
         uint256 amount
-    ) public onlyVesting ifNotBlacklisted(msg.sender) ifNotBlacklisted(user) {
+    ) external onlyVesting ifNotBlacklisted(msg.sender) ifNotBlacklisted(user) {
         require(user != address(0), "Farming: Locker cannot have zero address");
         require(amount > 0, "Farming: Lock amount cannot be zero");
 
@@ -77,7 +63,11 @@ contract Farming is IFarming, Ownable, Pausable {
         console.log("Locked amount is: ", _lockedAmounts[user]);
 
         // Transfer tokens from Vesting here
-        IMaze(maze).transferFrom(vesting, address(this), amount);
+        ERC20(IBlacklist(blacklist).maze()).safeTransferFrom(
+            IBlacklist(blacklist).vesting(),
+            address(this),
+            amount
+        );
 
         emit LockedOnBehalf(user, amount);
     }
@@ -86,9 +76,9 @@ contract Farming is IFarming, Ownable, Pausable {
     function unlockOnBehalf(
         address user,
         uint256 amount
-    ) public onlyVesting ifNotBlacklisted(msg.sender) ifNotBlacklisted(user) {
+    ) external onlyVesting ifNotBlacklisted(msg.sender) ifNotBlacklisted(user) {
         require(user != address(0), "Farming: Locker cannot have zero address");
-        require(amount > 0, "Farming: Lock amount cannot be zero");
+        require(amount > 0, "Farming: Unlock amount cannot be zero");
 
         console.log("\nIn unlockOnBehalf:");
         console.log("Locked amount is: ", _lockedAmounts[user]);
@@ -103,7 +93,7 @@ contract Farming is IFarming, Ownable, Pausable {
         _lockedAmounts[user] -= amount;
 
         // Transfer tokens straight to the user
-        IMaze(maze).transfer(user, amount);
+        ERC20(IBlacklist(blacklist).maze()).safeTransfer(user, amount);
 
         emit UnlockedOnBehalf(user, _lockedAmounts[user]);
 

@@ -11,13 +11,56 @@ contract Blacklist is IBlacklist, Ownable, Pausable {
     /// @notice Marks that account is blacklisted
     mapping(address => bool) public blacklist;
 
+    /// @notice The address of the Maze contract
+    address public maze;
+    /// @notice The address of the Vesting contract
+    address public vesting;
+    /// @notice The address of the Farming contract
+    address public farming;
+
     /// @notice See {IBlacklist-checkBlacklisted}
-    function checkBlacklisted(address account) public view returns (bool) {
+    function checkBlacklisted(address account) external view returns (bool) {
         return blacklist[account];
     }
 
+    /// @notice See {IBlacklist-setMaze}
+    function setMaze(address maze_) external whenNotPaused onlyOwner {
+        require(
+            maze_ != address(0),
+            "Blacklist: Maze cannot have zero address"
+        );
+
+        maze = maze_;
+
+        emit MazeChanged(maze_);
+    }
+
+    /// @notice See {IBlacklist-setVesting}
+    function setVesting(address vesting_) external whenNotPaused onlyOwner {
+        require(
+            vesting_ != address(0),
+            "Blacklist: Vesting cannot have zero address"
+        );
+
+        vesting = vesting_;
+
+        emit VestingChanged(vesting_);
+    }
+
+    /// @notice See {IBlacklist-setFarming}
+    function setFarming(address farming_) external whenNotPaused onlyOwner {
+        require(
+            farming_ != address(0),
+            "Blacklist: Farming cannot have zero address"
+        );
+
+        farming = farming_;
+
+        emit FarmingChanged(farming_);
+    }
+
     /// @notice See {IBlacklist-addToBlacklist}
-    function addToBlacklist(address account) public whenNotPaused onlyOwner {
+    function addToBlacklist(address account) external whenNotPaused onlyOwner {
         require(!blacklist[account], "Blacklist: Account already in blacklist");
         require(msg.sender != account, "Blacklist: Cannot blacklist yourself");
         blacklist[account] = true;
@@ -27,19 +70,19 @@ contract Blacklist is IBlacklist, Ownable, Pausable {
     /// @notice See {IBlacklist-removeFromBlacklist}
     function removeFromBlacklist(
         address account
-    ) public whenNotPaused onlyOwner {
+    ) external whenNotPaused onlyOwner {
         require(blacklist[account], "Blacklist: Account not in blacklist");
         blacklist[account] = false;
         emit RemoveFromBlacklist(account);
     }
 
     /// @notice See {IBlacklist-pause}
-    function pause() public onlyOwner {
+    function pause() external onlyOwner {
         _pause();
     }
 
     /// @notice See {IBlacklist-unpause}
-    function unpause() public onlyOwner {
+    function unpause() external onlyOwner {
         _unpause();
     }
 }

@@ -83,12 +83,12 @@ contract Maze is IMaze, Ownable, Pausable {
     }
 
     /// @notice See {IMaze-totalSupply}
-    function totalSupply() public view returns (uint256) {
+    function totalSupply() external view returns (uint256) {
         return _tTotal;
     }
 
     /// @notice See {IMaze-totalFee}
-    function totalFee() public view returns (uint256) {
+    function totalFee() external view returns (uint256) {
         return _tFeeTotal;
     }
 
@@ -108,7 +108,7 @@ contract Maze is IMaze, Ownable, Pausable {
     function allowance(
         address owner,
         address spender
-    ) public view returns (uint256) {
+    ) external view returns (uint256) {
         return _allowances[owner][spender];
     }
 
@@ -116,13 +116,13 @@ contract Maze is IMaze, Ownable, Pausable {
     function approve(
         address spender,
         uint256 amount
-    ) public whenNotPaused returns (bool) {
+    ) external whenNotPaused returns (bool) {
         _approve(msg.sender, spender, amount);
         return true;
     }
 
     /// @notice See {IMaze-burn}
-    function burn(uint256 amount) public whenNotPaused {
+    function burn(uint256 amount) external whenNotPaused {
         _burn(msg.sender, amount);
     }
 
@@ -130,7 +130,7 @@ contract Maze is IMaze, Ownable, Pausable {
     function transfer(
         address to,
         uint256 amount
-    ) public whenNotPaused returns (bool) {
+    ) external whenNotPaused returns (bool) {
         _transfer(msg.sender, to, amount);
         return true;
     }
@@ -140,7 +140,7 @@ contract Maze is IMaze, Ownable, Pausable {
         address sender,
         address recipient,
         uint256 amount
-    ) public whenNotPaused returns (bool) {
+    ) external whenNotPaused returns (bool) {
         _transfer(sender, recipient, amount);
         _approve(
             sender,
@@ -157,7 +157,7 @@ contract Maze is IMaze, Ownable, Pausable {
     function increaseAllowance(
         address spender,
         uint256 addedValue
-    ) public whenNotPaused returns (bool) {
+    ) external whenNotPaused returns (bool) {
         _approve(
             msg.sender,
             spender,
@@ -170,7 +170,7 @@ contract Maze is IMaze, Ownable, Pausable {
     function decreaseAllowance(
         address spender,
         uint256 subtractedValue
-    ) public whenNotPaused returns (bool) {
+    ) external whenNotPaused returns (bool) {
         _approve(
             msg.sender,
             spender,
@@ -183,18 +183,14 @@ contract Maze is IMaze, Ownable, Pausable {
     }
 
     /// @notice See {IMaze-setFees}
-    function setFees(
-        uint256 _feeInBP
-    ) public whenNotPaused ifNotBlacklisted(msg.sender) onlyOwner {
+    function setFees(uint256 _feeInBP) public whenNotPaused onlyOwner {
         require(_feeInBP < 1e4, "Maze: Fee too high");
         feeInBP = _feeInBP;
         emit SetFees(_feeInBP);
     }
 
     /// @notice See {IMaze-addToWhitelist}
-    function addToWhitelist(
-        address account
-    ) public whenNotPaused ifNotBlacklisted(msg.sender) onlyOwner {
+    function addToWhitelist(address account) external whenNotPaused onlyOwner {
         require(!isWhitelisted[account], "Maze: Account already whitelisted");
         isWhitelisted[account] = true;
         emit AddToWhitelist(account);
@@ -203,26 +199,26 @@ contract Maze is IMaze, Ownable, Pausable {
     /// @notice See {IMaze-removeFromWhitelist}
     function removeFromWhitelist(
         address account
-    ) public whenNotPaused ifNotBlacklisted(msg.sender) onlyOwner {
+    ) external whenNotPaused onlyOwner {
         require(isWhitelisted[account], "Maze: Account not whitelisted");
         isWhitelisted[account] = false;
         emit RemoveFromWhitelist(account);
     }
 
     /// @notice See {IMaze-pause}
-    function pause() public ifNotBlacklisted(msg.sender) onlyOwner {
+    function pause() external onlyOwner {
         _pause();
     }
 
     /// @notice See {IMaze-unpause}
-    function unpause() public ifNotBlacklisted(msg.sender) onlyOwner {
+    function unpause() external onlyOwner {
         _unpause();
     }
 
     /// @notice See {IMaze-includeIntoStakers}
     function includeIntoStakers(
         address account
-    ) public whenNotPaused ifNotBlacklisted(msg.sender) onlyOwner {
+    ) external whenNotPaused onlyOwner {
         require(account != address(0), "Maze: Cannot include zero address");
         require(isExcluded[account], "Maze: Account is already included");
         for (uint256 i = 0; i < _excluded.length; i++) {
@@ -242,7 +238,7 @@ contract Maze is IMaze, Ownable, Pausable {
     /// @notice See {IMaze-excludeFromStakers}
     function excludeFromStakers(
         address account
-    ) public whenNotPaused ifNotBlacklisted(msg.sender) onlyOwner {
+    ) external whenNotPaused onlyOwner {
         require(account != address(0), "Maze: Cannot exclude zero address");
         require(!isExcluded[account], "Maze: Account is already excluded");
         // Update owned amount in t-space before excluding
@@ -260,7 +256,7 @@ contract Maze is IMaze, Ownable, Pausable {
     /// @dev tAmountWithFee = rAmountWithFee / rate
     function _reflectToTSpace(
         uint256 rAmountWithFee
-    ) private view returns (uint256) {
+    ) public view returns (uint256) {
         require(
             rAmountWithFee <= _rTotal,
             "Maze: Amount must be less than total reflections"

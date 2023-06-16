@@ -9,18 +9,10 @@ interface IFarming {
     /// @param amount The amount of tokens locked
     event LockedOnBehalf(address user, uint256 amount);
 
-    /// @notice Indicates that Vesting contract address has been changed
-    /// @param vesting_ The new address of the Vesting contract
-    event VestingChanged(address vesting_);
-
     /// @notice Indicates that locked amount of the user has decreased
     /// @param user The user whos locked amount was decreased
     /// @param amount The new locked amount of the user
     event UnlockedOnBehalf(address user, uint256 amount);
-
-    /// @notice Changes the address of the Vesting contract
-    /// @param vesting_ The new address of the Vesting contract
-    function setVesting(address vesting_) external;
 
     /// @notice Recieves and locks Maze tokens from Vesting contract to farm
     ///         on behalf of the user
