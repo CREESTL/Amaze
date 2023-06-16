@@ -7,7 +7,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "./interfaces/IFarming.sol";
-import "./interfaces/IBlacklist.sol";
+import "./interfaces/ICore.sol";
 
 // TODO remove logs.
 import "hardhat/console.sol";
@@ -16,36 +16,30 @@ import "hardhat/console.sol";
 contract Farming is IFarming, Ownable, Pausable {
     using SafeERC20 for ERC20;
 
-    /// @notice The address /of the Blacklist contract
-    address public blacklist;
+    /// @notice The address of the Core contract
+    ICore public core;
 
     /// @notice Locked balances of users
     mapping(address => uint256) private _lockedAmounts;
 
     /// @dev Allows only the Vesting contract to call functions
     modifier onlyVesting() {
-        require(
-            msg.sender == IBlacklist(blacklist).vesting(),
-            "Farming: Caller is not Vesting"
-        );
+        require(msg.sender == core.vesting(), "Farming: Caller is not Vesting");
         _;
     }
 
     /// @notice Checks that account is not blacklisted
     modifier ifNotBlacklisted(address account) {
         require(
-            !IBlacklist(blacklist).checkBlacklisted(account),
+            !core.checkBlacklisted(account),
             "Maze: Account is blacklisted"
         );
         _;
     }
 
-    constructor(address blacklist_) {
-        require(
-            blacklist_ != address(0),
-            "Farming: Blacklist cannot have zero address"
-        );
-        blacklist = blacklist_;
+    constructor(address core_) {
+        require(core_ != address(0), "Farming: Core cannot have zero address");
+        core = ICore(core_);
     }
 
     /// @notice See {IFarming-lockOnBehalf}
@@ -63,8 +57,8 @@ contract Farming is IFarming, Ownable, Pausable {
         console.log("Locked amount is: ", _lockedAmounts[user]);
 
         // Transfer tokens from Vesting here
-        ERC20(IBlacklist(blacklist).maze()).safeTransferFrom(
-            IBlacklist(blacklist).vesting(),
+        ERC20(core.maze()).safeTransferFrom(
+            core.vesting(),
             address(this),
             amount
         );
@@ -93,7 +87,7 @@ contract Farming is IFarming, Ownable, Pausable {
         _lockedAmounts[user] -= amount;
 
         // Transfer tokens straight to the user
-        ERC20(IBlacklist(blacklist).maze()).safeTransfer(user, amount);
+        ERC20(core.maze()).safeTransfer(user, amount);
 
         emit UnlockedOnBehalf(user, _lockedAmounts[user]);
 

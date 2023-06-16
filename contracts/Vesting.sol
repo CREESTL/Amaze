@@ -11,7 +11,7 @@ import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import "./interfaces/IVesting.sol";
 import "./interfaces/IFarming.sol";
 import "./interfaces/IMaze.sol";
-import "./interfaces/IBlacklist.sol";
+import "./interfaces/ICore.sol";
 
 // TODO remove logs
 import "hardhat/console.sol";
@@ -22,8 +22,8 @@ contract Vesting is IVesting, Ownable, Pausable {
     using EnumerableSet for EnumerableSet.UintSet;
     using Counters for Counters.Counter;
 
-    /// @notice Address of the Blacklist contract
-    address public blacklist;
+    /// @notice Address of the Core contract
+    ICore public core;
 
     /// @dev Used to convert from BPs to percents and vice versa
     uint256 private constant _converter = 1e4;
@@ -39,26 +39,26 @@ contract Vesting is IVesting, Ownable, Pausable {
     mapping(uint256 => TokenVesting) private _idsToVestings;
 
     /// @dev Numbers of periods user has claimed in the vesting
-    ///      [User address => vesting ID => month number => bool]
+    ///      [User address => vesting ID => period number => bool]
     ///      Used to skip periods that user has already claimed
     mapping(address => mapping(uint256 => mapping(uint256 => bool)))
-        private _claimedMonthsInId;
+        private _claimedPeriodsInId;
 
     /// @notice Checks that account is not blacklisted
     modifier ifNotBlacklisted(address account) {
         require(
-            !IBlacklist(blacklist).checkBlacklisted(account),
+            !core.checkBlacklisted(account),
             "Maze: Account is blacklisted"
         );
         _;
     }
 
-    constructor(address blacklist_) {
+    constructor(address core_) {
         require(
-            blacklist_ != address(0),
+            core_ != address(0),
             "Vesting: Blacklist cannot have zero address"
         );
-        blacklist = blacklist_;
+        core = ICore(core_);
     }
 
     /// @notice See {IVesting-getUsersVestings}
@@ -126,11 +126,7 @@ contract Vesting is IVesting, Ownable, Pausable {
         // NOTICE: User must approve this transfer first
 
         // Transfer all tokens to the Vesting contract first
-        ERC20(IBlacklist(blacklist).maze()).safeTransferFrom(
-            msg.sender,
-            address(this),
-            amount
-        );
+        ERC20(core.maze()).safeTransferFrom(msg.sender, address(this), amount);
 
         // Vesting IDs start with 1
         _vestingIds.increment();
@@ -158,11 +154,8 @@ contract Vesting is IVesting, Ownable, Pausable {
         _idsToVestings[id] = vesting;
 
         // Transfer tokens to the Farming contract
-        ERC20(IBlacklist(blacklist).maze()).approve(
-            IBlacklist(blacklist).farming(),
-            amount
-        );
-        IFarming(IBlacklist(blacklist).farming()).lockOnBehalf(to, amount);
+        ERC20(core.maze()).approve(core.farming(), amount);
+        IFarming(core.farming()).lockOnBehalf(to, amount);
 
         emit VestingStarted(
             to,
@@ -181,10 +174,7 @@ contract Vesting is IVesting, Ownable, Pausable {
         if (vestedAmount > 0) {
             // Transfer vested tokens from Farming to the user
             // NOTE: This does not claim the reward for Farming.
-            IFarming(IBlacklist(blacklist).farming()).unlockOnBehalf(
-                msg.sender,
-                vestedAmount
-            );
+            IFarming(core.farming()).unlockOnBehalf(msg.sender, vestedAmount);
 
             emit TokensClaimed(msg.sender, vestedAmount);
         }
@@ -239,76 +229,74 @@ contract Vesting is IVesting, Ownable, Pausable {
                 );
             }
 
-            // Each month the same amount is vested
-            uint256 amountPerMonth = amount / vesting.claimablePeriods;
-            console.log("Amount per month is: ", amountPerMonth);
+            // Each period the same amount is vested
+            uint256 amountPerPeriod = amount / vesting.claimablePeriods;
+            console.log("Amount per period is: ", amountPerPeriod);
 
-            // Calculate the number of months since cliff
+            // Calculate the number of periods since cliff
             uint256 timeSinceCliff = block.timestamp -
                 (vesting.startTime + vesting.cliffDuration);
-            // Each claim period is one month. Cannot be changed
-            uint256 oneMonth = 1 days * 30;
-            uint256 monthsSinceCliff = timeSinceCliff / oneMonth;
+            // Each claim period is one period. Cannot be changed
+            uint256 onePeriod = 1 days * 30;
+            console.log("Time since cliff: ", timeSinceCliff);
+            uint256 periodsSinceCliff = timeSinceCliff / onePeriod;
 
-            console.log("Months since cliff: ", monthsSinceCliff);
+            console.log("Periods since cliff: ", periodsSinceCliff);
 
-            // If user has already claimed current vesting in current month - skip this vesting
-            if (_claimedMonthsInId[user][vestingId][monthsSinceCliff]) {
+            // If user has already claimed current vesting in current period - skip this vesting
+            if (_claimedPeriodsInId[user][vestingId][periodsSinceCliff]) {
                 continue;
             }
 
-            // If it's zero - user hasn't claimed any months yet
-            uint256 unclaimedMonths = 0;
-            // If user has already claimed some part of this vesting (several months),
-            // calculate the difference between the current month and the month he claimed
-            // The resulting amount of months will be used to calculate the available amount
-            if (monthsSinceCliff > vesting.lastClaimedPeriod) {
-                unclaimedMonths = monthsSinceCliff - vesting.lastClaimedPeriod;
+            // If it's zero - user hasn't claimed any periods yet
+            uint256 unclaimedPeriods = 0;
+            // If user has already claimed some part of this vesting (several periods),
+            // calculate the difference between the current period and the period he claimed
+            // The resulting amount of periods will be used to calculate the available amount
+            if (periodsSinceCliff > vesting.lastClaimedPeriod) {
+                unclaimedPeriods =
+                    periodsSinceCliff -
+                    vesting.lastClaimedPeriod;
+                console.log("Periods to claim for: ", unclaimedPeriods);
+                // If there are too many unclaimed periods (user hasn't claimed
+                // for a long time), decrease them. They cannot be greater than
+                // the number of periods from last claimed period to
+                // the last claimable period
+                if (unclaimedPeriods > vesting.claimablePeriods) {
+                    console.log(
+                        "Periods passed greater than number of periods. Decrease periods to claim for"
+                    );
+                    unclaimedPeriods =
+                        vesting.claimablePeriods -
+                        vesting.lastClaimedPeriod;
+                    console.log("Now Periods to claim for: ", unclaimedPeriods);
+                }
             }
 
-            console.log("Months to claim for: ", unclaimedMonths);
+            // Mark that user has claimed all periods since cliff to the current period
+            _claimedPeriodsInId[user][vestingId][periodsSinceCliff] = true;
 
-            // Maximum number of months to claim for is
-            // the number of periods of vesting
-            if (unclaimedMonths > vesting.claimablePeriods) {
-                console.log(
-                    "Months passed greater than number of periods. Decrease months to claim for"
-                );
-                unclaimedMonths = vesting.claimablePeriods;
-            }
-
-            console.log("Now Months to claim for: ", unclaimedMonths);
-
-            // Mark that user has claimed all months since cliff to the current month
-            _claimedMonthsInId[user][vestingId][monthsSinceCliff] = true;
-
-            // Mark the last month user has claimed vestings
-            vesting.lastClaimedPeriod = unclaimedMonths;
+            // Mark the last period user has claimed vestings
+            vesting.lastClaimedPeriod += unclaimedPeriods;
 
             // Mark that user has claimed specific amount in the current vesting
-            vesting.amountClaimed += unclaimedMonths * amountPerMonth;
+            vesting.amountClaimed += unclaimedPeriods * amountPerPeriod;
 
             // Increment total claimed amount
-            // Use only unclaimed months
-            totalAvailableAmount += unclaimedMonths * amountPerMonth;
+            // Use only unclaimed periods
+            totalAvailableAmount += unclaimedPeriods * amountPerPeriod;
 
-            // If user has claimed the last month, the whole vesting was claimed
+            // If user has claimed the last period, the whole vesting was claimed
             if (vesting.lastClaimedPeriod == vesting.claimablePeriods) {
-                console.log("Last month claimed. Vesting finished.");
+                console.log("Last period claimed. Vesting finished.");
                 vesting.status = VestingStatus.Claimed;
             }
 
-            console.log(
-                "Available amount after claim of all months is: ",
-                totalAvailableAmount
-            );
+            console.log("CLAIMED IN ONE VESTING: ", totalAvailableAmount);
             console.log("Vesting amount is:", vesting.amount);
         }
 
-        console.log(
-            "After all pariods total available amount is: ",
-            totalAvailableAmount
-        );
+        console.log("TOTAL CLAIMED: ", totalAvailableAmount);
 
         return totalAvailableAmount;
     }

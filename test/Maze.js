@@ -12,61 +12,61 @@ describe("Maze token", () => {
   async function deploys() {
     [ownerAcc, clientAcc1, clientAcc2] = await ethers.getSigners();
 
-    // Deploy blacklist
-    let blacklistFactory = await ethers.getContractFactory("Blacklist");
-    let blacklist = await blacklistFactory.deploy();
-    await blacklist.deployed();
+    // Deploy core
+    let coreFactory = await ethers.getContractFactory("Core");
+    let core = await coreFactory.deploy();
+    await core.deployed();
 
     // Deploy token
     let mazeFactory = await ethers.getContractFactory("Maze");
-    let maze = await mazeFactory.deploy(blacklist.address);
+    let maze = await mazeFactory.deploy(core.address);
     await maze.deployed();
 
-    // Set addresses of all contract into blacklist
-    await blacklist.setMaze(maze.address);
+    // Set addresses of all contract into core
+    await core.setMaze(maze.address);
 
     return {
-      blacklist,
+      core,
       maze,
     };
   }
 
   describe("Deployment", () => {
     it("Should have a correct name", async () => {
-      let { maze, blacklist } = await loadFixture(deploys);
+      let { maze, core } = await loadFixture(deploys);
       expect(await maze.name()).to.equal("Maze");
     });
 
     it("Should have a correct symbol", async () => {
-      let { maze, blacklist } = await loadFixture(deploys);
+      let { maze, core } = await loadFixture(deploys);
       expect(await maze.symbol()).to.equal("MAZE");
     });
 
     it("Should have correct decimals", async () => {
-      let { maze, blacklist } = await loadFixture(deploys);
+      let { maze, core } = await loadFixture(deploys);
       expect(await maze.decimals()).to.equal(18);
     });
 
     it("Should have correct current supply", async () => {
-      let { maze, blacklist } = await loadFixture(deploys);
+      let { maze, core } = await loadFixture(deploys);
       expect(await maze.totalSupply()).to.equal(parseEther("100000000"));
     });
 
     it("Should have correct fee percentage", async () => {
-      let { maze, blacklist } = await loadFixture(deploys);
+      let { maze, core } = await loadFixture(deploys);
       expect(await maze.feeInBP()).to.equal(200);
     });
 
-    it("Should have correct blacklist address", async () => {
-      let { maze, blacklist } = await loadFixture(deploys);
-      expect(await maze.blacklist()).to.equal(blacklist.address);
+    it("Should have correct core address", async () => {
+      let { maze, core } = await loadFixture(deploys);
+      expect(await maze.core()).to.equal(core.address);
     });
 
     describe("Fails", () => {
-      it("Should fail to deploy with zero blacklist address", async () => {
+      it("Should fail to deploy with zero core address", async () => {
         let mazeFactory = await ethers.getContractFactory("Maze");
         await expect(mazeFactory.deploy(zeroAddress)).to.be.revertedWith(
-          "Maze: Blacklist cannot have zero address"
+          "Maze: Core cannot have zero address"
         );
       });
     });
@@ -75,7 +75,7 @@ describe("Maze token", () => {
   describe("Modifiers", () => {
     describe("Blacklisted", () => {
       it("Should check that user is not blacklisted", async () => {
-        let { maze, blacklist } = await loadFixture(deploys);
+        let { maze, core } = await loadFixture(deploys);
 
         // Transfer tokens to client
         await maze
@@ -87,8 +87,8 @@ describe("Maze token", () => {
           .connect(clientAcc1)
           .transfer(clientAcc2.address, parseEther("0.1"));
 
-        // Blacklist reciever
-        await blacklist.addToBlacklist(clientAcc2.address);
+        // Core reciever
+        await core.addToBlacklist(clientAcc2.address);
 
         // This should fail now
         await expect(
@@ -101,7 +101,7 @@ describe("Maze token", () => {
 
     describe("Paused", () => {
       it("Should forbid any operations when contract is paused", async () => {
-        let { maze, blacklist } = await loadFixture(deploys);
+        let { maze, core } = await loadFixture(deploys);
 
         let burnAmount = parseEther("0.1");
 
@@ -123,7 +123,7 @@ describe("Maze token", () => {
   describe("Getters", () => {
     describe("Total fee", () => {
       it("Should return total fee", async () => {
-        let { maze, blacklist } = await loadFixture(deploys);
+        let { maze, core } = await loadFixture(deploys);
 
         expect(await maze.totalFee()).to.equal(0);
 
@@ -145,7 +145,7 @@ describe("Maze token", () => {
         // In this case after tokens transfers owner and client balance change
         // not only by transfer amount, but also bu some fee amount
         it("Should return balance of the user", async () => {
-          let { maze, blacklist } = await loadFixture(deploys);
+          let { maze, core } = await loadFixture(deploys);
 
           let ownerStartBalance = await maze.balanceOf(ownerAcc.address);
           let clientStartBalance = await maze.balanceOf(clientAcc1.address);
@@ -179,7 +179,7 @@ describe("Maze token", () => {
         // In this case after tokens transfers owner and client balance change
         // only for transfer amount without fee distribution
         it("Should return balance of the user", async () => {
-          let { maze, blacklist } = await loadFixture(deploys);
+          let { maze, core } = await loadFixture(deploys);
 
           // Exclude both owner and client
           await maze.connect(ownerAcc).excludeFromStakers(ownerAcc.address);
@@ -219,7 +219,7 @@ describe("Maze token", () => {
 
     describe("Allowances", () => {
       it("Should return correct allowance for user", async () => {
-        let { maze, blacklist } = await loadFixture(deploys);
+        let { maze, core } = await loadFixture(deploys);
 
         expect(
           await maze.allowance(ownerAcc.address, clientAcc1.address)
@@ -248,7 +248,7 @@ describe("Maze token", () => {
   describe("Main functions", () => {
     describe("Approve", () => {
       it("Should approve transfer of tokens to another user", async () => {
-        let { maze, blacklist } = await loadFixture(deploys);
+        let { maze, core } = await loadFixture(deploys);
 
         expect(
           await maze.allowance(ownerAcc.address, clientAcc1.address)
@@ -265,7 +265,7 @@ describe("Maze token", () => {
       });
 
       it("Should fail to approve for zero address spender", async () => {
-        let { maze, blacklist } = await loadFixture(deploys);
+        let { maze, core } = await loadFixture(deploys);
 
         let transferAmount = parseEther("0.1");
         await expect(
@@ -277,7 +277,7 @@ describe("Maze token", () => {
     describe("Burn", () => {
       describe("From included accounts", () => {
         it("Should burn tokens of the user", async () => {
-          let { maze, blacklist } = await loadFixture(deploys);
+          let { maze, core } = await loadFixture(deploys);
 
           // Transfer some tokens to the client
           let transferAmount = parseEther("0.2");
@@ -311,7 +311,7 @@ describe("Maze token", () => {
       });
       describe("From excluded accounts", () => {
         it("Should burn tokens of the user", async () => {
-          let { maze, blacklist } = await loadFixture(deploys);
+          let { maze, core } = await loadFixture(deploys);
 
           // Exclude owner
           await maze.connect(ownerAcc).excludeFromStakers(ownerAcc.address);
@@ -335,7 +335,7 @@ describe("Maze token", () => {
       });
       describe("Fails", () => {
         it("Should fail to burn more tokens that user has", async () => {
-          let { maze, blacklist } = await loadFixture(deploys);
+          let { maze, core } = await loadFixture(deploys);
 
           let burnAmount = parseEther("1000000000000000");
 
@@ -349,7 +349,7 @@ describe("Maze token", () => {
     describe("Transfer", () => {
       describe("From included to included", () => {
         it("Should transfer tokens between two users", async () => {
-          let { maze, blacklist } = await loadFixture(deploys);
+          let { maze, core } = await loadFixture(deploys);
 
           let ownerStartBalance = await maze.balanceOf(ownerAcc.address);
           let clientStartBalance = await maze.balanceOf(clientAcc1.address);
@@ -378,7 +378,7 @@ describe("Maze token", () => {
       });
       describe("From included to excluded", () => {
         it("Should transfer tokens between two users", async () => {
-          let { maze, blacklist } = await loadFixture(deploys);
+          let { maze, core } = await loadFixture(deploys);
 
           // Exclude client
           await maze.connect(ownerAcc).excludeFromStakers(clientAcc1.address);
@@ -415,7 +415,7 @@ describe("Maze token", () => {
       });
       describe("From excluded to included", () => {
         it("Should transfer tokens between two users", async () => {
-          let { maze, blacklist } = await loadFixture(deploys);
+          let { maze, core } = await loadFixture(deploys);
 
           // Exclude owner
           await maze.connect(ownerAcc).excludeFromStakers(ownerAcc.address);
@@ -449,7 +449,7 @@ describe("Maze token", () => {
 
       describe("From excluded to excluded", () => {
         it("Should transfer tokens between two users", async () => {
-          let { maze, blacklist } = await loadFixture(deploys);
+          let { maze, core } = await loadFixture(deploys);
 
           // Exclude both accounts
           await maze.connect(ownerAcc).excludeFromStakers(ownerAcc.address);
@@ -483,7 +483,7 @@ describe("Maze token", () => {
 
       describe("Fails", () => {
         it("Should fail to transfer if not enough tokens for the transfer", async () => {
-          let { maze, blacklist } = await loadFixture(deploys);
+          let { maze, core } = await loadFixture(deploys);
 
           let transferAmount = parseEther("1000000000000000");
 
@@ -492,7 +492,7 @@ describe("Maze token", () => {
           ).to.be.revertedWith("Maze: Transfer amount exceeds balance");
         });
         it("Should fail to transfer if not enough tokens for transfer and fee for both included", async () => {
-          let { maze, blacklist } = await loadFixture(deploys);
+          let { maze, core } = await loadFixture(deploys);
 
           let transferAmount = parseEther("0.1");
 
@@ -509,7 +509,7 @@ describe("Maze token", () => {
           ).to.be.revertedWith("Maze: not enough tokens to pay the fee");
         });
         it("Should fail to transfer if not enough tokens for transfer and fee for both exluded", async () => {
-          let { maze, blacklist } = await loadFixture(deploys);
+          let { maze, core } = await loadFixture(deploys);
 
           // Exclude both accounts
           await maze.connect(ownerAcc).excludeFromStakers(ownerAcc.address);
@@ -534,7 +534,7 @@ describe("Maze token", () => {
 
     describe("TransferFrom", () => {
       it("Should decrease allowance after transfer", async () => {
-        let { maze, blacklist } = await loadFixture(deploys);
+        let { maze, core } = await loadFixture(deploys);
 
         // Exclude all accounts to make it easier
         await maze.connect(ownerAcc).excludeFromStakers(ownerAcc.address);
@@ -572,7 +572,7 @@ describe("Maze token", () => {
     describe("Allowance", () => {
       describe("Increase allowance", () => {
         it("Should increase allowance", async () => {
-          let { maze, blacklist } = await loadFixture(deploys);
+          let { maze, core } = await loadFixture(deploys);
 
           let transferAmount = parseEther("1");
 
@@ -591,7 +591,7 @@ describe("Maze token", () => {
       });
       describe("Decrease allowance", () => {
         it("Should decrease allowance", async () => {
-          let { maze, blacklist } = await loadFixture(deploys);
+          let { maze, core } = await loadFixture(deploys);
 
           let transferAmount = parseEther("1");
 
@@ -616,7 +616,7 @@ describe("Maze token", () => {
 
     describe("Set fees", () => {
       it("Should set new fee percentage", async () => {
-        let { maze, blacklist } = await loadFixture(deploys);
+        let { maze, core } = await loadFixture(deploys);
 
         expect(await maze.feeInBP()).to.equal(200);
 
@@ -630,7 +630,7 @@ describe("Maze token", () => {
 
       describe("Fails", () => {
         it("Should fail to set to high fee", async () => {
-          let { maze, blacklist } = await loadFixture(deploys);
+          let { maze, core } = await loadFixture(deploys);
 
           await expect(
             maze.connect(ownerAcc).setFees(BigNumber.from("1000000000"))
@@ -642,7 +642,7 @@ describe("Maze token", () => {
     describe("Whitelist", () => {
       describe("Add to whitelist", () => {
         it("Should add to whitelist", async () => {
-          let { maze, blacklist } = await loadFixture(deploys);
+          let { maze, core } = await loadFixture(deploys);
 
           expect(await maze.isWhitelisted(clientAcc1.address)).to.equal(false);
 
@@ -655,7 +655,7 @@ describe("Maze token", () => {
 
         describe("Fails", () => {
           it("Should fail to add to whitelist", async () => {
-            let { maze, blacklist } = await loadFixture(deploys);
+            let { maze, core } = await loadFixture(deploys);
 
             await maze.connect(ownerAcc).addToWhitelist(clientAcc1.address);
 
@@ -668,7 +668,7 @@ describe("Maze token", () => {
 
       describe("Remove from whitelist", () => {
         it("Should remove from whitelist", async () => {
-          let { maze, blacklist } = await loadFixture(deploys);
+          let { maze, core } = await loadFixture(deploys);
 
           await maze.connect(ownerAcc).addToWhitelist(clientAcc1.address);
 
@@ -683,7 +683,7 @@ describe("Maze token", () => {
 
         describe("Fails", () => {
           it("Should fail to add to whitelist", async () => {
-            let { maze, blacklist } = await loadFixture(deploys);
+            let { maze, core } = await loadFixture(deploys);
 
             await expect(
               maze.connect(ownerAcc).removeFromWhitelist(clientAcc1.address)
@@ -699,7 +699,7 @@ describe("Maze token", () => {
     describe("Stakers", () => {
       describe("Exclude from stakers", () => {
         it("Should exclude account from stakers", async () => {
-          let { maze, blacklist } = await loadFixture(deploys);
+          let { maze, core } = await loadFixture(deploys);
 
           let clientStartBalance = await maze.balanceOf(clientAcc1.address);
           expect(await maze.isExcluded(clientAcc1.address)).to.equal(false);
@@ -715,7 +715,7 @@ describe("Maze token", () => {
 
         describe("Fails", () => {
           it("Should fail to exclude not included account", async () => {
-            let { maze, blacklist } = await loadFixture(deploys);
+            let { maze, core } = await loadFixture(deploys);
 
             await maze.connect(ownerAcc).excludeFromStakers(clientAcc1.address);
 
@@ -725,7 +725,7 @@ describe("Maze token", () => {
           });
 
           it("Should fail to exclude zero address account", async () => {
-            let { maze, blacklist } = await loadFixture(deploys);
+            let { maze, core } = await loadFixture(deploys);
 
             await expect(
               maze.connect(ownerAcc).excludeFromStakers(zeroAddress)
@@ -735,7 +735,7 @@ describe("Maze token", () => {
       });
       describe("Include into stakers", () => {
         it("Should include account into stakers", async () => {
-          let { maze, blacklist } = await loadFixture(deploys);
+          let { maze, core } = await loadFixture(deploys);
 
           await maze.connect(ownerAcc).excludeFromStakers(clientAcc1.address);
 
@@ -755,7 +755,7 @@ describe("Maze token", () => {
 
         describe("Fails", () => {
           it("Should fail to include already included account", async () => {
-            let { maze, blacklist } = await loadFixture(deploys);
+            let { maze, core } = await loadFixture(deploys);
 
             await expect(
               maze.connect(ownerAcc).includeIntoStakers(clientAcc1.address)
@@ -763,7 +763,7 @@ describe("Maze token", () => {
           });
 
           it("Should fail to include zero address account", async () => {
-            let { maze, blacklist } = await loadFixture(deploys);
+            let { maze, core } = await loadFixture(deploys);
 
             await expect(
               maze.connect(ownerAcc).includeIntoStakers(zeroAddress)
