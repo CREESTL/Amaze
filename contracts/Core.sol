@@ -4,10 +4,10 @@ pragma solidity ^0.8.12;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
-import "./interfaces/IBlacklist.sol";
+import "./interfaces/ICore.sol";
 
-/// @title Blacklist contract to block users of the Amaze platform
-contract Blacklist is IBlacklist, Ownable, Pausable {
+/// @title Core contract to block users of the Amaze platform
+contract Core is ICore, Ownable, Pausable {
     /// @notice Marks that account is blacklisted
     mapping(address => bool) public blacklist;
 
@@ -18,28 +18,25 @@ contract Blacklist is IBlacklist, Ownable, Pausable {
     /// @notice The address of the Farming contract
     address public farming;
 
-    /// @notice See {IBlacklist-checkBlacklisted}
+    /// @notice See {ICore-checkBlacklisted}
     function checkBlacklisted(address account) external view returns (bool) {
         return blacklist[account];
     }
 
-    /// @notice See {IBlacklist-setMaze}
+    /// @notice See {ICore-setMaze}
     function setMaze(address maze_) external whenNotPaused onlyOwner {
-        require(
-            maze_ != address(0),
-            "Blacklist: Maze cannot have zero address"
-        );
+        require(maze_ != address(0), "Core: Maze cannot have zero address");
 
         maze = maze_;
 
         emit MazeChanged(maze_);
     }
 
-    /// @notice See {IBlacklist-setVesting}
+    /// @notice See {ICore-setVesting}
     function setVesting(address vesting_) external whenNotPaused onlyOwner {
         require(
             vesting_ != address(0),
-            "Blacklist: Vesting cannot have zero address"
+            "Core: Vesting cannot have zero address"
         );
 
         vesting = vesting_;
@@ -47,11 +44,11 @@ contract Blacklist is IBlacklist, Ownable, Pausable {
         emit VestingChanged(vesting_);
     }
 
-    /// @notice See {IBlacklist-setFarming}
+    /// @notice See {ICore-setFarming}
     function setFarming(address farming_) external whenNotPaused onlyOwner {
         require(
             farming_ != address(0),
-            "Blacklist: Farming cannot have zero address"
+            "Core: Farming cannot have zero address"
         );
 
         farming = farming_;
@@ -59,29 +56,29 @@ contract Blacklist is IBlacklist, Ownable, Pausable {
         emit FarmingChanged(farming_);
     }
 
-    /// @notice See {IBlacklist-addToBlacklist}
+    /// @notice See {ICore-addToBlacklist}
     function addToBlacklist(address account) external whenNotPaused onlyOwner {
-        require(!blacklist[account], "Blacklist: Account already in blacklist");
-        require(msg.sender != account, "Blacklist: Cannot blacklist yourself");
+        require(!blacklist[account], "Core: Account already in blacklist");
+        require(msg.sender != account, "Core: Cannot blacklist yourself");
         blacklist[account] = true;
         emit AddToBlacklist(account);
     }
 
-    /// @notice See {IBlacklist-removeFromBlacklist}
+    /// @notice See {ICore-removeFromBlacklist}
     function removeFromBlacklist(
         address account
     ) external whenNotPaused onlyOwner {
-        require(blacklist[account], "Blacklist: Account not in blacklist");
+        require(blacklist[account], "Core: Account not in blacklist");
         blacklist[account] = false;
         emit RemoveFromBlacklist(account);
     }
 
-    /// @notice See {IBlacklist-pause}
+    /// @notice See {ICore-pause}
     function pause() external onlyOwner {
         _pause();
     }
 
-    /// @notice See {IBlacklist-unpause}
+    /// @notice See {ICore-unpause}
     function unpause() external onlyOwner {
         _unpause();
     }

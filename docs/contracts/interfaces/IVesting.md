@@ -63,7 +63,7 @@ Returns information about the vesting by its ID
 
 | Name | Type | Description |
 |---|---|---|
-| _0 | enum IVesting.VestingStatus | The status of vesting  |
+| _0 | enum IVesting.VestingStatus | The status of vesting |
 | _1 | address | The recipient of tokens after cliff |
 | _2 | uint256 | The total amount of tokens to be vested |
 | _3 | uint256 | The total amount of claimed tokens |

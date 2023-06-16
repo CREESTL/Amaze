@@ -7,7 +7,7 @@ import "@openzeppelin/contracts/utils/Address.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
 import "./interfaces/IMaze.sol";
-import "./interfaces/IBlacklist.sol";
+import "./interfaces/ICore.sol";
 
 /// @title ERC20 token with RFI logic
 /// @dev NOTE: This contract uses the principals of RFI tokens
@@ -16,8 +16,8 @@ import "./interfaces/IBlacklist.sol";
 contract Maze is IMaze, Ownable, Pausable {
     using SafeMath for uint256;
 
-    /// @notice The address of the Blacklist contract
-    address public blacklist;
+    /// @notice The address of the Core contract
+    ICore public core;
 
     /// @dev Balances in r-space
     mapping(address => uint256) private _rOwned;
@@ -61,18 +61,15 @@ contract Maze is IMaze, Ownable, Pausable {
     /// @notice Checks that account is not blacklisted
     modifier ifNotBlacklisted(address account) {
         require(
-            !IBlacklist(blacklist).checkBlacklisted(account),
+            !core.checkBlacklisted(account),
             "Maze: Account is blacklisted"
         );
         _;
     }
 
-    constructor(address blacklist_) {
-        require(
-            blacklist_ != address(0),
-            "Maze: Blacklist cannot have zero address"
-        );
-        blacklist = blacklist_;
+    constructor(address core_) {
+        require(core_ != address(0), "Maze: Core cannot have zero address");
+        core = ICore(core_);
 
         // Whole supply of tokens is assigned to owner
         _rOwned[msg.sender] = _rTotal;

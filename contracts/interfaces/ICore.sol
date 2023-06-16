@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.12;
 
-interface IBlacklist {
+interface ICore {
     /// @notice Indicates that account has been added to the blacklist
     /// @param account The account added to the blacklist
     event AddToBlacklist(address account);

@@ -15,15 +15,15 @@ async function main() {
 
   // ====================================================
 
-  // Contract #1: Blacklist
+  // Contract #1: Core
 
-  contractName = "Blacklist";
+  contractName = "Core";
   console.log(`[${contractName}]: Start of Deployment...`);
-  let blacklistFactory = await ethers.getContractFactory(contractName);
-  const blacklist = await blacklistFactory.deploy();
-  await blacklist.deployed();
+  let coreFactory = await ethers.getContractFactory(contractName);
+  const core = await coreFactory.deploy();
+  await core.deployed();
   console.log(`[${contractName}]: Deployment Finished!`);
-  OUTPUT_DEPLOY[network.name][contractName].address = blacklist.address;
+  OUTPUT_DEPLOY[network.name][contractName].address = core.address;
 
   // Verify
   console.log(`[${contractName}]: Start of Verification...`);
@@ -31,16 +31,16 @@ async function main() {
   await delay(90000);
 
   if (network.name === "ethereum_mainnet") {
-    url = "https://etherscan.io/address/" + blacklist.address + "#code";
+    url = "https://etherscan.io/address/" + core.address + "#code";
   } else if (network.name === "ethereum_testnet") {
-    url = "https://sepolia.etherscan.io/address/" + blacklist.address + "#code";
+    url = "https://sepolia.etherscan.io/address/" + core.address + "#code";
   }
 
   OUTPUT_DEPLOY[network.name][contractName].verification = url;
 
   try {
     await hre.run("verify:verify", {
-      address: blacklist.address,
+      address: core.address,
       constructorArguments: [],
     });
   } catch (error) {
@@ -55,7 +55,7 @@ async function main() {
   contractName = "Maze";
   console.log(`[${contractName}]: Start of Deployment...`);
   let mazeFactory = await ethers.getContractFactory(contractName);
-  const maze = await mazeFactory.deploy(blacklist.address);
+  const maze = await mazeFactory.deploy(core.address);
   await maze.deployed();
 
   // TODO add Vesting, Farming, etc. in excluded here to follow RFI logic
@@ -79,7 +79,7 @@ async function main() {
   try {
     await hre.run("verify:verify", {
       address: maze.address,
-      constructorArguments: [blacklist.address],
+      constructorArguments: [core.address],
     });
   } catch (error) {
     console.error(error);
@@ -93,7 +93,7 @@ async function main() {
   contractName = "Farming";
   console.log(`[${contractName}]: Start of Deployment...`);
   let farmingFactory = await ethers.getContractFactory(contractName);
-  const farming = await farmingFactory.deploy(blacklist.address);
+  const farming = await farmingFactory.deploy(core.address);
   await farming.deployed();
 
   console.log(`[${contractName}]: Deployment Finished!`);
@@ -115,7 +115,7 @@ async function main() {
   try {
     await hre.run("verify:verify", {
       address: farming.address,
-      constructorArguments: [blacklist.address],
+      constructorArguments: [core.address],
     });
   } catch (error) {
     console.error(error);
@@ -129,7 +129,7 @@ async function main() {
   contractName = "Vesting";
   console.log(`[${contractName}]: Start of Deployment...`);
   let vestingFactory = await ethers.getContractFactory(contractName);
-  const vesting = await vestingFactory.deploy(blacklist.address);
+  const vesting = await vestingFactory.deploy(core.address);
   await vesting.deployed();
 
   console.log(`[${contractName}]: Deployment Finished!`);
@@ -151,7 +151,7 @@ async function main() {
   try {
     await hre.run("verify:verify", {
       address: vesting.address,
-      constructorArguments: [blacklist.address],
+      constructorArguments: [core.address],
     });
   } catch (error) {
     console.error(error);
@@ -159,8 +159,6 @@ async function main() {
   console.log(`[${contractName}]: Verification Finished!`);
 
   // ==========NOTICE=============
-  // Set Vesting address for Farming
-  await farming.setVesting(vesting.address);
 
   // Exlude contracts from stakers
   await maze.excludeFromStakers(farming.address);
@@ -170,13 +168,13 @@ async function main() {
   await maze.addToWhitelist(farming.address);
   await maze.addToWhitelist(vesting.address);
 
-  // Blacklist contract is not added anywhere because it
+  // Core contract is not added anywhere because it
   // cannot process tokens
 
-  // Set addresses of all contract into blacklist
-  await blacklist.setMaze(maze.address);
-  await blacklist.setFarming(farming.address);
-  await blacklist.setVesting(vesting.address);
+  // Set addresses of all contract into core
+  await core.setMaze(maze.address);
+  await core.setFarming(farming.address);
+  await core.setVesting(vesting.address);
   // ============================
 
   // ====================================================
