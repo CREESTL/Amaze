@@ -161,6 +161,28 @@ _Mint_
 It _does not_ have a `mint` function due to restrictions of RFI logic. But it _does_ have a `burn` function.  
 The total supply of 100 000 000 Maze tokens is minted to the Admin address at deployment. Admin is free to handle these tokens however he wishes. No tokens are assinged to `Vesting`(TBD) or `Farming`(TBD) contracts by default.
 
+#### Vesting
+
+The main purpose of this contract is to unlock Maze tokens for users with specific frequency.  
+
+**Admin side:**  
+The Admin creates a vesting for a user. He spicifies the following parameters of the vesting:
+- `reciever`: The user to get vested tokens
+- `amount`: The amount of vested tokens
+- `cliffDuration`: Duration of cliff period in seconds. During cliff period no claiming of tokens is allowed.
+- `cliffUnlock`: The percentage (in Basis Points) of `amount` that will be unlocked right after cliff
+- `claimablePeriods`: The number of periods after cliff. At the end of each period unlocked amount for the `reciever` is increased. 
+    - Each period is exactly **30 days**  
+
+After vesting is created, all vested tokens are transferred from Admin to the Vesting contract (and Farming afterwards, TBD).  
+The `amount` is evenly distributed between periods.  
+
+**User side:**  
+If Admin creates a vesting and assigns it to the user, the user becomes a reciever of vested tokens. He can claim tokens either during vesting periods or after all of them (in the second case he will recieve all vested tokens at once). Claiming before the end of the first period will only get him the amount of tokens unlocked on cliff.   
+Unlocked (claimable) amount is increased only at the end of each period. For example, if Alice claimed 500 Maze tokens after 6-th month and is supposed to claim 500 more after 7-th month, but she would try to claim them any time *during the 7-th month*, she will recieve no tokens.   
+Each user might have multiple vestings assigned to him. When claiming, he will recieve vested tokens from *all* of these vestings at once.  
+Waiting for a longer period than the number of `claimablePeriods` will not increase user's vested amount. For example, if there are only 5 periods (5 months) and the user waits for a year and claims tokens afterwards, he will only recieve the amount for 5 months.
+
 #### All Contracts
 
 All contracts are [Pausable](https://docs.openzeppelin.com/contracts/4.x/api/security#Pausable) and [Ownable](https://docs.openzeppelin.com/contracts/4.x/api/access#Ownable).
