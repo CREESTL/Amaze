@@ -70,6 +70,40 @@ See {IBlacklist-checkBlacklisted}
 |---|---|---|
 | _0 | bool | undefined |
 
+### farming
+
+```solidity
+function farming() external view returns (address)
+```
+
+The address of the Farming contract
+
+
+
+
+#### Returns
+
+| Name | Type | Description |
+|---|---|---|
+| _0 | address | undefined |
+
+### maze
+
+```solidity
+function maze() external view returns (address)
+```
+
+The address of the Maze contract
+
+
+
+
+#### Returns
+
+| Name | Type | Description |
+|---|---|---|
+| _0 | address | undefined |
+
 ### owner
 
 ```solidity
@@ -142,6 +176,54 @@ function renounceOwnership() external nonpayable
 *Leaves the contract without owner. It will not be possible to call `onlyOwner` functions anymore. Can only be called by the current owner. NOTE: Renouncing ownership will leave the contract without an owner, thereby removing any functionality that is only available to the owner.*
 
 
+### setFarming
+
+```solidity
+function setFarming(address farming_) external nonpayable
+```
+
+See {IBlacklist-setFarming}
+
+
+
+#### Parameters
+
+| Name | Type | Description |
+|---|---|---|
+| farming_ | address | undefined |
+
+### setMaze
+
+```solidity
+function setMaze(address maze_) external nonpayable
+```
+
+See {IBlacklist-setMaze}
+
+
+
+#### Parameters
+
+| Name | Type | Description |
+|---|---|---|
+| maze_ | address | undefined |
+
+### setVesting
+
+```solidity
+function setVesting(address vesting_) external nonpayable
+```
+
+See {IBlacklist-setVesting}
+
+
+
+#### Parameters
+
+| Name | Type | Description |
+|---|---|---|
+| vesting_ | address | undefined |
+
 ### transferOwnership
 
 ```solidity
@@ -169,6 +251,23 @@ See {IBlacklist-unpause}
 
 
 
+### vesting
+
+```solidity
+function vesting() external view returns (address)
+```
+
+The address of the Vesting contract
+
+
+
+
+#### Returns
+
+| Name | Type | Description |
+|---|---|---|
+| _0 | address | undefined |
+
 
 
 ## Events
@@ -188,6 +287,38 @@ Indicates that account has been added to the blacklist
 | Name | Type | Description |
 |---|---|---|
 | account  | address | undefined |
+
+### FarmingChanged
+
+```solidity
+event FarmingChanged(address farming)
+```
+
+Indicates that new Farming address was set
+
+
+
+#### Parameters
+
+| Name | Type | Description |
+|---|---|---|
+| farming  | address | undefined |
+
+### MazeChanged
+
+```solidity
+event MazeChanged(address maze)
+```
+
+Indicates that new Maze address was set
+
+
+
+#### Parameters
+
+| Name | Type | Description |
+|---|---|---|
+| maze  | address | undefined |
 
 ### OwnershipTransferred
 
@@ -253,6 +384,22 @@ event Unpaused(address account)
 | Name | Type | Description |
 |---|---|---|
 | account  | address | undefined |
+
+### VestingChanged
+
+```solidity
+event VestingChanged(address vesting)
+```
+
+Indicates that new Vesting address was set
+
+
+
+#### Parameters
+
+| Name | Type | Description |
+|---|---|---|
+| vesting  | address | undefined |
 
 
 

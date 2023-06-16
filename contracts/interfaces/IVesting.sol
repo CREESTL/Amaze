@@ -4,15 +4,37 @@ pragma solidity ^0.8.12;
 
 /// @notice Interface of the Vesting contract
 interface IVesting {
-    /// @notice Indicates that Maze token address was changed;
-    /// @param newMaze The new address of the Maze token
-    event MazeChanged(address newMaze);
+    enum VestingStatus {
+        InProgress,
+        Claimed
+    }
 
-    /// @notice Indicates that Farming contract address was changed;
-    /// @param newFarming The new address of the Farming contract
-    event FarmingChanged(address newFarming);
+    /// @dev Structure representing a single vesting
+    struct TokenVesting {
+        // The unique ID of the vesting
+        uint256 id;
+        // The status of vesting
+        VestingStatus status;
+        // The recipient of tokens after cliff
+        address to;
+        // The total amount of tokens to be vested
+        uint256 amount;
+        // The amount of claimed tokens.
+        uint256 amountClaimed;
+        // The moment vesting was started
+        uint256 startTime;
+        // The duration of cliff period
+        uint256 cliffDuration;
+        // The percentage of tokens unlocked right after the cliff
+        uint256 cliffUnlock;
+        // Indicates that cliff amount was claimed
+        bool cliffClaimed;
+        // The number of periods in which user can claim tokens
+        uint256 claimablePeriods;
+        // The number of the last period a user has claimed tokens
+        uint256 lastClaimedPeriod;
+    }
 
-    // TODO not sure about parameters here
     /// @notice Indicates that a new vesting has
     /// @param to The recipient of tokens after cliff
     /// @param amount The total amount of tokens to be vested
@@ -29,7 +51,8 @@ interface IVesting {
 
     /// @notice Indicates that user has claimed vested tokens
     /// @param to The reciever of vested tokens
-    event TokensClaimed(address to);
+    /// @param amount The amount of tokens claimed
+    event TokensClaimed(address to, uint256 amount);
 
     /// @notice Returns list of IDs of vestings assigned to the user
     /// @param user The address of the user
@@ -40,33 +63,33 @@ interface IVesting {
 
     /// @notice Returns information about the vesting by its ID
     /// @param id The ID of the vesting to get information about
+    /// @return The status of vesting
     /// @return The recipient of tokens after cliff
     /// @return The total amount of tokens to be vested
+    /// @return The total amount of claimed tokens
     /// @return The moment vesting was started
     /// @return The duration of cliff period
     /// @return Percentage of tokens unlocked right after the cliff
-    /// @return The period after cliff when users can claim their tokens
+    /// @return True if cliff amount was claimed. Otherwise - false
+    /// @return The number of periods after cliff when user can claim his tokens
+    /// @return The number of the last period when user has claimed his tokens
     function getVesting(
         uint256 id
     )
         external
         view
         returns (
+            VestingStatus, // status
             address, // to
             uint256, // amount
+            uint256, // amountClaimed
             uint256, // startTime
             uint256, // cliffDuration
             uint256, // cliffUnlock
-            uint256 // claimablePeriods
+            bool, // cliffClaimed
+            uint256, // claimablePeriods
+            uint256 // lastClaimedPeriod
         );
-
-    /// @notice Changes address of the Maze token
-    /// @param newMaze The new address of the Maze token
-    function setMaze(address newMaze) external;
-
-    /// @notice Changes address of the Farming contract
-    /// @param newFarming The new address of the Farming contract
-    function setFarming(address newFarming) external;
 
     /// @notice Starts vesting for a specific user
     /// @param to The recipient of tokens after cliff

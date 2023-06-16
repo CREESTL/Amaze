@@ -88,6 +88,99 @@ async function main() {
 
   // ====================================================
 
+  // Contract #3: Farming
+
+  contractName = "Farming";
+  console.log(`[${contractName}]: Start of Deployment...`);
+  let farmingFactory = await ethers.getContractFactory(contractName);
+  const farming = await farmingFactory.deploy(blacklist.address);
+  await farming.deployed();
+
+  console.log(`[${contractName}]: Deployment Finished!`);
+  OUTPUT_DEPLOY[network.name][contractName].address = farming.address;
+
+  // Verify
+  console.log(`[${contractName}]: Start of Verification...`);
+
+  await delay(90000);
+
+  if (network.name === "ethereum_mainnet") {
+    url = "https://etherscan.io/address/" + farming.address + "#code";
+  } else if (network.name === "ethereum_testnet") {
+    url = "https://sepolia.etherscan.io/address/" + farming.address + "#code";
+  }
+
+  OUTPUT_DEPLOY[network.name][contractName].verification = url;
+
+  try {
+    await hre.run("verify:verify", {
+      address: farming.address,
+      constructorArguments: [blacklist.address],
+    });
+  } catch (error) {
+    console.error(error);
+  }
+  console.log(`[${contractName}]: Verification Finished!`);
+
+  // ====================================================
+
+  // Contract #4: Vesting
+
+  contractName = "Vesting";
+  console.log(`[${contractName}]: Start of Deployment...`);
+  let vestingFactory = await ethers.getContractFactory(contractName);
+  const vesting = await vestingFactory.deploy(blacklist.address);
+  await vesting.deployed();
+
+  console.log(`[${contractName}]: Deployment Finished!`);
+  OUTPUT_DEPLOY[network.name][contractName].address = vesting.address;
+
+  // Verify
+  console.log(`[${contractName}]: Start of Verification...`);
+
+  await delay(90000);
+
+  if (network.name === "ethereum_mainnet") {
+    url = "https://etherscan.io/address/" + vesting.address + "#code";
+  } else if (network.name === "ethereum_testnet") {
+    url = "https://sepolia.etherscan.io/address/" + vesting.address + "#code";
+  }
+
+  OUTPUT_DEPLOY[network.name][contractName].verification = url;
+
+  try {
+    await hre.run("verify:verify", {
+      address: vesting.address,
+      constructorArguments: [blacklist.address],
+    });
+  } catch (error) {
+    console.error(error);
+  }
+  console.log(`[${contractName}]: Verification Finished!`);
+
+  // ==========NOTICE=============
+  // Set Vesting address for Farming
+  await farming.setVesting(vesting.address);
+
+  // Exlude contracts from stakers
+  await maze.excludeFromStakers(farming.address);
+  await maze.excludeFromStakers(vesting.address);
+
+  // Contracts do not pay fees
+  await maze.addToWhitelist(farming.address);
+  await maze.addToWhitelist(vesting.address);
+
+  // Blacklist contract is not added anywhere because it
+  // cannot process tokens
+
+  // Set addresses of all contract into blacklist
+  await blacklist.setMaze(maze.address);
+  await blacklist.setFarming(farming.address);
+  await blacklist.setVesting(vesting.address);
+  // ============================
+
+  // ====================================================
+
   fs.writeFileSync(
     path.resolve(__dirname, fileName),
     JSON.stringify(OUTPUT_DEPLOY, null, "  ")

@@ -38,23 +38,6 @@ See {IVesting-claimVesting}
 
 
 
-### farming
-
-```solidity
-function farming() external view returns (address)
-```
-
-Address of the Farming contract
-
-
-
-
-#### Returns
-
-| Name | Type | Description |
-|---|---|---|
-| _0 | address | undefined |
-
 ### getUserVestings
 
 ```solidity
@@ -80,7 +63,7 @@ See {IVesting-getUsersVestings}
 ### getVesting
 
 ```solidity
-function getVesting(uint256 id) external view returns (address, uint256, uint256, uint256, uint256, uint256)
+function getVesting(uint256 id) external view returns (enum IVesting.VestingStatus, address, uint256, uint256, uint256, uint256, uint256, bool, uint256, uint256)
 ```
 
 See {IVesting-getVesting}
@@ -97,29 +80,16 @@ See {IVesting-getVesting}
 
 | Name | Type | Description |
 |---|---|---|
-| _0 | address | undefined |
-| _1 | uint256 | undefined |
+| _0 | enum IVesting.VestingStatus | undefined |
+| _1 | address | undefined |
 | _2 | uint256 | undefined |
 | _3 | uint256 | undefined |
 | _4 | uint256 | undefined |
 | _5 | uint256 | undefined |
-
-### maze
-
-```solidity
-function maze() external view returns (address)
-```
-
-Address of the Maze token
-
-
-
-
-#### Returns
-
-| Name | Type | Description |
-|---|---|---|
-| _0 | address | undefined |
+| _6 | uint256 | undefined |
+| _7 | bool | undefined |
+| _8 | uint256 | undefined |
+| _9 | uint256 | undefined |
 
 ### owner
 
@@ -166,38 +136,6 @@ function renounceOwnership() external nonpayable
 *Leaves the contract without owner. It will not be possible to call `onlyOwner` functions anymore. Can only be called by the current owner. NOTE: Renouncing ownership will leave the contract without an owner, thereby removing any functionality that is only available to the owner.*
 
 
-### setFarming
-
-```solidity
-function setFarming(address newFarming) external nonpayable
-```
-
-See {IVesting-setFarming}
-
-
-
-#### Parameters
-
-| Name | Type | Description |
-|---|---|---|
-| newFarming | address | undefined |
-
-### setMaze
-
-```solidity
-function setMaze(address newMaze) external nonpayable
-```
-
-See {IVesting-setMaze}
-
-
-
-#### Parameters
-
-| Name | Type | Description |
-|---|---|---|
-| newMaze | address | undefined |
-
 ### startVesting
 
 ```solidity
@@ -238,38 +176,6 @@ function transferOwnership(address newOwner) external nonpayable
 
 ## Events
 
-### FarmingChanged
-
-```solidity
-event FarmingChanged(address newFarming)
-```
-
-Indicates that Farming contract address was changed;
-
-
-
-#### Parameters
-
-| Name | Type | Description |
-|---|---|---|
-| newFarming  | address | undefined |
-
-### MazeChanged
-
-```solidity
-event MazeChanged(address newMaze)
-```
-
-Indicates that Maze token address was changed;
-
-
-
-#### Parameters
-
-| Name | Type | Description |
-|---|---|---|
-| newMaze  | address | undefined |
-
 ### OwnershipTransferred
 
 ```solidity
@@ -306,7 +212,7 @@ event Paused(address account)
 ### TokensClaimed
 
 ```solidity
-event TokensClaimed(address to)
+event TokensClaimed(address to, uint256 amount)
 ```
 
 Indicates that user has claimed vested tokens
@@ -318,6 +224,7 @@ Indicates that user has claimed vested tokens
 | Name | Type | Description |
 |---|---|---|
 | to  | address | undefined |
+| amount  | uint256 | undefined |
 
 ### Unpaused
 
@@ -341,7 +248,7 @@ event Unpaused(address account)
 event VestingStarted(address to, uint256 amount, uint256 cliffDuration, uint256 cliffUnlock, uint256 claimablePeriods)
 ```
 
-Indicates that a new vesting has 
+Indicates that a new vesting has
 
 
 

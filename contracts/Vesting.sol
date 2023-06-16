@@ -4,6 +4,7 @@ pragma solidity ^0.8.12;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
@@ -17,31 +18,10 @@ import "hardhat/console.sol";
 
 /// @title The contract for Maze tokens vesting
 contract Vesting is IVesting, Ownable, Pausable {
+    using SafeERC20 for ERC20;
     using EnumerableSet for EnumerableSet.UintSet;
     using Counters for Counters.Counter;
 
-    /// @dev Structure representing a single vesting
-    struct TokenVesting {
-        // The unique ID of the vesting
-        uint256 id;
-        // The recipient of tokens after cliff
-        address to;
-        // The total amount of tokens to be vested
-        uint256 amount;
-        // The moment vesting was started
-        uint256 startTime;
-        // The duration of cliff period
-        uint256 cliffDuration;
-        // The percentage of tokens unlocked right after the cliff
-        uint256 cliffUnlock;
-        // The number of periods in which user can claim tokens
-        uint256 claimablePeriods;
-    }
-
-    /// @notice Address of the Maze token
-    address public maze;
-    /// @notice Address of the Farming contract
-    address public farming;
     /// @notice Address of the Blacklist contract
     address public blacklist;
 
@@ -58,17 +38,6 @@ contract Vesting is IVesting, Ownable, Pausable {
     /// @dev Mapping from vesting ID to the vesting itself
     mapping(uint256 => TokenVesting) private _idsToVestings;
 
-    /// @dev Last month number when user claimed tokens
-    mapping(address => mapping(uint256 => uint256)) private _lastClaimMonth;
-
-    /// @dev Amount of tokens claimed by the user in each vesting
-    ///      Used to check that user has claimed the whole vesting
-    mapping(address => mapping(uint256 => uint256)) private _claimedAmountInId;
-
-    /// @dev IDs of vestings in which user has claimed cliff amount
-    ///      Used to prevent user from claiming cliff multiple times
-    mapping(address => mapping(uint256 => bool)) private _claimedCliffInId;
-
     /// @dev Numbers of periods user has claimed in the vesting
     ///      [User address => vesting ID => month number => bool]
     ///      Used to skip periods that user has already claimed
@@ -84,25 +53,18 @@ contract Vesting is IVesting, Ownable, Pausable {
         _;
     }
 
-    constructor(address maze_, address farming_, address blacklist_) {
-        require(maze_ != address(0), "Vesting: Maze cannot have zero address");
-        require(
-            farming_ != address(0),
-            "Vesting: Farming cannot have zero address"
-        );
+    constructor(address blacklist_) {
         require(
             blacklist_ != address(0),
             "Vesting: Blacklist cannot have zero address"
         );
-        maze = maze_;
-        farming = farming_;
         blacklist = blacklist_;
     }
 
     /// @notice See {IVesting-getUsersVestings}
     function getUserVestings(
         address user
-    ) public view returns (uint256[] memory) {
+    ) external view returns (uint256[] memory) {
         require(user != address(0), "Vesting: User cannot have zero address");
         return _usersToIds[user].values();
     }
@@ -111,15 +73,19 @@ contract Vesting is IVesting, Ownable, Pausable {
     function getVesting(
         uint256 id
     )
-        public
+        external
         view
         returns (
+            VestingStatus, // status
             address, // to
             uint256, // amount
+            uint256, //amountClaimed
             uint256, // startTime
             uint256, // cliffDuration
             uint256, // cliffUnlock
-            uint256 // claimablePeriods
+            bool, // cliffClaimed
+            uint256, // claimablePeriods
+            uint256 // lastClaimedPeriod
         )
     {
         require(id <= _vestingIds.current(), "Vesting: Vesting does not exist");
@@ -127,41 +93,17 @@ contract Vesting is IVesting, Ownable, Pausable {
         TokenVesting memory vesting = _idsToVestings[id];
 
         return (
+            vesting.status,
             vesting.to,
             vesting.amount,
+            vesting.amountClaimed,
             vesting.startTime,
             vesting.cliffDuration,
             vesting.cliffUnlock,
-            vesting.claimablePeriods
+            vesting.cliffClaimed,
+            vesting.claimablePeriods,
+            vesting.lastClaimedPeriod
         );
-    }
-
-    /// @notice See {IVesting-setMaze}
-    function setMaze(
-        address newMaze
-    ) public onlyOwner ifNotBlacklisted(msg.sender) {
-        require(
-            newMaze != address(0),
-            "Vesting: Token cannot have zero address"
-        );
-
-        maze = newMaze;
-
-        emit MazeChanged(newMaze);
-    }
-
-    /// @notice See {IVesting-setFarming}
-    function setFarming(
-        address newFarming
-    ) public onlyOwner ifNotBlacklisted(msg.sender) {
-        require(
-            newFarming != address(0),
-            "Vesting: Farming cannot have zero address"
-        );
-
-        farming = newFarming;
-
-        emit FarmingChanged(newFarming);
     }
 
     /// @notice See {IVesting-startVesting}
@@ -171,7 +113,7 @@ contract Vesting is IVesting, Ownable, Pausable {
         uint256 cliffDuration,
         uint256 cliffUnlock,
         uint256 claimablePeriods
-    ) public onlyOwner ifNotBlacklisted(msg.sender) ifNotBlacklisted(to) {
+    ) external onlyOwner ifNotBlacklisted(to) {
         require(to != address(0), "Vesting: Reciever cannot be zero address");
         require(amount != 0, "Vesting: Amount cannot be zero");
         require(cliffDuration > 0, "Vesting: Cliff duration cannot be zero");
@@ -184,7 +126,11 @@ contract Vesting is IVesting, Ownable, Pausable {
         // NOTICE: User must approve this transfer first
 
         // Transfer all tokens to the Vesting contract first
-        IMaze(maze).transferFrom(msg.sender, address(this), amount);
+        ERC20(IBlacklist(blacklist).maze()).safeTransferFrom(
+            msg.sender,
+            address(this),
+            amount
+        );
 
         // Vesting IDs start with 1
         _vestingIds.increment();
@@ -193,12 +139,16 @@ contract Vesting is IVesting, Ownable, Pausable {
         // Create a new vesting
         TokenVesting memory vesting = TokenVesting({
             id: id,
+            status: VestingStatus.InProgress,
             to: to,
             startTime: block.timestamp,
             amount: amount,
+            amountClaimed: 0,
             cliffDuration: cliffDuration,
             cliffUnlock: cliffUnlock,
-            claimablePeriods: claimablePeriods
+            cliffClaimed: false,
+            claimablePeriods: claimablePeriods,
+            lastClaimedPeriod: 0
         });
 
         // Mark that this vesting is assigned to the user
@@ -208,8 +158,11 @@ contract Vesting is IVesting, Ownable, Pausable {
         _idsToVestings[id] = vesting;
 
         // Transfer tokens to the Farming contract
-        IMaze(maze).approve(farming, amount);
-        IFarming(farming).lockOnBehalf(to, amount);
+        ERC20(IBlacklist(blacklist).maze()).approve(
+            IBlacklist(blacklist).farming(),
+            amount
+        );
+        IFarming(IBlacklist(blacklist).farming()).lockOnBehalf(to, amount);
 
         emit VestingStarted(
             to,
@@ -221,15 +174,20 @@ contract Vesting is IVesting, Ownable, Pausable {
     }
 
     /// @notice See {IVesting-claimVesting}
-    function claimTokens() public ifNotBlacklisted(msg.sender) {
+    function claimTokens() external ifNotBlacklisted(msg.sender) {
         // Calculate the vested amount using the schedule
         uint256 vestedAmount = _calculateVestedAmount(msg.sender);
 
-        // Transfer vested tokens from Farming to the user
-        // NOTE: This does not claim the reward for Farming.
-        IFarming(farming).unlockOnBehalf(msg.sender, vestedAmount);
+        if (vestedAmount > 0) {
+            // Transfer vested tokens from Farming to the user
+            // NOTE: This does not claim the reward for Farming.
+            IFarming(IBlacklist(blacklist).farming()).unlockOnBehalf(
+                msg.sender,
+                vestedAmount
+            );
 
-        emit TokensClaimed(msg.sender);
+            emit TokensClaimed(msg.sender, vestedAmount);
+        }
     }
 
     /// @dev Calculates amount of vested tokens available for claim for the user
@@ -246,17 +204,18 @@ contract Vesting is IVesting, Ownable, Pausable {
             uint256 vestingId = _usersToIds[user].at(i);
 
             console.log("Processing vesting: ", vestingId);
-            TokenVesting memory vesting = _idsToVestings[vestingId];
-            // If claimed amount for the current vesting is equal to
-            // its total amount, user has claimed the vesting completely
-            if (_claimedAmountInId[user][vestingId] == vesting.amount) {
+            TokenVesting storage vesting = _idsToVestings[vestingId];
+
+            // Skip claimed vestings
+            if (vesting.status == VestingStatus.Claimed) {
                 console.log("Vesting has been claimed. Skip it");
                 continue;
             }
-            require(
-                vesting.startTime + vesting.cliffDuration < block.timestamp,
-                "Vesting: Cliff not reached"
-            );
+
+            // If cliff of the current vesting was not reached - skip this vesting
+            if (vesting.startTime + vesting.cliffDuration > block.timestamp) {
+                continue;
+            }
             console.log("Cliff reached");
 
             // If cliff was reached, cliff amount is claimed
@@ -266,13 +225,14 @@ contract Vesting is IVesting, Ownable, Pausable {
             console.log("Amount unlocked on cliff: ", amountUnlockedOnCliff);
 
             // If cliff amount was not claimed - claim it
-            if (!_claimedCliffInId[user][vestingId]) {
+            if (!vesting.cliffClaimed) {
                 console.log("Cliff was not claimed. Claim it");
-                _claimedCliffInId[user][vestingId] = true;
                 // If cliff was reached, some part of total amount is available
                 totalAvailableAmount += amountUnlockedOnCliff;
                 // Mark that user has claimed specific amount in the current vesting
-                _claimedAmountInId[user][vestingId] += amountUnlockedOnCliff;
+                vesting.amountClaimed += amountUnlockedOnCliff;
+                // Mark that cliff was claimed
+                vesting.cliffClaimed = true;
                 console.log(
                     "Available amount after cliff is: ",
                     totalAvailableAmount
@@ -292,21 +252,18 @@ contract Vesting is IVesting, Ownable, Pausable {
 
             console.log("Months since cliff: ", monthsSinceCliff);
 
-            // Check if user has already claimed in the current month
-            require(
-                !_claimedMonthsInId[user][vestingId][monthsSinceCliff],
-                "Vesting: Cannot claim in this month anymore"
-            );
+            // If user has already claimed current vesting in current month - skip this vesting
+            if (_claimedMonthsInId[user][vestingId][monthsSinceCliff]) {
+                continue;
+            }
 
             // If it's zero - user hasn't claimed any months yet
             uint256 unclaimedMonths = 0;
             // If user has already claimed some part of this vesting (several months),
             // calculate the difference between the current month and the month he claimed
             // The resulting amount of months will be used to calculate the available amount
-            if (monthsSinceCliff > _lastClaimMonth[user][vestingId]) {
-                unclaimedMonths =
-                    monthsSinceCliff -
-                    _lastClaimMonth[user][vestingId];
+            if (monthsSinceCliff > vesting.lastClaimedPeriod) {
+                unclaimedMonths = monthsSinceCliff - vesting.lastClaimedPeriod;
             }
 
             console.log("Months to claim for: ", unclaimedMonths);
@@ -314,24 +271,32 @@ contract Vesting is IVesting, Ownable, Pausable {
             // Maximum number of months to claim for is
             // the number of periods of vesting
             if (unclaimedMonths > vesting.claimablePeriods) {
-                console.log("Months passed greater than number of periods");
+                console.log(
+                    "Months passed greater than number of periods. Decrease months to claim for"
+                );
                 unclaimedMonths = vesting.claimablePeriods;
             }
+
+            console.log("Now Months to claim for: ", unclaimedMonths);
 
             // Mark that user has claimed all months since cliff to the current month
             _claimedMonthsInId[user][vestingId][monthsSinceCliff] = true;
 
             // Mark the last month user has claimed vestings
-            _lastClaimMonth[user][vestingId] = monthsSinceCliff;
+            vesting.lastClaimedPeriod = unclaimedMonths;
 
             // Mark that user has claimed specific amount in the current vesting
-            _claimedAmountInId[user][vestingId] +=
-                unclaimedMonths *
-                amountPerMonth;
+            vesting.amountClaimed += unclaimedMonths * amountPerMonth;
 
             // Increment total claimed amount
             // Use only unclaimed months
             totalAvailableAmount += unclaimedMonths * amountPerMonth;
+
+            // If user has claimed the last month, the whole vesting was claimed
+            if (vesting.lastClaimedPeriod == vesting.claimablePeriods) {
+                console.log("Last month claimed. Vesting finished.");
+                vesting.status = VestingStatus.Claimed;
+            }
 
             console.log(
                 "Available amount after claim of all months is: ",
