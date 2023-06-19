@@ -14,13 +14,14 @@ interface IFarming {
     /// @param amount The new locked amount of the user
     event UnlockedOnBehalf(address user, uint256 amount);
 
-    /// @notice Recieves and locks Maze tokens from Vesting contract to farm
+    /// @notice Recieves Maze tokens from the admin and locks them
     ///         on behalf of the user
+    /// @param admin The address of the admin to receive tokens from
     /// @param user The address of the user to lock on behalf of
     /// @param amount The amount of Maze tokens to lock
-    function lockOnBehalf(address user, uint256 amount) external;
+    function lockOnBehalf(address admin, address user, uint256 amount) external;
 
-    /// @notice Unlockes Maze tokens on behalf of the user
+    /// @notice Unlockes Maze tokens for the user
     /// @param user The address of the user to unlock on behalf of
     /// @param amount The amount of Maze tokens to unlock
     function unlockOnBehalf(address user, uint256 amount) external;

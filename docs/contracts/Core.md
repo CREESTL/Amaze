@@ -1,8 +1,8 @@
-# Blacklist
+# Core
 
 
 
-> Blacklist contract to block users of the Amaze platform
+> Core contract to block users of the Amaze platform
 
 
 
@@ -16,7 +16,7 @@
 function addToBlacklist(address account) external nonpayable
 ```
 
-See {IBlacklist-addToBlacklist}
+See {ICore-addToBlacklist}
 
 
 
@@ -54,7 +54,7 @@ Marks that account is blacklisted
 function checkBlacklisted(address account) external view returns (bool)
 ```
 
-See {IBlacklist-checkBlacklisted}
+See {ICore-checkBlacklisted}
 
 
 
@@ -127,7 +127,7 @@ function owner() external view returns (address)
 function pause() external nonpayable
 ```
 
-See {IBlacklist-pause}
+See {ICore-pause}
 
 
 
@@ -155,7 +155,7 @@ function paused() external view returns (bool)
 function removeFromBlacklist(address account) external nonpayable
 ```
 
-See {IBlacklist-removeFromBlacklist}
+See {ICore-removeFromBlacklist}
 
 
 
@@ -182,7 +182,7 @@ function renounceOwnership() external nonpayable
 function setFarming(address farming_) external nonpayable
 ```
 
-See {IBlacklist-setFarming}
+See {ICore-setFarming}
 
 
 
@@ -198,7 +198,7 @@ See {IBlacklist-setFarming}
 function setMaze(address maze_) external nonpayable
 ```
 
-See {IBlacklist-setMaze}
+See {ICore-setMaze}
 
 
 
@@ -214,7 +214,7 @@ See {IBlacklist-setMaze}
 function setVesting(address vesting_) external nonpayable
 ```
 
-See {IBlacklist-setVesting}
+See {ICore-setVesting}
 
 
 
@@ -246,7 +246,7 @@ function transferOwnership(address newOwner) external nonpayable
 function unpause() external nonpayable
 ```
 
-See {IBlacklist-unpause}
+See {ICore-unpause}
 
 
 

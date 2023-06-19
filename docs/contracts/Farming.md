@@ -10,13 +10,13 @@
 
 ## Methods
 
-### blacklist
+### core
 
 ```solidity
-function blacklist() external view returns (address)
+function core() external view returns (contract ICore)
 ```
 
-The address /of the Blacklist contract
+The address of the Core contract
 
 
 
@@ -25,12 +25,12 @@ The address /of the Blacklist contract
 
 | Name | Type | Description |
 |---|---|---|
-| _0 | address | undefined |
+| _0 | contract ICore | undefined |
 
 ### lockOnBehalf
 
 ```solidity
-function lockOnBehalf(address user, uint256 amount) external nonpayable
+function lockOnBehalf(address admin, address user, uint256 amount) external nonpayable
 ```
 
 See {IFarming-lockOnBehalf}
@@ -41,6 +41,7 @@ See {IFarming-lockOnBehalf}
 
 | Name | Type | Description |
 |---|---|---|
+| admin | address | undefined |
 | user | address | undefined |
 | amount | uint256 | undefined |
 

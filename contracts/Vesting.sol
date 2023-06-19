@@ -123,11 +123,6 @@ contract Vesting is IVesting, Ownable, Pausable {
             "Vesting: Number of periods cannot be zero"
         );
 
-        // NOTICE: User must approve this transfer first
-
-        // Transfer all tokens to the Vesting contract first
-        ERC20(core.maze()).safeTransferFrom(msg.sender, address(this), amount);
-
         // Vesting IDs start with 1
         _vestingIds.increment();
         uint256 id = _vestingIds.current();
@@ -153,9 +148,9 @@ contract Vesting is IVesting, Ownable, Pausable {
         // Link vesting with its ID
         _idsToVestings[id] = vesting;
 
-        // Transfer tokens to the Farming contract
-        ERC20(core.maze()).approve(core.farming(), amount);
-        IFarming(core.farming()).lockOnBehalf(to, amount);
+        // NOTICE: Admin must approve this transfer first
+        // Lock admin's tokens on behalf of the user
+        IFarming(core.farming()).lockOnBehalf(msg.sender, to, amount);
 
         emit VestingStarted(
             to,

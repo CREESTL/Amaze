@@ -10,23 +10,6 @@
 
 ## Methods
 
-### blacklist
-
-```solidity
-function blacklist() external view returns (address)
-```
-
-Address of the Blacklist contract
-
-
-
-
-#### Returns
-
-| Name | Type | Description |
-|---|---|---|
-| _0 | address | undefined |
-
 ### claimTokens
 
 ```solidity
@@ -37,6 +20,23 @@ See {IVesting-claimVesting}
 
 
 
+
+### core
+
+```solidity
+function core() external view returns (contract ICore)
+```
+
+Address of the Core contract
+
+
+
+
+#### Returns
+
+| Name | Type | Description |
+|---|---|---|
+| _0 | contract ICore | undefined |
 
 ### getUserVestings
 

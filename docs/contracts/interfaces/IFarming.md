@@ -13,10 +13,10 @@ Interface of the Farming contract
 ### lockOnBehalf
 
 ```solidity
-function lockOnBehalf(address user, uint256 amount) external nonpayable
+function lockOnBehalf(address admin, address user, uint256 amount) external nonpayable
 ```
 
-Recieves and locks Maze tokens from Vesting contract to farm         on behalf of the user
+Recieves Maze tokens from the admin and locks them          on behalf of the user
 
 
 
@@ -24,6 +24,7 @@ Recieves and locks Maze tokens from Vesting contract to farm         on behalf o
 
 | Name | Type | Description |
 |---|---|---|
+| admin | address | The address of the admin to receive tokens from |
 | user | address | The address of the user to lock on behalf of |
 | amount | uint256 | The amount of Maze tokens to lock |
 
@@ -33,7 +34,7 @@ Recieves and locks Maze tokens from Vesting contract to farm         on behalf o
 function unlockOnBehalf(address user, uint256 amount) external nonpayable
 ```
 
-Unlockes Maze tokens on behalf of the user
+Unlockes Maze tokens for the user
 
 
 
