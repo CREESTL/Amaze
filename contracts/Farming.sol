@@ -44,6 +44,7 @@ contract Farming is IFarming, Ownable, Pausable {
 
     /// @notice See {IFarming-lockOnBehalf}
     function lockOnBehalf(
+        address admin,
         address user,
         uint256 amount
     ) external onlyVesting ifNotBlacklisted(msg.sender) ifNotBlacklisted(user) {
@@ -56,12 +57,8 @@ contract Farming is IFarming, Ownable, Pausable {
         console.log("\nIn lockOnBehalf:");
         console.log("Locked amount is: ", _lockedAmounts[user]);
 
-        // Transfer tokens from Vesting here
-        ERC20(core.maze()).safeTransferFrom(
-            core.vesting(),
-            address(this),
-            amount
-        );
+        // Transfer tokens from the user to this contract
+        ERC20(core.maze()).safeTransferFrom(admin, address(this), amount);
 
         emit LockedOnBehalf(user, amount);
     }
