@@ -1080,6 +1080,13 @@ describe("Vesting contract", () => {
 
           expect(clientEndBalance).to.equal(clientStartBalance);
         });
+
+        it("Should fail to claim if no vestings were started for the user", async () => {
+          let { core, maze, farming, vesting } = await loadFixture(deploys);
+          
+          await expect(vesting.connect(clientAcc1).claimTokens())
+                      .to.be.revertedWith("Vesting: No vestings for that user");
+        });
       });
     });
   });
