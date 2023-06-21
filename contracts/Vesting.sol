@@ -69,6 +69,16 @@ contract Vesting is IVesting, Ownable, Pausable {
         return _usersToIds[user].values();
     }
 
+    /// @notice See {IVesting-pause}
+    function pause() external onlyOwner {
+        _pause();
+    }
+
+    /// @notice See {IVesting-unpause}
+    function unpause() external onlyOwner {
+        _unpause();
+    }
+
     /// @notice See {IVesting-getVesting}
     function getVesting(
         uint256 id
@@ -113,7 +123,7 @@ contract Vesting is IVesting, Ownable, Pausable {
         uint256 cliffDuration,
         uint256 cliffUnlock,
         uint256 claimablePeriods
-    ) external onlyOwner ifNotBlacklisted(to) {
+    ) external whenNotPaused onlyOwner ifNotBlacklisted(to) {
         require(to != address(0), "Vesting: Reciever cannot be zero address");
         require(amount != 0, "Vesting: Amount cannot be zero");
         require(cliffDuration > 0, "Vesting: Cliff duration cannot be zero");
@@ -162,7 +172,8 @@ contract Vesting is IVesting, Ownable, Pausable {
     }
 
     /// @notice See {IVesting-claimVesting}
-    function claimTokens() external ifNotBlacklisted(msg.sender) {
+    function claimTokens() external whenNotPaused ifNotBlacklisted(msg.sender) {
+        require(_usersToIds[msg.sender].length() != 0, "Vesting: No vestings for that user");
         // Calculate the vested amount using the schedule
         uint256 vestedAmount = _calculateVestedAmount(msg.sender);
 
@@ -177,7 +188,7 @@ contract Vesting is IVesting, Ownable, Pausable {
 
     /// @dev Calculates amount of vested tokens available for claim for the user
     /// @param user The address of the user to calculated vested tokens for
-    function _calculateVestedAmount(address user) private returns (uint256) {
+    function _calculateVestedAmount(address user) whenNotPaused private returns (uint256) {
         console.log("\nIn _calculateVestedAmount:");
         // Total amount available for the user
         uint256 totalAvailableAmount;

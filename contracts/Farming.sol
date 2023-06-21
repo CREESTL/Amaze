@@ -18,6 +18,13 @@ contract Farming is IFarming, Ownable, Pausable {
 
     /// @notice The address of the Core contract
     ICore public core;
+    
+    /// @notice The minumum lock period  
+    ///         During this period after lock users cannot unlock tokens  
+    ///         By default period is 1 month
+    // TODO this should not be considered when unlocking from vesting
+    //      because cliff can be less than min locking period
+    uint256 public minLockPeriod = 1 days * 30;
 
     /// @notice Locked balances of users
     mapping(address => uint256) private _lockedAmounts;
@@ -40,6 +47,22 @@ contract Farming is IFarming, Ownable, Pausable {
     constructor(address core_) {
         require(core_ != address(0), "Farming: Core cannot have zero address");
         core = ICore(core_);
+    }
+
+    /// @notice See {IFarming-pause}
+    function pause() external onlyOwner {
+        _pause();
+    }
+
+    /// @notice See {IFarming-unpause}
+    function unpause() external onlyOwner {
+        _unpause();
+    }
+    
+    /// @notice See {IFarming-setMinLockPeriod}
+    function setMinLockPeriod(uint256 period) external onlyOwner {
+        minLockPeriod = period;
+        emit MinLockPeriodChanged(period);
     }
 
     /// @notice See {IFarming-lockOnBehalf}

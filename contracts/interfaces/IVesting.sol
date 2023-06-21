@@ -54,6 +54,12 @@ interface IVesting {
     /// @param amount The amount of tokens claimed
     event TokensClaimed(address to, uint256 amount);
 
+    /// @notice Pause the contract
+    function pause() external;
+
+    /// @notice Unpause the contract
+    function unpause() external;
+
     /// @notice Returns list of IDs of vestings assigned to the user
     /// @param user The address of the user
     /// @return The list of IDs of vestings assigned to the user

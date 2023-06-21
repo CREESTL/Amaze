@@ -247,13 +247,13 @@ contract Maze is IMaze, Ownable, Pausable {
         emit ExcludeFromStakers(account);
     }
 
-    /// @notice Reflect twhole amount and fee okens amount from r-space to t-space
+    /// @notice Reflects whole amount and fee tokens amount from r-space to t-space
     /// @param rAmountWithFee Token amount in r-space
     /// @return The reflected amount of tokens (r-space)
     /// @dev tAmountWithFee = rAmountWithFee / rate
     function _reflectToTSpace(
         uint256 rAmountWithFee
-    ) public view returns (uint256) {
+    ) private view returns (uint256) {
         require(
             rAmountWithFee <= _rTotal,
             "Maze: Amount must be less than total reflections"
