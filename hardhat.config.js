@@ -12,61 +12,61 @@ require("@primitivefi/hardhat-dodoc");
 const { ETHERSCAN_API_KEY, INFURA_API_KEY, ACC_PRIVATE_KEY } = process.env;
 
 module.exports = {
-  solidity: {
-    version: "0.8.12",
-    settings: {
-      optimizer: {
+    solidity: {
+        version: "0.8.12",
+        settings: {
+            optimizer: {
+                enabled: true,
+                runs: 10,
+            },
+        },
+    },
+    networks: {
+        hardhat: {
+            allowUnlimitedContractSize: true,
+        },
+        localhost: {
+            url: "http://127.0.0.1:8545",
+        },
+        ethereum_mainnet: {
+            url: `https://mainnet.infura.io/v3/${INFURA_API_KEY}`,
+            accounts: [ACC_PRIVATE_KEY],
+        },
+        ethereum_testnet: {
+            url: `https://sepolia.infura.io/v3/${INFURA_API_KEY}`,
+            accounts: [ACC_PRIVATE_KEY],
+        },
+    },
+    mocha: {
+        timeout: 20000000000,
+    },
+    paths: {
+        sources: "./contracts",
+        tests: "./test",
+        cache: "./cache",
+        artifacts: "./artifacts",
+    },
+    skipFiles: ["node_modules"],
+    gasReporter: {
         enabled: true,
-        runs: 10,
-      },
+        url: "http://localhost:8545",
     },
-  },
-  networks: {
-    hardhat: {
-      allowUnlimitedContractSize: true,
+    dodoc: {
+        exclude: ["mocks", "lin", "errors"],
+        runOnCompile: false,
+        freshOutput: true,
+        outputDir: "./docs/contracts",
     },
-    localhost: {
-      url: "http://127.0.0.1:8545",
+    contractSizer: {
+        alphaSort: true,
+        disambiguatePaths: true,
+        strict: true,
+        runOnCompile: false,
     },
-    ethereum_mainnet: {
-      url: `https://mainnet.infura.io/v3/${INFURA_API_KEY}`,
-      accounts: [ACC_PRIVATE_KEY],
+    etherscan: {
+        apiKey: {
+            mainnet: ETHERSCAN_API_KEY,
+            sepolia: ETHERSCAN_API_KEY,
+        },
     },
-    ethereum_testnet: {
-      url: `https://sepolia.infura.io/v3/${INFURA_API_KEY}`,
-      accounts: [ACC_PRIVATE_KEY],
-    },
-  },
-  mocha: {
-    timeout: 20000000000,
-  },
-  paths: {
-    sources: "./contracts",
-    tests: "./test",
-    cache: "./cache",
-    artifacts: "./artifacts",
-  },
-  skipFiles: ["node_modules"],
-  gasReporter: {
-    enabled: true,
-    url: "http://localhost:8545",
-  },
-  dodoc: {
-    exclude: ["mocks", "lin", "errors"],
-    runOnCompile: false,
-    freshOutput: true,
-    outputDir: "./docs/contracts",
-  },
-  contractSizer: {
-    alphaSort: true,
-    disambiguatePaths: true,
-    strict: true,
-    runOnCompile: false,
-  },
-  etherscan: {
-    apiKey: {
-      mainnet: ETHERSCAN_API_KEY,
-      sepolia: ETHERSCAN_API_KEY,
-    },
-  },
 };

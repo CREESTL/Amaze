@@ -50,7 +50,7 @@ interface IFarming {
 
     /// @notice Unpause the contract
     function unpause() external;
-    
+
     /// @notice Returns information about user's farming
     /// @param user The user who is farming tokens
     /// @return The current locked amount

@@ -6,15 +6,15 @@ const { ethers, network } = require("hardhat");
  */
 
 async function main() {
-  let wallet = ethers.Wallet.createRandom();
-  console.log(`New wallet:`);
-  console.log(`    Address: ${wallet.address}`);
-  console.log(`    Private key: ${wallet.privateKey}`);
+    let wallet = ethers.Wallet.createRandom();
+    console.log(`New wallet:`);
+    console.log(`    Address: ${wallet.address}`);
+    console.log(`    Private key: ${wallet.privateKey}`);
 }
 
 main()
-  .then(() => process.exit(0))
-  .catch((error) => {
-    console.error(error);
-    process.exit(1);
-  });
+    .then(() => process.exit(0))
+    .catch((error) => {
+        console.error(error);
+        process.exit(1);
+    });

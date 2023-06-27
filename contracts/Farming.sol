@@ -153,7 +153,6 @@ contract Farming is IFarming, Ownable, Pausable {
         emit DailyRateChanged(rate);
     }
 
-
     /// @notice See {IFarming-lockOnBehalf}
     function lockOnBehalf(
         address admin,
