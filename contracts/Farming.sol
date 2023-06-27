@@ -65,7 +65,7 @@ contract Farming is IFarming, Ownable, Pausable {
     /// @notice The daily rate of rewards
     ///         Is represented in Basis Points
     // TODO which default value to use?
-    uint256 public dailyRate = 500; // 3%
+    uint256 public dailyRate = 300; // 3%
     /// @dev Value used to convert between percents and basis points
     uint256 private _converter = 1e4;
 
@@ -180,12 +180,8 @@ contract Farming is IFarming, Ownable, Pausable {
     ) external whenNotPaused ifNotBlacklisted(msg.sender) {
         _lock(msg.sender, amount);
 
-        console.log("\nIn lock():");
-        console.log("Balance of user is: ", ERC20(core.maze()).balanceOf(msg.sender));
-        console.log("Locked amount is: ", amount);
         // Transfer tokens from the user to this contract
         ERC20(core.maze()).safeTransferFrom(msg.sender, address(this), amount);
-        console.log("SFDSDFSDFSDFS");
 
         emit Locked(msg.sender, amount);
     }

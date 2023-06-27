@@ -104,6 +104,9 @@ describe("Farming contract", () => {
         it("Should deploy and have correct parameters after", async () => {
             let { core, maze, farming, vesting } = await loadFixture(deploys);
             expect(await farming.core()).to.equal(core.address);
+            expect(await farming.minLockPeriod()).to.equal(3600 * 24 * 30);
+            expect(await farming.minClaimGap()).to.equal(3600 * 24 * 365);
+            expect(await farming.dailyRate()).to.equal(300);
         });
         describe("Fails", () => {
             it("Should fail to deploy with invalid parameters", async () => {
@@ -184,49 +187,99 @@ describe("Farming contract", () => {
                 })
             })
         })
-    describe("Get reward", () => {
-        it("Should get correct reward of the user", async () => {
-            let { core, maze, farming, vesting } = await loadFixture(
-                deploys
-            );
-        
-            let reward1 = await farming.getReward(clientAcc1.address);
-            
-            // Before start of farming reward must be zero
-            expect(reward1).to.equal(0);
-            
-            let transferAmount = parseEther("2");
-            let lockAmount = parseEther("1");
-            await maze
-                .connect(ownerAcc)
-                .transfer(clientAcc1.address, transferAmount);
-            await maze.connect(clientAcc1).approve(farming.address, lockAmount);
+        describe("Get reward", () => {
+            it("Should get correct reward of the user", async () => {
+                let { core, maze, farming, vesting } = await loadFixture(
+                    deploys
+                );
 
-            // Lock and start farming
-            await farming.connect(clientAcc1).lock(lockAmount);
+                let reward1 = await farming.getReward(clientAcc1.address);
 
-            let reward2 = await farming.getReward(clientAcc1.address);
-            
-            // Right after farming start reward must be zero
-            expect(reward2).to.equal(0);
+                // Before start of farming reward must be zero
+                expect(reward1).to.equal(0);
 
-            // TODO add here part when reward changes (after all tests for _recalculateRewards)
+                let transferAmount = parseEther("2");
+                let lockAmount = parseEther("1");
+                await maze
+                    .connect(ownerAcc)
+                    .transfer(clientAcc1.address, transferAmount);
+                await maze.connect(clientAcc1).approve(farming.address, lockAmount);
 
+                // Lock and start farming
+                await farming.connect(clientAcc1).lock(lockAmount);
+
+                let reward2 = await farming.getReward(clientAcc1.address);
+
+                // Right after farming start reward must be zero
+                expect(reward2).to.equal(0);
+
+                // TODO add here part when reward changes (after all tests for _recalculateRewards)
+
+            })
+            describe("Fails", () => {
+                it("Should fail to get the reward of the zero address user", async () => {
+
+                    let { core, maze, farming, vesting } = await loadFixture(
+                        deploys
+                    );
+
+                    await expect(farming.getReward(zeroAddress))
+                        .to.be.revertedWith("Farming: User cannot have zero address");
+
+                })
+            })
         })
-        describe("Fails", () => {
-            it("Should fail to get the reward of the zero address user", async () => {
+    });
+    
+    describe("Setters", () => {
+        
+        describe("Set minimum lock period", () => {
+            
+            it("Should set new minimum lock period", async () => {
 
                 let { core, maze, farming, vesting } = await loadFixture(
                     deploys
                 );
-                
-                await expect(farming.getReward(zeroAddress))
-                .to.be.revertedWith("Farming: User cannot have zero address");
 
+                let oldPeriod = await farming.minLockPeriod();
+                
+                let period = 3600 * 24 * 365;
+                await expect(farming.connect(ownerAcc).setMinLockPeriod(period))
+                    .to.emit(farming, "MinLockPeriodChanged");
+
+                let newPeriod = await farming.minLockPeriod();
+                
+                expect(newPeriod).to.not.equal(oldPeriod);
+                expect(newPeriod).to.equal(period);
+                
             })
+            
         })
+
+        describe("Set daily rate", () => {
+            
+            it("Should set new daily rate", async () => {
+
+                let { core, maze, farming, vesting } = await loadFixture(
+                    deploys
+                );
+
+                let oldRate = await farming.dailyRate();
+                
+                let rate = 7500;
+                await expect(farming.connect(ownerAcc).setDailyRate(rate))
+                .to.emit(farming, "DailyRateChanged");
+
+                let newRate = await farming.dailyRate();
+                
+                expect(newRate).to.not.equal(oldRate);
+                expect(newRate).to.equal(rate);
+                
+            })
+            
+        })
+
     })
-    });
 
     describe("Main functions", () => {});
 });
