@@ -94,7 +94,7 @@ contract Farming is IFarming, Ownable, Pausable {
     modifier ifNotBlacklisted(address account) {
         require(
             !core.checkBlacklisted(account),
-            "Maze: Account is blacklisted"
+            "Farming: Account is blacklisted"
         );
         _;
     }

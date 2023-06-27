@@ -79,7 +79,7 @@ describe("Farming contract", () => {
     describe("Deployment", () => {
         it("Should deploy and have correct parameters after", async () => {
             let { core, maze, farming, vesting } = await loadFixture(deploys);
-            expect(await vesting.core()).to.equal(core.address);
+            expect(await farming.core()).to.equal(core.address);
         });
         describe("Fails", () => {
             it("Should fail to deploy with invalid parameters", async () => {
@@ -87,12 +87,12 @@ describe("Farming contract", () => {
                     deploys
                 );
 
-                let vestingFactory = await ethers.getContractFactory("Vesting");
+                let farmingFactory = await ethers.getContractFactory("Farming");
 
                 await expect(
-                    vestingFactory.deploy(zeroAddress)
+                    farmingFactory.deploy(zeroAddress)
                 ).to.be.revertedWith(
-                    "Vesting: Blacklist cannot have zero address"
+                    "Farming: Core cannot have zero address"
                 );
             });
         });
