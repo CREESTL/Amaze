@@ -151,6 +151,7 @@ describe("Vesting contract", () => {
         );
 
         let [
+          _id,
           _status,
           _to,
           _amount,
@@ -213,6 +214,7 @@ describe("Vesting contract", () => {
         ).to.emit(vesting, "VestingStarted");
 
         let [
+          _id,
           _status,
           _to,
           _amount,
@@ -269,6 +271,7 @@ describe("Vesting contract", () => {
         );
 
         let [
+          _id1,
           _status1,
           _to1,
           _amount1,
@@ -309,6 +312,7 @@ describe("Vesting contract", () => {
         );
 
         let [
+          _id2,
           _status2,
           _to2,
           _amount2,
@@ -908,6 +912,7 @@ describe("Vesting contract", () => {
         await vesting.connect(clientAcc1).claimTokens();
 
         let [
+          _id,
           _status,
           _to,
           _amount,
@@ -982,6 +987,7 @@ describe("Vesting contract", () => {
         );
 
         let [
+          _id,
           _status,
           _to,
           _amount,

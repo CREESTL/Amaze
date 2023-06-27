@@ -10,28 +10,6 @@
 
 ## Methods
 
-### _reflectToTSpace
-
-```solidity
-function _reflectToTSpace(uint256 rAmountWithFee) external view returns (uint256)
-```
-
-Reflect twhole amount and fee okens amount from r-space to t-space
-
-*tAmountWithFee = rAmountWithFee / rate*
-
-#### Parameters
-
-| Name | Type | Description |
-|---|---|---|
-| rAmountWithFee | uint256 | Token amount in r-space |
-
-#### Returns
-
-| Name | Type | Description |
-|---|---|---|
-| _0 | uint256 | The reflected amount of tokens (r-space) |
-
 ### addToWhitelist
 
 ```solidity
@@ -391,7 +369,7 @@ function renounceOwnership() external nonpayable
 
 
 
-*Leaves the contract without owner. It will not be possible to call `onlyOwner` functions anymore. Can only be called by the current owner. NOTE: Renouncing ownership will leave the contract without an owner, thereby removing any functionality that is only available to the owner.*
+*Leaves the contract without owner. It will not be possible to call `onlyOwner` functions. Can only be called by the current owner. NOTE: Renouncing ownership will leave the contract without an owner, thereby disabling any functionality that is only available to the owner.*
 
 
 ### setFees

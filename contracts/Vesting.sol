@@ -82,38 +82,12 @@ contract Vesting is IVesting, Ownable, Pausable {
     /// @notice See {IVesting-getVesting}
     function getVesting(
         uint256 id
-    )
-        external
-        view
-        returns (
-            VestingStatus, // status
-            address, // to
-            uint256, // amount
-            uint256, //amountClaimed
-            uint256, // startTime
-            uint256, // cliffDuration
-            uint256, // cliffUnlock
-            bool, // cliffClaimed
-            uint256, // claimablePeriods
-            uint256 // lastClaimedPeriod
-        )
-    {
+    ) external view returns (TokenVesting memory) {
         require(id <= _vestingIds.current(), "Vesting: Vesting does not exist");
 
         TokenVesting memory vesting = _idsToVestings[id];
 
-        return (
-            vesting.status,
-            vesting.to,
-            vesting.amount,
-            vesting.amountClaimed,
-            vesting.startTime,
-            vesting.cliffDuration,
-            vesting.cliffUnlock,
-            vesting.cliffClaimed,
-            vesting.claimablePeriods,
-            vesting.lastClaimedPeriod
-        );
+        return (vesting);
     }
 
     /// @notice See {IVesting-startVesting}
@@ -180,7 +154,10 @@ contract Vesting is IVesting, Ownable, Pausable {
         if (vestedAmount > 0) {
             // Transfer vested tokens from Farming to the user
             // NOTE: This does not claim the reward for Farming.
-            IFarming(core.farming()).unlockOnBehalf(msg.sender, vestedAmount);
+            IFarming(core.farming()).unlockFromVesting(
+                msg.sender,
+                vestedAmount
+            );
 
             emit TokensClaimed(msg.sender, vestedAmount);
         }
