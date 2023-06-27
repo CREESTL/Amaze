@@ -63,7 +63,7 @@ See {IVesting-getUsersVestings}
 ### getVesting
 
 ```solidity
-function getVesting(uint256 id) external view returns (enum IVesting.VestingStatus, address, uint256, uint256, uint256, uint256, uint256, bool, uint256, uint256)
+function getVesting(uint256 id) external view returns (struct IVesting.TokenVesting)
 ```
 
 See {IVesting-getVesting}
@@ -80,16 +80,7 @@ See {IVesting-getVesting}
 
 | Name | Type | Description |
 |---|---|---|
-| _0 | enum IVesting.VestingStatus | undefined |
-| _1 | address | undefined |
-| _2 | uint256 | undefined |
-| _3 | uint256 | undefined |
-| _4 | uint256 | undefined |
-| _5 | uint256 | undefined |
-| _6 | uint256 | undefined |
-| _7 | bool | undefined |
-| _8 | uint256 | undefined |
-| _9 | uint256 | undefined |
+| _0 | IVesting.TokenVesting | undefined |
 
 ### owner
 
@@ -107,6 +98,17 @@ function owner() external view returns (address)
 | Name | Type | Description |
 |---|---|---|
 | _0 | address | undefined |
+
+### pause
+
+```solidity
+function pause() external nonpayable
+```
+
+See {IVesting-pause}
+
+
+
 
 ### paused
 
@@ -133,7 +135,7 @@ function renounceOwnership() external nonpayable
 
 
 
-*Leaves the contract without owner. It will not be possible to call `onlyOwner` functions anymore. Can only be called by the current owner. NOTE: Renouncing ownership will leave the contract without an owner, thereby removing any functionality that is only available to the owner.*
+*Leaves the contract without owner. It will not be possible to call `onlyOwner` functions. Can only be called by the current owner. NOTE: Renouncing ownership will leave the contract without an owner, thereby disabling any functionality that is only available to the owner.*
 
 
 ### startVesting
@@ -171,6 +173,17 @@ function transferOwnership(address newOwner) external nonpayable
 | Name | Type | Description |
 |---|---|---|
 | newOwner | address | undefined |
+
+### unpause
+
+```solidity
+function unpause() external nonpayable
+```
+
+See {IVesting-unpause}
+
+
+
 
 
 

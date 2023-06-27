@@ -46,7 +46,7 @@ Returns list of IDs of vestings assigned to the user
 ### getVesting
 
 ```solidity
-function getVesting(uint256 id) external view returns (enum IVesting.VestingStatus, address, uint256, uint256, uint256, uint256, uint256, bool, uint256, uint256)
+function getVesting(uint256 id) external view returns (struct IVesting.TokenVesting)
 ```
 
 Returns information about the vesting by its ID
@@ -63,16 +63,18 @@ Returns information about the vesting by its ID
 
 | Name | Type | Description |
 |---|---|---|
-| _0 | enum IVesting.VestingStatus | The status of vesting |
-| _1 | address | The recipient of tokens after cliff |
-| _2 | uint256 | The total amount of tokens to be vested |
-| _3 | uint256 | The total amount of claimed tokens |
-| _4 | uint256 | The moment vesting was started |
-| _5 | uint256 | The duration of cliff period |
-| _6 | uint256 | Percentage of tokens unlocked right after the cliff |
-| _7 | bool | True if cliff amount was claimed. Otherwise - false |
-| _8 | uint256 | The number of periods after cliff when user can claim his tokens |
-| _9 | uint256 | The number of the last period when user has claimed his tokens |
+| _0 | IVesting.TokenVesting | The complete information about specific vesting |
+
+### pause
+
+```solidity
+function pause() external nonpayable
+```
+
+Pause the contract
+
+
+
 
 ### startVesting
 
@@ -93,6 +95,17 @@ Starts vesting for a specific user
 | cliffDuration | uint256 | The duration of cliff period        During that period tokens are locked and cannot be claimed |
 | cliffUnlock | uint256 | Percentage of tokens unlocked right after the cliff |
 | claimablePeriods | uint256 | The number of periods after cliff in which user can claim tokens |
+
+### unpause
+
+```solidity
+function unpause() external nonpayable
+```
+
+Unpause the contract
+
+
+
 
 
 

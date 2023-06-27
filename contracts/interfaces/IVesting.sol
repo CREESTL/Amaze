@@ -69,33 +69,8 @@ interface IVesting {
 
     /// @notice Returns information about the vesting by its ID
     /// @param id The ID of the vesting to get information about
-    /// @return The status of vesting
-    /// @return The recipient of tokens after cliff
-    /// @return The total amount of tokens to be vested
-    /// @return The total amount of claimed tokens
-    /// @return The moment vesting was started
-    /// @return The duration of cliff period
-    /// @return Percentage of tokens unlocked right after the cliff
-    /// @return True if cliff amount was claimed. Otherwise - false
-    /// @return The number of periods after cliff when user can claim his tokens
-    /// @return The number of the last period when user has claimed his tokens
-    function getVesting(
-        uint256 id
-    )
-        external
-        view
-        returns (
-            VestingStatus, // status
-            address, // to
-            uint256, // amount
-            uint256, // amountClaimed
-            uint256, // startTime
-            uint256, // cliffDuration
-            uint256, // cliffUnlock
-            bool, // cliffClaimed
-            uint256, // claimablePeriods
-            uint256 // lastClaimedPeriod
-        );
+    /// @return The complete information about specific vesting
+    function getVesting(uint256 id) external view returns (TokenVesting memory);
 
     /// @notice Starts vesting for a specific user
     /// @param to The recipient of tokens after cliff
