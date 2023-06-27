@@ -44,10 +44,6 @@ interface IFarming {
     /// @param user The user whos locked amount was decreased
     /// @param amount The new locked amount of the user
     event UnlockedOnBehalf(address user, uint256 amount);
-    
-    /// @notice Indicates that a new minimum locking period was set
-    /// @param period A new locking period in seconds
-    event MinLockPeriodChanged(uint256 period);
 
     /// @notice Pause the contract
     function pause() external;
@@ -55,13 +51,6 @@ interface IFarming {
     /// @notice Unpause the contract
     function unpause() external;
     
-    /// @notice Sets a new minimum locking period 
-    /// @param period A new locking period in seconds
-    function setMinLockPeriod(uint256 period) external;
-
-    /// @notice Unpause the contract
-    function unpause() external;
-
     /// @notice Returns information about user's farming
     /// @param user The user who is farming tokens
     /// @return The current locked amount
