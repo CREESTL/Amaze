@@ -74,6 +74,30 @@ describe("Farming contract", () => {
                 ).to.be.revertedWith("Farming: Account is blacklisted");
             });
         });
+        describe("Pause", () => {
+            it("Should forbid operations if contract is paused", async () => {
+                let { core, maze, farming, vesting } = await loadFixture(
+                    deploys
+                );
+
+                let lockAmount = parseEther("1");
+                await maze
+                    .connect(ownerAcc)
+                    .transfer(clientAcc1.address, lockAmount);
+
+                await farming.pause();
+
+                await expect(
+                    farming.connect(ownerAcc).setMinLockPeriod(555)
+                ).to.be.revertedWith("Pausable: paused");
+                
+                await farming.unpause();
+
+                await expect(
+                    farming.connect(ownerAcc).setMinLockPeriod(555)
+                ).not.to.be.reverted;
+            })
+        })
     });
 
     describe("Deployment", () => {
@@ -98,7 +122,111 @@ describe("Farming contract", () => {
         });
     });
 
-    describe("Getters", () => {});
+    describe("Getters", () => {
+        describe("Get farming", () => {
+            it("Should get correct info about user's farming", async () => {
+                let { core, maze, farming, vesting } = await loadFixture(
+                    deploys
+                );
+
+                let transferAmount = parseEther("2");
+                let lockAmount = parseEther("1");
+                await maze
+                    .connect(ownerAcc)
+                    .transfer(clientAcc1.address, transferAmount);
+                await maze.connect(clientAcc1).approve(farming.address, lockAmount);
+
+                // Before any farming was started for the user
+                let [
+                    lockedAmount1,
+                    startTime1,
+                    endTime1,
+                    reward1
+                ] = await farming.getFarming(clientAcc1.address);
+                
+                expect(lockedAmount1).to.equal(0);
+                expect(startTime1).to.equal(0);
+                expect(endTime1).to.equal(0);
+                expect(reward1).to.equal(0);
+                
+
+                // Lock and start farming
+                await farming.connect(clientAcc1).lock(lockAmount);
+
+                // Get info about the only one farming
+                let [
+                    lockedAmount2,
+                    startTime2,
+                    endTime2,
+                    reward2
+                ] = await farming.getFarming(clientAcc1.address);
+
+
+                let expectedStartTime = 0
+                expect(lockedAmount2).to.equal(lockAmount);
+                // TODO change expected time
+                // expect(startTime2).to.equal(expectedStartTime);
+                // Farming not claimed and not ended yet
+                expect(endTime2).to.equal(0); 
+                // No rewards are assinged to user yet
+                expect(reward2).to.equal(0);
+                
+            })
+            
+            describe("Fails", () => {
+                it("Should fail to get farming of zero address user", async() => {
+                    let { core, maze, farming, vesting } = await loadFixture(
+                        deploys
+                    );
+                
+                    await expect(farming.getFarming(zeroAddress))
+                        .to.be.revertedWith("Farming: User cannot have zero address");
+                })
+            })
+        })
+    describe("Get reward", () => {
+        it("Should get correct reward of the user", async () => {
+            let { core, maze, farming, vesting } = await loadFixture(
+                deploys
+            );
+        
+            let reward1 = await farming.getReward(clientAcc1.address);
+            
+            // Before start of farming reward must be zero
+            expect(reward1).to.equal(0);
+            
+            let transferAmount = parseEther("2");
+            let lockAmount = parseEther("1");
+            await maze
+                .connect(ownerAcc)
+                .transfer(clientAcc1.address, transferAmount);
+            await maze.connect(clientAcc1).approve(farming.address, lockAmount);
+
+            // Lock and start farming
+            await farming.connect(clientAcc1).lock(lockAmount);
+
+            let reward2 = await farming.getReward(clientAcc1.address);
+            
+            // Right after farming start reward must be zero
+            expect(reward2).to.equal(0);
+
+            // TODO add here part when reward changes (after all tests for _recalculateRewards)
+
+        })
+        describe("Fails", () => {
+            it("Should fail to get the reward of the zero address user", async () => {
+
+                let { core, maze, farming, vesting } = await loadFixture(
+                    deploys
+                );
+                
+                await expect(farming.getReward(zeroAddress))
+                .to.be.revertedWith("Farming: User cannot have zero address");
+
+            })
+        })
+    })
+    });
 
     describe("Main functions", () => {});
 });
