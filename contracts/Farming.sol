@@ -47,7 +47,7 @@ contract Farming is IFarming, Ownable, Pausable {
         // Gets reset on each lock and after reward claim
         uint256 firstClaimTime;
         // Time of the recalculation of rewards
-        // Gets reset on each lock and after reward claim
+        // Gets reset after reward claim
         uint256 lastRewardRecalcTime;
     }
 
@@ -180,8 +180,12 @@ contract Farming is IFarming, Ownable, Pausable {
     ) external whenNotPaused ifNotBlacklisted(msg.sender) {
         _lock(msg.sender, amount);
 
+        console.log("\nIn lock():");
+        console.log("Balance of user is: ", ERC20(core.maze()).balanceOf(msg.sender));
+        console.log("Locked amount is: ", amount);
         // Transfer tokens from the user to this contract
         ERC20(core.maze()).safeTransferFrom(msg.sender, address(this), amount);
+        console.log("SFDSDFSDFSDFS");
 
         emit Locked(msg.sender, amount);
     }
@@ -271,15 +275,13 @@ contract Farming is IFarming, Ownable, Pausable {
         require(user != address(0), "Farming: User cannot have zero address");
 
         TokenFarming storage farming = _usersToFarmings[user];
-        require(farming.startTime > 0, "Farming: Farming not started");
-        require(farming.lockedAmount > 0, "Farming: No locked tokens");
 
         // The period to calculate rewards for
         uint256 period;
         uint256 periodStart;
         uint256 periodEnd = block.timestamp;
         // If no recalculations have been done yet, period counts since
-        // the start of the farming
+        // the start of the farming amount 
         if (farming.lastRewardRecalcTime == 0) {
             period = block.timestamp - farming.startTime;
             periodStart = farming.startTime;
@@ -287,6 +289,11 @@ contract Farming is IFarming, Ownable, Pausable {
         } else {
             period = block.timestamp - farming.lastRewardRecalcTime;
             periodStart = farming.lastRewardRecalcTime;
+        }
+        
+        // If it's the first recalculation (first lock), no rewards are assigned to user
+        if (period == 0) {
+            return 0;
         }
 
         // The reward for the whole period
@@ -425,7 +432,6 @@ contract Farming is IFarming, Ownable, Pausable {
         // End time also gets reset as farming continues
         farming.claimedTimes = 0;
         farming.firstClaimTime = 0;
-        farming.lastRewardRecalcTime = 0;
         farming.endTime = 0;
 
         // Increase locked amount
