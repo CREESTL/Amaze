@@ -306,15 +306,18 @@ describe("Farming contract", () => {
 
                 await maze.connect(ownerAcc).approve(farming.address, amount);
 
+                let ownerStartBalance = await maze.balanceOf(ownerAcc.address);
+                let farmingStartBalance = await maze.balanceOf(farming.address);
+
                 // Start vesting and lock tokens on behalf of client
-                await 
+                await expect(
                     vesting.startVesting(
                         to,
                         amount,
                         cliffDuration,
                         cliffUnlock,
                         claimablePeriods
-                    )
+                    )).to.emit(farming, "LockedOnBehalf");
 
                 let [
                     lockedAmount,
@@ -330,15 +333,77 @@ describe("Farming contract", () => {
                 // No rewards are assinged to user yet
                 expect(reward).to.equal(0);
 
+                let ownerEndBalance = await maze.balanceOf(ownerAcc.address);
+                let farmingEndBalance = await maze.balanceOf(farming.address);
+                
+                expect(ownerEndBalance).to.equal(ownerStartBalance.sub(amount));
+                expect(farmingEndBalance).to.equal(farmingStartBalance.add(amount));
+                
+            })
+            // No tests for Fails here because checks are already done in `startVesting`
+        })
+        describe("Lock", () => {
+            it("Should lock user's tokens and start farming", async () => {
+                
+                let { core, maze, farming, vesting } = await loadFixture(
+                    deploys
+                );
+
+                let transferAmount = parseEther("2");
+                let lockAmount = parseEther("1");
+                await maze
+                    .connect(ownerAcc)
+                    .transfer(clientAcc1.address, transferAmount);
+                await maze.connect(clientAcc1).approve(farming.address, lockAmount);
+
+                let clientStartBalance = await maze.balanceOf(clientAcc1.address);
+                let farmingStartBalance = await maze.balanceOf(farming.address);
+
+                await expect(farming.connect(clientAcc1).lock(lockAmount))
+                .to.emit(farming, "Locked");
+
+                let [
+                    lockedAmount2,
+                    startTime2,
+                    endTime2,
+                    reward2
+                ] = await farming.getFarming(clientAcc1.address);
+
+
+                expect(lockedAmount2).to.equal(lockAmount);
+                // Farming not claimed and not ended yet
+                expect(endTime2).to.equal(0); 
+                // No rewards are assinged to user yet
+                expect(reward2).to.equal(0);
+
+                let clientEndBalance = await maze.balanceOf(clientAcc1.address);
+                let farmingEndBalance = await maze.balanceOf(farming.address);
+
+                expect(clientEndBalance).to.equal(clientStartBalance.sub(lockAmount));
+                expect(farmingEndBalance).to.equal(farmingStartBalance.add(lockAmount));
                 
             })
            describe("Fails", () => {
-            
-           }) 
-        })
-        describe("Lock", () => {
-           describe("Fails", () => {
-            
+
+               it("Should fail to lock zero amount", async () => {
+
+                   let { core, maze, farming, vesting } = await loadFixture(
+                       deploys
+                   );
+
+                   let transferAmount = parseEther("2");
+                   let lockAmount = parseEther("0");
+                   await maze
+                       .connect(ownerAcc)
+                       .transfer(clientAcc1.address, transferAmount);
+                   await maze.connect(clientAcc1).approve(farming.address, lockAmount);
+
+
+                   await expect(farming.connect(clientAcc1).lock(lockAmount))
+                       .be.revertedWith("Farming: Lock amount cannot be zero");
+                
+               })
+
            }) 
         })
         describe("Unlock", () => {
