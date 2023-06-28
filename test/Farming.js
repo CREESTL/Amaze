@@ -98,6 +98,19 @@ describe("Farming contract", () => {
                 ).not.to.be.reverted;
             })
         })
+        describe("Only Vesting", () => {
+            it("Should allow only vesting to lock tokens on someone's behalf", async () => {
+                let { core, maze, farming, vesting } = await loadFixture(
+                    deploys
+                );
+                
+                await expect(farming.connect(ownerAcc).lockOnBehalf(
+                    ownerAcc.address,
+                    clientAcc1.address,
+                    parseEther("1")
+                )).to.be.revertedWith("Farming: Caller is not Vesting");
+            })
+        })
     });
 
     describe("Deployment", () => {
@@ -165,10 +178,7 @@ describe("Farming contract", () => {
                 ] = await farming.getFarming(clientAcc1.address);
 
 
-                let expectedStartTime = 0
                 expect(lockedAmount2).to.equal(lockAmount);
-                // TODO change expected time
-                // expect(startTime2).to.equal(expectedStartTime);
                 // Farming not claimed and not ended yet
                 expect(endTime2).to.equal(0); 
                 // No rewards are assinged to user yet
@@ -281,5 +291,79 @@ describe("Farming contract", () => {
 
     })
 
-    describe("Main functions", () => {});
+    describe("Main functions", () => {
+        describe("Lock on behalf", () => {
+            it("Should lock from Vesting on behalf of the user", async () => {
+                let { core, maze, farming, vesting } = await loadFixture(
+                    deploys
+                );
+
+                let to = clientAcc1.address;
+                let amount = parseEther("1");
+                let cliffDuration = 3600;
+                let cliffUnlock = 1000;
+                let claimablePeriods = 5;
+
+                await maze.connect(ownerAcc).approve(farming.address, amount);
+
+                // Start vesting and lock tokens on behalf of client
+                await 
+                    vesting.startVesting(
+                        to,
+                        amount,
+                        cliffDuration,
+                        cliffUnlock,
+                        claimablePeriods
+                    )
+
+                let [
+                    lockedAmount,
+                    startTime,
+                    endTime,
+                    reward
+                ] = await farming.getFarming(clientAcc1.address);
+
+
+                expect(lockedAmount).to.equal(amount);
+                // Farming not claimed and not ended yet
+                expect(endTime).to.equal(0); 
+                // No rewards are assinged to user yet
+                expect(reward).to.equal(0);
+
+                
+            })
+           describe("Fails", () => {
+            
+           }) 
+        })
+        describe("Lock", () => {
+           describe("Fails", () => {
+            
+           }) 
+        })
+        describe("Unlock", () => {
+           describe("Fails", () => {
+            
+           }) 
+        })
+        describe("Unlock all", () => {
+           describe("Fails", () => {
+            
+           }) 
+        })
+        describe("Unlock from Vesting", () => {
+           describe("Fails", () => {
+            
+           }) 
+        })
+        describe("Claim", () => {
+           describe("Fails", () => {
+            
+           }) 
+        })
+    });
+    
+    describe("Internal functions", () => {
+        
+    })
 });
