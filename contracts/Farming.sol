@@ -104,8 +104,9 @@ contract Farming is IFarming, Ownable, Pausable {
         core = ICore(core_);
 
         // Mark that rate was initialized
-        _rateChangesTimes.push(block.timestamp);
-        _rateChanges[block.timestamp] = dailyRate;
+        // This timestamp counts as the zero second
+        _rateChangesTimes.push(0);
+        _rateChanges[0] = dailyRate;
     }
 
     /// @notice See {IFarming-pause}
@@ -270,6 +271,7 @@ contract Farming is IFarming, Ownable, Pausable {
     function _recalculateRewards(address user) private returns (uint256) {
         require(user != address(0), "Farming: User cannot have zero address");
 
+        console.log("\nIn _recalculateRewards");
         TokenFarming storage farming = _usersToFarmings[user];
 
         // The period to calculate rewards for
@@ -287,8 +289,13 @@ contract Farming is IFarming, Ownable, Pausable {
             periodStart = farming.lastRewardRecalcTime;
         }
         
+        console.log("Period started at: ", periodStart);
+        console.log("Period ended at:   ", periodEnd);
+        console.log("Period lasts for:  ", period);
+        
         // If it's the first recalculation (first lock), no rewards are assigned to user
         if (period == 0) {
+            console.log("Period is 0 seconds. No rewards");
             return 0;
         }
 
@@ -299,6 +306,7 @@ contract Farming is IFarming, Ownable, Pausable {
         // The index of last time rate was changed during the period
         uint256 lastChangeIndexInPeriod;
 
+        console.log("Total times rate changed: ", _rateChangesTimes.length);
         // Check if rate was changed during the period
         for (
             uint256 i = _lastProcessedChangeTime[user];
@@ -310,23 +318,44 @@ contract Farming is IFarming, Ownable, Pausable {
             uint256 lockMulRate;
             if (i == 0) {
                 // If rate was only changed once (in constructor), use that value
+                console.log("Rate was changed only once in constructor");
                 lockMulRate =
                     (_findLockedAmount(user, periodStart, periodEnd) *
                         _rateChanges[0]) /
                     _converter;
             } else {
+                console.log("Rate was changed some time after the constructor");
                 // Else use the previous rate
                 lockMulRate =
                     (_findLockedAmount(user, periodStart, periodEnd) *
                         _rateChanges[_rateChangesTimes[i - 1]]) /
                     _converter;
             }
+            
+            // Rate was changed before the period
+            // It also might start at the very first second of the period
+            if (_rateChangesTimes[i] <= periodStart) {
+                console.log("Rate was changed before the period");
 
+                // Time in days from the last rate change to the current moment
+                uint256 timeInDaysAfterChange = (periodEnd - _rateChangesTimes[i]) /
+                    24 hours;
+                console.log("Days *after* rate was changed: ", timeInDaysAfterChange);
+
+                // Increase reward by the amount from last rate change till the end of the period
+                reward +=
+                    ((farming.lockedAmount *
+                        _rateChanges[_rateChangesTimes[i]]) / _converter) *
+                    timeInDaysAfterChange;
+                console.log("Reward is now: ", reward);
+                
             // Rate was changed during the period
-            if (
+            } else if (
                 _rateChangesTimes[i] > periodStart &&
                 _rateChangesTimes[i] < periodEnd
             ) {
+                
+                console.log("Rate was changed inside the period");
                 // Time in days from the last rate change to the current one.
                 // Second part of formula to calculate reward
                 uint256 timeInDaysBeforeChange;
@@ -334,6 +363,7 @@ contract Farming is IFarming, Ownable, Pausable {
                 // use time from the start of the period till
                 // the change of rate
                 if (lastChangeIndexInPeriod == 0) {
+                    console.log("That is the first time rate was changed inside the period");
                     timeInDaysBeforeChange =
                         (_rateChangesTimes[i] - periodStart) /
                         24 hours;
@@ -347,13 +377,16 @@ contract Farming is IFarming, Ownable, Pausable {
                         24 hours;
                 }
 
+                console.log("Days *before* rate was changed: ", timeInDaysBeforeChange);
                 // Increase reward by the amount for the part of period before rate change
                 reward += lockMulRate * timeInDaysBeforeChange;
+                console.log("Reward is now: ", reward);
 
                 // Time in days from the last rate change to the end of period
-                uint256 timeInDaysAfterChange = periodEnd -
-                    _rateChangesTimes[lastChangeIndexInPeriod] /
+                uint256 timeInDaysAfterChange = (periodEnd -
+                    _rateChangesTimes[lastChangeIndexInPeriod]) /
                     24 hours;
+                console.log("Days *after* rate was changed: ", timeInDaysAfterChange);
 
                 // Increase reward by the amount for the part of period after rate change
                 // Use latest rate
@@ -362,10 +395,13 @@ contract Farming is IFarming, Ownable, Pausable {
                     ((farming.lockedAmount *
                         _rateChanges[_rateChangesTimes[i]]) / _converter) *
                     timeInDaysAfterChange;
+                console.log("Reward is now: ", reward);
 
-                // Rate was changed after the period
+            // Rate was changed after the period
             } else if (_rateChangesTimes[i] > periodEnd) {
+                console.log("Rate was changed after the period");
                 reward += (lockMulRate * period) / 24 hours;
+                console.log("Reward is now: ", reward);
             }
 
             lastChangeIndexInPeriod = i;
@@ -377,6 +413,7 @@ contract Farming is IFarming, Ownable, Pausable {
         // Update time when this calculation was made
         farming.lastRewardRecalcTime = block.timestamp;
 
+        console.log("FINAL REWARD IS: ", reward);
         return reward;
     }
 
@@ -418,6 +455,8 @@ contract Farming is IFarming, Ownable, Pausable {
         require(user != address(0), "Farming: User cannot have zero address");
         require(amount > 0, "Farming: Lock amount cannot be zero");
 
+        console.log("\nIn _lock:");
+
         TokenFarming storage farming = _usersToFarmings[user];
 
         // Recalculate reward using old lock amount
@@ -442,7 +481,6 @@ contract Farming is IFarming, Ownable, Pausable {
             farming.startTime = block.timestamp;
         }
 
-        console.log("\nIn _lock:");
         console.log("Total locked amount is: ", farming.lockedAmount);
     }
 
@@ -453,14 +491,17 @@ contract Farming is IFarming, Ownable, Pausable {
         require(user != address(0), "Farming: User cannot have zero address");
         require(amount > 0, "Farming: Unlock amount cannot be zero");
 
+        console.log("\nIn _unlock:");
+
         TokenFarming storage farming = _usersToFarmings[user];
+        require(
+            farming.lockedAmount > 0,
+            "Farming: No tokens to unlock"
+        );
         require(
             farming.lockedAmount >= amount,
             "Farming: Unlock greater than lock"
         );
-
-        // Recalculate reward using old lock amount
-        farming.reward = _recalculateRewards(user);
 
         // If unlock is made from Vesting contract, ignore minimum locking period
         if (msg.sender != core.vesting()) {
@@ -470,9 +511,11 @@ contract Farming is IFarming, Ownable, Pausable {
             );
         }
 
-        console.log("\nIn _unlock:");
         console.log("Total locked amount is: ", farming.lockedAmount);
         console.log("Trying to unlock: ", amount);
+
+        // Recalculate reward using old lock amount
+        farming.reward = _recalculateRewards(user);
 
         // Decrease locked amount
         farming.lockedAmount -= amount;
