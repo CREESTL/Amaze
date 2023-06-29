@@ -233,7 +233,6 @@ contract Farming is IFarming, Ownable, Pausable {
             "Farming: Unable to claim before full unlock"
         );
 
-
         // First call of this function does not really claim tokens
         if (farming.claimedTimes == 0) {
             farming.claimedTimes = 1;
@@ -280,7 +279,7 @@ contract Farming is IFarming, Ownable, Pausable {
         uint256 periodStart;
         uint256 periodEnd = block.timestamp;
         // If no recalculations have been done yet, period counts since
-        // the start of the farming amount 
+        // the start of the farming amount
         if (farming.lastRewardRecalcTime == 0) {
             period = block.timestamp - farming.startTime;
             periodStart = farming.startTime;
@@ -289,11 +288,11 @@ contract Farming is IFarming, Ownable, Pausable {
             period = block.timestamp - farming.lastRewardRecalcTime;
             periodStart = farming.lastRewardRecalcTime;
         }
-        
+
         console.log("Period started at: ", periodStart);
         console.log("Period ended at:   ", periodEnd);
         console.log("Period lasts for:  ", period);
-        
+
         // If it's the first recalculation (first lock), no rewards are assigned to user
         if (period == 0) {
             console.log("Period is 0 seconds. No rewards");
@@ -332,16 +331,19 @@ contract Farming is IFarming, Ownable, Pausable {
                         _rateChanges[_rateChangesTimes[i - 1]]) /
                     _converter;
             }
-            
+
             // Rate was changed before the period
             // It also might start at the very first second of the period
             if (_rateChangesTimes[i] <= periodStart) {
                 console.log("Rate was changed before the period");
 
                 // Time in days from the last rate change to the current moment
-                uint256 timeInDaysAfterChange = (periodEnd - _rateChangesTimes[i]) /
-                    24 hours;
-                console.log("Days *after* rate was changed: ", timeInDaysAfterChange);
+                uint256 timeInDaysAfterChange = (periodEnd -
+                    _rateChangesTimes[i]) / 24 hours;
+                console.log(
+                    "Days *after* rate was changed: ",
+                    timeInDaysAfterChange
+                );
 
                 // Increase reward by the amount from last rate change till the end of the period
                 reward +=
@@ -349,13 +351,12 @@ contract Farming is IFarming, Ownable, Pausable {
                         _rateChanges[_rateChangesTimes[i]]) / _converter) *
                     timeInDaysAfterChange;
                 console.log("Reward is now: ", reward);
-                
-            // Rate was changed during the period
+
+                // Rate was changed during the period
             } else if (
                 _rateChangesTimes[i] > periodStart &&
                 _rateChangesTimes[i] < periodEnd
             ) {
-                
                 console.log("Rate was changed inside the period");
                 // Time in days from the last rate change to the current one.
                 // Second part of formula to calculate reward
@@ -364,7 +365,9 @@ contract Farming is IFarming, Ownable, Pausable {
                 // use time from the start of the period till
                 // the change of rate
                 if (lastChangeIndexInPeriod == 0) {
-                    console.log("That is the first time rate was changed inside the period");
+                    console.log(
+                        "That is the first time rate was changed inside the period"
+                    );
                     timeInDaysBeforeChange =
                         (_rateChangesTimes[i] - periodStart) /
                         24 hours;
@@ -378,16 +381,21 @@ contract Farming is IFarming, Ownable, Pausable {
                         24 hours;
                 }
 
-                console.log("Days *before* rate was changed: ", timeInDaysBeforeChange);
+                console.log(
+                    "Days *before* rate was changed: ",
+                    timeInDaysBeforeChange
+                );
                 // Increase reward by the amount for the part of period before rate change
                 reward += lockMulRate * timeInDaysBeforeChange;
                 console.log("Reward is now: ", reward);
 
                 // Time in days from the last rate change to the end of period
                 uint256 timeInDaysAfterChange = (periodEnd -
-                    _rateChangesTimes[lastChangeIndexInPeriod]) /
-                    24 hours;
-                console.log("Days *after* rate was changed: ", timeInDaysAfterChange);
+                    _rateChangesTimes[lastChangeIndexInPeriod]) / 24 hours;
+                console.log(
+                    "Days *after* rate was changed: ",
+                    timeInDaysAfterChange
+                );
 
                 // Increase reward by the amount for the part of period after rate change
                 // Use latest rate
@@ -398,7 +406,7 @@ contract Farming is IFarming, Ownable, Pausable {
                     timeInDaysAfterChange;
                 console.log("Reward is now: ", reward);
 
-            // Rate was changed after the period
+                // Rate was changed after the period
             } else if (_rateChangesTimes[i] > periodEnd) {
                 console.log("Rate was changed after the period");
                 reward += (lockMulRate * period) / 24 hours;
@@ -495,10 +503,7 @@ contract Farming is IFarming, Ownable, Pausable {
         console.log("\nIn _unlock:");
 
         TokenFarming storage farming = _usersToFarmings[user];
-        require(
-            farming.lockedAmount > 0,
-            "Farming: No tokens to unlock"
-        );
+        require(farming.lockedAmount > 0, "Farming: No tokens to unlock");
         require(
             farming.lockedAmount >= amount,
             "Farming: Unlock greater than lock"
