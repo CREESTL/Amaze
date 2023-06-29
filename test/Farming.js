@@ -432,7 +432,7 @@ describe("Farming contract", () => {
 
                 await farming.connect(clientAcc1).lock(lockAmount);
 
-                let fiveYears = 3600 * 24 * 365;
+                let fiveYears = 3600 * 24 * 365 * 5;
                 await time.increase(fiveYears);
                 await expect(farming.connect(clientAcc1).unlock(unlockAmount))
                     .to.emit(farming, "Unlocked");
@@ -472,7 +472,7 @@ describe("Farming contract", () => {
 
                 await farming.connect(clientAcc1).lock(lockAmount);
                 
-                let fiveYears = 3600 * 24 * 365;
+                let fiveYears = 3600 * 24 * 365 * 5;
                 await time.increase(fiveYears);
                 await expect(farming.connect(clientAcc1).unlock(lockAmount))
                     .to.emit(farming, "Unlocked");
@@ -512,7 +512,7 @@ describe("Farming contract", () => {
                 await maze.connect(clientAcc1).approve(farming.address, lockAmount);
 
                 await farming.connect(clientAcc1).lock(lockAmount);
-                let fiveYears = 3600 * 24 * 365;
+                let fiveYears = 3600 * 24 * 365 * 5;
                 await time.increase(fiveYears);
                 await farming.connect(clientAcc1).unlock(lockAmount);
                 // Try to unlock one again
@@ -589,7 +589,7 @@ describe("Farming contract", () => {
 
                 await farming.connect(clientAcc1).lock(lockAmount);
                 
-                let fiveYears = 3600 * 24 * 365;
+                let fiveYears = 3600 * 24 * 365 * 5;
                 await time.increase(fiveYears);
                 await expect(farming.connect(clientAcc1).unlockAll())
                     .to.emit(farming, "Unlocked");
@@ -645,25 +645,154 @@ describe("Farming contract", () => {
             })
            describe("Fails", () => {
                it("Should fail to unlock if called not from Vesting", async () => {
-                let { core, maze, farming, vesting } = await loadFixture(
-                    deploys
-                );
-                   
-                await expect(farming.connect(ownerAcc).unlockFromVesting(
-                    clientAcc1.address,
-                    parseEther("1")
-                ))
-                    .to.be.revertedWith("Farming: Caller is not Vesting");
-                
-            })
-           }) 
-        })
-        describe("Claim", () => {
-           describe("Fails", () => {
-            
+                   let { core, maze, farming, vesting } = await loadFixture(
+                       deploys
+                   );
+
+                   await expect(farming.connect(ownerAcc).unlockFromVesting(
+                       clientAcc1.address,
+                       parseEther("1")
+                   ))
+                       .to.be.revertedWith("Farming: Caller is not Vesting");
+
+                })
            }) 
         })
     });
+    
+    describe("Claim", () => {
+        it("Should allow user to claim farming rewards", async () => {
+
+            let { core, maze, farming, vesting } = await loadFixture(
+                deploys
+            );
+
+            // Lock tokens and start farming
+
+            let transferAmount = parseEther("2");
+            let lockAmount = parseEther("1");
+            await maze
+                .connect(ownerAcc)
+                .transfer(clientAcc1.address, transferAmount);
+            await maze.connect(clientAcc1).approve(farming.address, lockAmount);
+
+            await farming.connect(clientAcc1).lock(lockAmount);
+
+            let fiveYears = 3600 * 24 * 365 * 5;
+            await time.increase(fiveYears);
+            
+            // Unlock all tokens before claiming
+            await farming.connect(clientAcc1).unlockAll();
+            
+
+            // Claim #1
+            // No tokens should be trasferred
+            let farmingStartBalance1 = await maze.balanceOf(farming.address);
+            await expect(farming.connect(clientAcc1).claim())
+                .to.emit(farming, "ClaimAttempt");
+            let farmingEndBalance1 = await maze.balanceOf(farming.address);
+            expect(farmingStartBalance1).to.equal(farmingEndBalance1);
+            
+            // Wait for 1 year (min gap between claims)
+            let oneYear = 3600 * 24 * 365;
+            await time.increase(oneYear);
+            
+            // Claim #2
+            // Should transfer reward tokens
+            // TODO
+            // let expectedReward = await farming.getReward(clientAcc1.address);
+            let clientStartBalance2 = await maze.balanceOf(clientAcc1.address);
+            let farmingStartBalance2 = await maze.balanceOf(farming.address);
+            await expect(farming.connect(clientAcc1).claim())
+                .to.emit(farming, "Claimed");
+            let clientEndBalance2 = await maze.balanceOf(clientAcc1.address);
+            let farmingEndBalance2 = await maze.balanceOf(farming.address);
+            
+            // TODO
+            // expect(clientEndBalance2).to.equal(clientStartBalance2.add(expectedReward))
+            // expect(farmingEndBalance2).to.equal(farmingStartBalance2.sub(expectedReward));
+            
+            
+
+        })
+
+
+        describe("Fails", () => {
+            it("Should fail to claim if no rewards", async () => {
+
+                let { core, maze, farming, vesting } = await loadFixture(
+                    deploys
+                );
+
+                await expect(farming.connect(clientAcc1).claim())
+                    .to.be.revertedWith("Farming: No rewards");
+
+            })
+            it("Should fail to claim before full unlock", async () => {
+
+                let { core, maze, farming, vesting } = await loadFixture(
+                    deploys
+                );
+
+                // Lock tokens and start farming
+
+                let transferAmount = parseEther("2");
+                let lockAmount = parseEther("1");
+                await maze
+                    .connect(ownerAcc)
+                    .transfer(clientAcc1.address, transferAmount);
+                await maze.connect(clientAcc1).approve(farming.address, lockAmount);
+
+                // Lock twice to recalculate reward
+                await farming.connect(clientAcc1).lock(lockAmount.div(2));
+                await farming.connect(clientAcc1).lock(lockAmount.div(2));
+                
+                let fiveYears = 3600 * 24 * 365 * 5;
+                await time.increase(fiveYears);
+
+                await expect(farming.connect(clientAcc1).claim())
+                    .to.be.revertedWith("Farming: Unable to claim before full unlock");
+                
+            })
+
+            it("Should fail to claim second time too soon", async () => {
+
+                let { core, maze, farming, vesting } = await loadFixture(
+                    deploys
+                );
+
+                // Lock tokens and start farming
+
+                let transferAmount = parseEther("2");
+                let lockAmount = parseEther("1");
+                await maze
+                    .connect(ownerAcc)
+                    .transfer(clientAcc1.address, transferAmount);
+                await maze.connect(clientAcc1).approve(farming.address, lockAmount);
+
+                await farming.connect(clientAcc1).lock(lockAmount);
+
+                let fiveYears = 3600 * 24 * 365 * 5;
+                await time.increase(fiveYears);
+
+                // Unlock all tokens before claiming
+                await farming.connect(clientAcc1).unlockAll();
+
+                // Claim #1
+                let farmingStartBalance1 = await maze.balanceOf(farming.address);
+                await expect(farming.connect(clientAcc1).claim())
+                    .to.emit(farming, "ClaimAttempt");
+                let farmingEndBalance1 = await maze.balanceOf(farming.address);
+                expect(farmingStartBalance1).to.equal(farmingEndBalance1);
+
+                // Claim #2
+                await expect(farming.connect(clientAcc1).claim())
+                    .to.be.revertedWith("Farming: Minimum interval between claimes not passed");
+                
+            })
+
+        })
+    })
     
     describe("Internal functions", () => {
         

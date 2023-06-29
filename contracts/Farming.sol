@@ -222,7 +222,7 @@ contract Farming is IFarming, Ownable, Pausable {
     function claim() external whenNotPaused ifNotBlacklisted(msg.sender) {
         TokenFarming storage farming = _usersToFarmings[msg.sender];
 
-        require(farming.reward > 0, "Farming: Already claimed");
+        require(farming.reward > 0, "Farming: No rewards");
 
         // If locked amount is zero but start time is not zero, that
         // means that farming has been started some time before, but
@@ -232,6 +232,7 @@ contract Farming is IFarming, Ownable, Pausable {
             farming.lockedAmount == 0 && farming.startTime > 0,
             "Farming: Unable to claim before full unlock"
         );
+
 
         // First call of this function does not really claim tokens
         if (farming.claimedTimes == 0) {
