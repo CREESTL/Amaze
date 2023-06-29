@@ -605,8 +605,57 @@ describe("Farming contract", () => {
             })
         })
         describe("Unlock from Vesting", () => {
+            it("Should unlock user's tokens when called from Vesting", async () => {
+                let { core, maze, farming, vesting } = await loadFixture(
+                    deploys
+                );
+
+                let to = clientAcc1.address;
+                let amount = parseEther("1");
+                let cliffDuration = 3600;
+                let cliffUnlock = 1000;
+                let claimablePeriods = 5;
+
+                await maze.connect(ownerAcc).approve(farming.address, amount);
+
+                let clientStartBalance = await maze.balanceOf(clientAcc1.address);
+                let farmingStartBalance = await maze.balanceOf(farming.address);
+
+                await expect(
+                    vesting.startVesting(
+                        to,
+                        amount,
+                        cliffDuration,
+                        cliffUnlock,
+                        claimablePeriods
+                    )).to.emit(farming, "LockedOnBehalf");
+                
+                
+                // Claiming tokens unlocks them from farming
+                await vesting.connect(clientAcc1).claimTokens();
+
+                // TODO
+                let expectedReward = await farming.getReward(clientAcc1.address);
+
+                let clientEndBalance = await maze.balanceOf(clientAcc1.address);
+                let farmingEndBalance = await maze.balanceOf(farming.address);
+
+                // expect(clientEndBalance).to.equal(clientStartBalance.add(expectedReward));
+                // expect(farmingEndBalance).to.equal(farmingStartBalance.sub(expectedReward));
+            })
            describe("Fails", () => {
-            
+               it("Should fail to unlock if called not from Vesting", async () => {
+                let { core, maze, farming, vesting } = await loadFixture(
+                    deploys
+                );
+                   
+                await expect(farming.connect(ownerAcc).unlockFromVesting(
+                    clientAcc1.address,
+                    parseEther("1")
+                ))
+                    .to.be.revertedWith("Farming: Caller is not Vesting");
+                
+            })
            }) 
         })
         describe("Claim", () => {
