@@ -62,6 +62,8 @@ interface IFarming {
     ) external view returns (uint256, uint256, uint256, uint256);
 
     /// @notice Returns the farming reward of the user
+    /// @notice Does not recalculate the reward on call. Returns the last known
+    ///         reward value of the user
     /// @param user The user to get the reward of
     /// @return Farming reward of the user
     function getReward(address user) external returns (uint256);
@@ -74,6 +76,13 @@ interface IFarming {
     /// @param rate The new rate to set. Represented in Basis Points
     function setDailyRate(uint256 rate) external;
 
+    /// @notice Recalculates rewards of the user. Does not  
+    ///         return the new reward. Use `getReward` to get the 
+    ///         new reward of the user.
+    /// @param user The user to recalculate the reward of 
+    function recalculateReward(address user) external;
+
+    
     /// @notice Recieves tokens from the admin and locks them
     ///         on behalf of the user
     /// @param admin The address of the admin to receive tokens from

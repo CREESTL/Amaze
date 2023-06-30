@@ -66,7 +66,7 @@ contract Farming is IFarming, Ownable, Pausable {
     ///         Is represented in Basis Points
     // TODO which default value to use?
     uint256 public dailyRate = 300; // 3%
-    /// @dev Value used to convert between percents and basis points
+    /// @dev Value used to convert between percents and basis points;
     uint256 private _converter = 1e4;
 
     /// @dev Mapping showing daily rate changes
@@ -152,6 +152,16 @@ contract Farming is IFarming, Ownable, Pausable {
         _rateChanges[block.timestamp] = rate;
 
         emit DailyRateChanged(rate);
+    }
+    
+    /// @notice See {IFarming-recalculateReward}
+    // TODO previously there was no such function and recalcs were only made
+    // on lock and unlock and values were set into global mappings
+    // Using this function may lead to incorrect values in this mappings and break recalc
+    function recalculateReward(address user) external {
+        console.log("\nIn external Recalc")
+        require(user != address(0), "Farming: User cannot have zero address");
+        _usersToFarmings[user].reward = _recalculateRewards(user);
     }
 
     /// @notice See {IFarming-lockOnBehalf}
