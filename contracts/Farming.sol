@@ -289,6 +289,8 @@ contract Farming is IFarming, Ownable, Pausable {
 
         uint256 lockedAmount;
         uint256 previousRate;
+        
+        bool firstChangeInPeriodPassed;
 
         if (_rateChangesTimes.length > 0) {
             // Process all rate changes in period
@@ -302,7 +304,7 @@ contract Farming is IFarming, Ownable, Pausable {
 
                 // TODO Delete it
                 if (_rateChangesTimes[i] < periodStart) {
-                    console.log("RAkTE CANT CHANGE BEFORE PERIOD");
+                    console.log("RATE CANT CHANGE BEFORE PERIOD");
 
                 } else if (
                     // Rate was changed during the period
@@ -312,7 +314,7 @@ contract Farming is IFarming, Ownable, Pausable {
                     console.log("Rate was changed inside current period");
                     // Time from the last rate change to the current rate change
                     uint256 timeBeforeChange;
-                    if (lastChangeIndexInPeriod == 0) {
+                    if (!firstChangeInPeriodPassed) {
                         // If rate was not changed since the start of period,
                         // use time from the start of the period till
                         // the change of rate
@@ -320,6 +322,8 @@ contract Farming is IFarming, Ownable, Pausable {
                             "That is the first time rate was changed inside current period"
                         );
 
+                        firstChangeInPeriodPassed = true;
+                        
                         timeBeforeChange = _rateChangesTimes[i] - periodStart - 1;
                         lockedAmount = _findLockedAmount(user, periodStart, _rateChangesTimes[i]);
                         if (i > 0) {
@@ -350,6 +354,9 @@ contract Farming is IFarming, Ownable, Pausable {
                     reward += (lockedAmount * previousRate * timeBeforeChange) / (_converter * 24 hours);
                     console.log("Reward is now: ", reward);
 
+                    // Mark that current rate change time is the last in the period
+                    lastChangeIndexInPeriod = i;
+
                     // If it's the last rate change in the period, increase
                     // the reward by the amount from that change till the end of the period
                     // TODO not sure about that
@@ -372,7 +379,6 @@ contract Farming is IFarming, Ownable, Pausable {
                         
                     }
                         
-                    lastChangeIndexInPeriod = i;
 
                 // TODO delete it
                 } else if (_rateChangesTimes[i] > periodEnd) {

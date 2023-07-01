@@ -875,6 +875,57 @@ describe("Farming contract", () => {
 
                 })
                 it("Rate changed 3 times per day. Recalculate after 1 day", async () => {
+                    let { core, maze, farming, vesting } = await loadFixture(
+                        deploys
+                    );
+
+                    // Start farming
+                    
+                    let transferAmount = parseEther("20");
+                    let lockAmount = parseEther("8");
+                    await maze
+                        .connect(ownerAcc)
+                        .transfer(clientAcc1.address, transferAmount);
+                    await maze
+                        .connect(clientAcc1)
+                        .approve(farming.address, lockAmount);
+
+                    await farming.connect(clientAcc1).lock(lockAmount);
+                    
+                    let oneDay = 3600 * 24;
+                    let oneHour = 3600;
+                    let defaultRate = await farming.dailyRate();
+                    let newRate1 = defaultRate.mul(2);
+                    let newRate2 = defaultRate.mul(3);
+                    let newRate3 = defaultRate.mul(4);
+
+                    // Wait one hour and change rate (change #1)
+                    await time.increase(oneHour);
+                    await farming.setDailyRate(newRate1);
+
+                    // Wait one hour and change rate (change #2)
+                    await time.increase(oneHour);
+                    await farming.setDailyRate(newRate2);
+
+                    // Wait one hour and change rate (change #3)
+                    await time.increase(oneHour);
+                    await farming.setDailyRate(newRate3);
+                    
+                    // Wait 7 more hours (10 in total)
+                    await time.increase(oneHour * 7);
+
+                    let expectedReward1 = lockAmount.mul(defaultRate).mul(oneHour).div(converter * oneDay);
+                    let expectedReward2 = lockAmount.mul(newRate1).mul(oneHour).div(converter * oneDay);
+                    let expectedReward3 = lockAmount.mul(newRate2).mul(oneHour).div(converter * oneDay);
+                    let expectedReward4 = lockAmount.mul(newRate3).mul(oneHour * 7).div(converter * oneDay);
+                    let expectedRewardFull = 
+                        expectedReward1
+                        .add(expectedReward2)
+                        .add(expectedReward3)
+                        .add(expectedReward4);
+                    let reward = await farming.getReward(clientAcc1.address);
+                    expect(reward).to.equal(expectedRewardFull);
+
                 })
                 })
             })
