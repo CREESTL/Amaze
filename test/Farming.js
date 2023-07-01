@@ -831,6 +831,36 @@ describe("Farming contract", () => {
         describe("Recalculate reward", () => {
 
             describe("Rate changes", () => {
+                it("Rate did not change since start of farming", async () => {
+                    let { core, maze, farming, vesting } = await loadFixture(
+                        deploys
+                    );
+
+                    // Start farming
+                    
+                    let transferAmount = parseEther("20");
+                    let lockAmount = parseEther("8");
+                    await maze
+                        .connect(ownerAcc)
+                        .transfer(clientAcc1.address, transferAmount);
+                    await maze
+                        .connect(clientAcc1)
+                        .approve(farming.address, lockAmount);
+
+                    await farming.connect(clientAcc1).lock(lockAmount);
+                    
+                    let rate = await farming.dailyRate();
+
+                    // Wait 1 day
+                    let oneDay = 3600 * 24;
+                    await time.increase(oneDay);
+
+                    let expectedReward = lockAmount.mul(rate).mul(oneDay).div(converter * oneDay);
+                    let reward = await farming.getReward(clientAcc1.address);
+                    expect(reward).to.equal(expectedReward);
+
+                    
+                })
                 it("Rate changed 1 time per day. Recalculate after 1 day", async () => {
                     let { core, maze, farming, vesting } = await loadFixture(
                         deploys
@@ -859,9 +889,6 @@ describe("Farming contract", () => {
 
                     // Wait another half a day
                     await time.increase(oneDay / 2);
-                    
-                    // Recalculate the reward
-                    await farming.getReward(clientAcc1.address);
 
                     let expectedRewardFirstHalf = lockAmount.mul(oldRate).mul(oneDay / 2).div(converter * oneDay);
                     let expectedRewardSecondHalf = lockAmount.mul(newRate).mul(oneDay / 2).div(converter * oneDay);
