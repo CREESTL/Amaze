@@ -932,6 +932,40 @@ describe("Farming contract", () => {
 
             describe("Lock changes", () => {
                 it("Lock changed 1 time per day. Recalculate after 1 day", async () => {
+                    let { core, maze, farming, vesting } = await loadFixture(
+                        deploys
+                    );
+
+                    // Start farming
+                    
+                    let transferAmount = parseEther("20");
+                    let lockAmount1 = parseEther("8");
+                    let lockAmount2 = parseEther("2");
+                    await maze
+                        .connect(ownerAcc)
+                        .transfer(clientAcc1.address, transferAmount);
+                    await maze
+                        .connect(clientAcc1)
+                        .approve(farming.address, lockAmount1.add(lockAmount2));
+
+                    await farming.connect(clientAcc1).lock(lockAmount1);
+
+                    let oneDay = 3600 * 24;
+                    let rate = await farming.dailyRate();
+                    
+                    // Wait half a day and change lock
+                    await time.increase(oneDay / 2);
+                    await farming.connect(clientAcc1).lock(lockAmount2);
+
+                    // Wait another half a day
+                    await time.increase(oneDay / 2);
+
+                    let expectedReward1 = lockAmount1.mul(rate).mul(oneDay / 2).div(converter * oneDay);
+                    let expectedReward2 = lockAmount2.mul(rate).mul(oneDay / 2).div(converter * oneDay);
+                    let expectedRewardFull = expectedReward1.add(expectedReward2);
+                    let reward = await farming.getReward(clientAcc1.address);
+                    expect(reward).to.equal(expectedRewardFull);
+
 
                 })
                 it("Lock changed 3 times per day. Recalculate after 1 day", async () => {
