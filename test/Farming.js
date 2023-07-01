@@ -729,29 +729,6 @@ describe("Farming contract", () => {
         it("Should claim different rewards", async () => {});
 
         describe("Fails", () => {
-            it("Should fail to claim if no rewards", async () => {
-                let { core, maze, farming, vesting } = await loadFixture(
-                    deploys
-                );
-
-                let transferAmount = parseEther("2");
-                let lockAmount = parseEther("1");
-                await maze
-                    .connect(ownerAcc)
-                    .transfer(clientAcc1.address, transferAmount);
-                await maze
-                    .connect(clientAcc1)
-                    .approve(farming.address, lockAmount);
-
-                await farming.connect(ownerAcc).setMinLockPeriod(0);
-
-                await farming.connect(clientAcc1).lock(lockAmount);
-                await farming.connect(clientAcc1).unlockAll();
-                
-                await expect(
-                    farming.connect(clientAcc1).claim()
-                ).to.be.revertedWith("Farming: No rewards");
-            });
             it("Should fail to claim before full unlock", async () => {
                 let { core, maze, farming, vesting } = await loadFixture(
                     deploys

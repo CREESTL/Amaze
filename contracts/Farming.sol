@@ -223,8 +223,6 @@ contract Farming is IFarming, Ownable, Pausable {
             "Farming: Unable to claim before full unlock"
         );
 
-        require(farming.reward > 0, "Farming: No rewards");
-
         // First call of this function does not really claim tokens
         if (farming.claimedTimes == 0) {
             farming.claimedTimes = 1;
