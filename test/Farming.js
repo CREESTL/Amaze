@@ -9,6 +9,7 @@ const zeroAddress = ethers.constants.AddressZero;
 const parseEther = ethers.utils.parseEther;
 
 let BigNumber = ethers.BigNumber;
+let converter = 1e4;
 
 describe("Farming contract", () => {
     // Deploy all contracts before each test suite
@@ -225,7 +226,7 @@ describe("Farming contract", () => {
                 // Right after farming start reward must be zero
                 expect(reward2).to.equal(0);
 
-                // TODO add here part when reward changes (after all tests for _recalculateRewards)
+                // TODO add here part when reward changes (after all tests for _recalculateReward)
             });
             describe("Fails", () => {
                 it("Should fail to get the reward of the zero address user", async () => {
@@ -733,6 +734,20 @@ describe("Farming contract", () => {
                     deploys
                 );
 
+                let transferAmount = parseEther("2");
+                let lockAmount = parseEther("1");
+                await maze
+                    .connect(ownerAcc)
+                    .transfer(clientAcc1.address, transferAmount);
+                await maze
+                    .connect(clientAcc1)
+                    .approve(farming.address, lockAmount);
+
+                await farming.connect(ownerAcc).setMinLockPeriod(0);
+
+                await farming.connect(clientAcc1).lock(lockAmount);
+                await farming.connect(clientAcc1).unlockAll();
+                
                 await expect(
                     farming.connect(clientAcc1).claim()
                 ).to.be.revertedWith("Farming: No rewards");
@@ -814,11 +829,108 @@ describe("Farming contract", () => {
 
     describe("Internal functions", () => {
         describe("Recalculate reward", () => {
+
+            describe("Rate changes", () => {
+                it("Rate changed 1 time per day. Recalculate after 1 day", async () => {
+                    let { core, maze, farming, vesting } = await loadFixture(
+                        deploys
+                    );
+
+                    // Start farming
+                    
+                    let transferAmount = parseEther("20");
+                    let lockAmount = parseEther("8");
+                    await maze
+                        .connect(ownerAcc)
+                        .transfer(clientAcc1.address, transferAmount);
+                    await maze
+                        .connect(clientAcc1)
+                        .approve(farming.address, lockAmount);
+
+                    await farming.connect(clientAcc1).lock(lockAmount);
+
+                    // Wait half a day and change rate
+                    let oneDay = 3600 * 24;
+                    // NOTICE: Wait one second less because it'll take 1s for JS code
+                    // below to execute
+                    await time.increase(oneDay / 2 - 1);
+
+                    let oldRate = await farming.dailyRate();
+                    let newRate = oldRate.mul(3);
+                    await farming.setDailyRate(newRate);
+
+                    // Wait another half a day
+                    // NOTICE: Wait one second less because it'll take 1s for JS code
+                    // below to execute
+                    await time.increase(oneDay / 2 - 1);
+                    
+                    // Recalculate the reward
+                    await farming.recalculateReward(clientAcc1.address);
+
+                    let expectedRewardFirstHalf = lockAmount.mul(oldRate).mul(oneDay / 2).div(converter * oneDay);
+                    let expectedRewardSecondHalf = lockAmount.mul(newRate).mul(oneDay / 2).div(converter * oneDay);
+                    let expectedRewardFull = expectedRewardFirstHalf.add(expectedRewardSecondHalf);
+                    let reward = await farming.getReward(clientAcc1.address);
+                    expect(reward).to.equal(expectedRewardFull);
+
+                })
+                it("Rate changed 3 times per day. Recalculate after 1 day", async () => {
+                })
+                })
+            })
+
+            describe("Lock changes", () => {
+                it("Lock changed 1 time per day. Recalculate after 1 day", async () => {
+
+                })
+                it("Lock changed 3 times per day. Recalculate after 1 day", async () => {
+
+                })
+            })
+            
+            describe("Rate and Lock changes", () => {
+                it("In 1 day changed: rate and lock. Recalculate after 1 day", async () => {
+
+                })
+                it("In 1 day changed: lock and rate. Recalculate after 1 day", async () => {
+
+                })
+                it("In 1 day changed: lock, rate, rate, lock. Recalculate after 1 day", async () => {
+
+                })
+                it("In 3 days changed: lock, rate, rate, lock. Recalculate after 5 day", async () => {
+
+                })
+                
+            })
+            
+            describe("Long lock hold", () => {
+                it("After full unlock and long wait the reward should stay the same", async () => {
+
+                })
+                it("Correct reward for one year of holding the same lock", async () => {
+
+                })
+            })
+            
+            describe("Rapid recalculations", () => {
+                it("Reward should not change during one day", async () => {
+
+                })
+            })
+            
+            describe("Rewards of multiple users", () => {
+                it("Correct reward for each of two users. One has started farming earlier", async () => {
+                    
+                })
+                
+            })
+
             describe("Fails", () => {});
         });
 
+        // TODO Do I need this? It's already tested in recalc
         describe("Find locked amount", () => {
             describe("Fails", () => {});
         });
-    });
 });
