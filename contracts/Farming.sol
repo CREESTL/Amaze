@@ -125,7 +125,7 @@ contract Farming is IFarming, Ownable, Pausable {
     /// @notice See {IFarming-getReward}
     function getReward(address user) external view returns (uint256) {
         require(user != address(0), "Farming: User cannot have zero address");
-        return _usersToFarmings[user].reward;
+        return _recalculateReward(user);
     }
 
     /// @notice See {IFarming-setMinLockPeriod}
@@ -142,16 +142,6 @@ contract Farming is IFarming, Ownable, Pausable {
         _rateChangesTimes.push(block.timestamp);
 
         emit DailyRateChanged(rate);
-    }
-    
-    /// @notice See {IFarming-recalculateReward}
-    // TODO previously there was no such function and recalcs were only made
-    // on lock and unlock and values were set into global mappings
-    // Using this function may lead to incorrect values in this mappings and break recalc
-    function recalculateReward(address user) external {
-        console.log("\nIn external recalc");
-        require(user != address(0), "Farming: User cannot have zero address");
-        _usersToFarmings[user].reward = _recalculateReward(user);
     }
 
     /// @notice See {IFarming-lockOnBehalf}
@@ -267,7 +257,7 @@ contract Farming is IFarming, Ownable, Pausable {
     /// @dev Recalculates user's rewards
     /// @param user The address of the user to recalculate rewards of
     /// @return The new reward of the user
-    function _recalculateReward(address user) private returns (uint256) {
+    function _recalculateReward(address user) private view returns (uint256) {
         require(user != address(0), "Farming: User cannot have zero address");
 
         console.log("===\nIn _recalculateReward");
@@ -328,7 +318,7 @@ contract Farming is IFarming, Ownable, Pausable {
                         "That is the first time rate was changed inside current period"
                     );
 
-                    timeBeforeChange = _rateChangesTimes[i] - periodStart;
+                    timeBeforeChange = _rateChangesTimes[i] - periodStart - 1;
                     lockedAmount = _findLockedAmount(user, periodStart, _rateChangesTimes[i]);
                     if (i > 0) {
                         // If rate was changed some time before current period, 
@@ -345,7 +335,7 @@ contract Farming is IFarming, Ownable, Pausable {
                     // use time from the previous rate change till
                     // the current rate change
                     console.log("This is not the first time rate was changed inside current period");
-                    timeBeforeChange = _rateChangesTimes[i] - _rateChangesTimes[lastChangeIndexInPeriod];
+                    timeBeforeChange = _rateChangesTimes[i] - _rateChangesTimes[lastChangeIndexInPeriod] - 1;
                     lockedAmount = _findLockedAmount(user, _rateChangesTimes[lastChangeIndexInPeriod], _rateChangesTimes[i]);
                     previousRate = _rateChanges[_rateChangesTimes[i - 1]];
 

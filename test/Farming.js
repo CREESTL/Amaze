@@ -851,21 +851,17 @@ describe("Farming contract", () => {
 
                     // Wait half a day and change rate
                     let oneDay = 3600 * 24;
-                    // NOTICE: Wait one second less because it'll take 1s for JS code
-                    // below to execute
-                    await time.increase(oneDay / 2 - 1);
+                    await time.increase(oneDay / 2);
 
                     let oldRate = await farming.dailyRate();
                     let newRate = oldRate.mul(3);
                     await farming.setDailyRate(newRate);
 
                     // Wait another half a day
-                    // NOTICE: Wait one second less because it'll take 1s for JS code
-                    // below to execute
-                    await time.increase(oneDay / 2 - 1);
+                    await time.increase(oneDay / 2);
                     
                     // Recalculate the reward
-                    await farming.recalculateReward(clientAcc1.address);
+                    await farming.getReward(clientAcc1.address);
 
                     let expectedRewardFirstHalf = lockAmount.mul(oldRate).mul(oneDay / 2).div(converter * oneDay);
                     let expectedRewardSecondHalf = lockAmount.mul(newRate).mul(oneDay / 2).div(converter * oneDay);
