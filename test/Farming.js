@@ -226,7 +226,15 @@ describe("Farming contract", () => {
                 // Right after farming start reward must be zero
                 expect(reward2).to.equal(0);
 
-                // TODO add here part when reward changes (after all tests for _recalculateReward)
+                let oneDay = 3600 * 24;
+                let rate = await farming.dailyRate();
+                await time.increase(oneDay);
+
+                let expectedReward3 = lockAmount.mul(rate).mul(oneDay).div(converter * oneDay);
+                let reward3 = await farming.getReward(clientAcc1.address);
+                expect(reward3).to.equal(expectedReward3);
+                
+                
             });
             describe("Fails", () => {
                 it("Should fail to get the reward of the zero address user", async () => {
@@ -427,22 +435,15 @@ describe("Farming contract", () => {
                     farming.connect(clientAcc1).unlock(unlockAmount)
                 ).to.emit(farming, "Unlocked");
 
-                // TODO right now there are bugs in _recalculate function.
-                // so i have to user .gt(clientStartBalance) below because I dont
-                // know the exact reward user should receive
-                // TODO after debug of _recaulcate function use this reward in expects below
-                // let expectedReward = await farming.getReward(clientAcc1.address);
-
                 let clientEndBalance = await maze.balanceOf(clientAcc1.address);
                 let farmingEndBalance = await maze.balanceOf(farming.address);
 
-                // TODO here and in all places like that
-                // expect(clientEndBalance)
-                //     .to.equal(clientStartBalance
-                //         .add(expectedReward));
-                // expect(farmingEndBalance)
-                //     .to.equal(farmingStartBalance
-                //         .sub(expectedReward));
+                expect(clientEndBalance)
+                    .to.equal(clientStartBalance
+                        .sub(unlockAmount));
+                expect(farmingEndBalance)
+                    .to.equal(farmingStartBalance
+                        .add(unlockAmount));
             });
             it("Should unlock all user's tokens", async () => {
                 let { core, maze, farming, vesting } = await loadFixture(
@@ -471,16 +472,11 @@ describe("Farming contract", () => {
                     farming.connect(clientAcc1).unlock(lockAmount)
                 ).to.emit(farming, "Unlocked");
 
-                // TODO
-                let expectedReward = await farming.getReward(
-                    clientAcc1.address
-                );
-
                 let clientEndBalance = await maze.balanceOf(clientAcc1.address);
                 let farmingEndBalance = await maze.balanceOf(farming.address);
 
-                // expect(clientEndBalance).to.equal(clientStartBalance.add(expectedReward));
-                // expect(farmingEndBalance).to.equal(farmingStartBalance.sub(expectedReward));
+                expect(clientEndBalance).to.equal(clientStartBalance);
+                expect(farmingEndBalance).to.equal(farmingStartBalance);
             });
             describe("Fails", () => {
                 it("Should fail to unlock zero amount of tokens", async () => {
@@ -598,16 +594,11 @@ describe("Farming contract", () => {
                     "Unlocked"
                 );
 
-                // TODO
-                let expectedReward = await farming.getReward(
-                    clientAcc1.address
-                );
-
                 let clientEndBalance = await maze.balanceOf(clientAcc1.address);
                 let farmingEndBalance = await maze.balanceOf(farming.address);
 
-                // expect(clientEndBalance).to.equal(clientStartBalance.add(expectedReward));
-                // expect(farmingEndBalance).to.equal(farmingStartBalance.sub(expectedReward));
+                expect(clientEndBalance).to.equal(clientStartBalance);
+                expect(farmingEndBalance).to.equal(farmingStartBalance);
             });
         });
         describe("Unlock from Vesting", () => {
@@ -642,7 +633,6 @@ describe("Farming contract", () => {
                 // Claiming tokens unlocks them from farming
                 await vesting.connect(clientAcc1).claimTokens();
 
-                // TODO
                 let expectedReward = await farming.getReward(
                     clientAcc1.address
                 );
@@ -650,6 +640,7 @@ describe("Farming contract", () => {
                 let clientEndBalance = await maze.balanceOf(clientAcc1.address);
                 let farmingEndBalance = await maze.balanceOf(farming.address);
 
+                // TODO
                 // expect(clientEndBalance).to.equal(clientStartBalance.add(expectedReward));
                 // expect(farmingEndBalance).to.equal(farmingStartBalance.sub(expectedReward));
             });
@@ -724,9 +715,6 @@ describe("Farming contract", () => {
             // expect(clientEndBalance2).to.equal(clientStartBalance2.add(expectedReward))
             // expect(farmingEndBalance2).to.equal(farmingStartBalance2.sub(expectedReward));
         });
-
-        // TODO add other tests here after tests for recalc function
-        it("Should claim different rewards", async () => {});
 
         describe("Fails", () => {
             it("Should fail to claim before full unlock", async () => {
