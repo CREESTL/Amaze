@@ -58,8 +58,6 @@ async function main() {
     const maze = await mazeFactory.deploy(core.address);
     await maze.deployed();
 
-    // TODO add Vesting, Farming, etc. in excluded here to follow RFI logic
-
     console.log(`[${contractName}]: Deployment Finished!`);
     OUTPUT_DEPLOY[network.name][contractName].address = maze.address;
 
