@@ -838,7 +838,7 @@ describe("Farming contract", () => {
 
                     
                 })
-                it("Rate changed 1 time per day. Recalculate after 1 day", async () => {
+                it("Rate changed 1 time per day.", async () => {
                     let { core, maze, farming, vesting } = await loadFixture(
                         deploys
                     );
@@ -874,7 +874,7 @@ describe("Farming contract", () => {
                     expect(reward).to.equal(expectedRewardFull);
 
                 })
-                it("Rate changed 3 times per day. Recalculate after 1 day", async () => {
+                it("Rate changed 3 times per day.", async () => {
                     let { core, maze, farming, vesting } = await loadFixture(
                         deploys
                     );
@@ -931,7 +931,7 @@ describe("Farming contract", () => {
             })
 
             describe("Lock changes", () => {
-                it("Lock changed 1 time per day. Recalculate after 1 day", async () => {
+                it("Lock changed 1 time per day.", async () => {
                     let { core, maze, farming, vesting } = await loadFixture(
                         deploys
                     );
@@ -975,7 +975,7 @@ describe("Farming contract", () => {
 
 
                 })
-                it("Lock changed 3 times per day. Recalculate after 1 day", async () => {
+                it("Lock changed 3 times per day.", async () => {
                     let { core, maze, farming, vesting } = await loadFixture(
                         deploys
                     );
@@ -1057,7 +1057,7 @@ describe("Farming contract", () => {
             })
             
             describe("Rate and Lock changes", () => {
-                it("In 1 day changed: rate and lock. Recalculate after 1 day", async () => {
+                it("In 1 day changed: rate and lock.", async () => {
                     let { core, maze, farming, vesting } = await loadFixture(
                         deploys
                     );
@@ -1114,18 +1114,22 @@ describe("Farming contract", () => {
 
 
                 })
-                it("In 1 day changed: lock and rate. Recalculate after 1 day", async () => {
+                // TODO
+                it("In 1 day changed: lock and rate.", async () => {
 
                 })
-                it("In 1 day changed: lock, rate, rate, lock. Recalculate after 1 day", async () => {
+                // TODO
+                it("In 1 day changed: rate, lock, lock", async () => {
 
                 })
-                it("In 3 days changed: lock, rate, rate, lock. Recalculate after 5 day", async () => {
+                // TODO
+                it("In 3 days changed: lock, rate, rate", async () => {
 
                 })
                 
             })
             
+            // TODO
             describe("Long lock hold", () => {
                 it("After full unlock and long wait the reward should stay the same", async () => {
 
@@ -1140,13 +1144,13 @@ describe("Farming contract", () => {
 
                 })
             })
-            
-            describe("Rewards of multiple users", () => {
-                it("Correct reward for each of two users. One has started farming earlier", async () => {
+        
+            describe("Farm, claim, farm agaim", () => {
+                it("Claim should reset farming. New farming start from scratch", async () => {
                     
                 })
-                
             })
+            
 
             describe("Fails", () => {});
         });
