@@ -1542,7 +1542,43 @@ describe("Farming contract", () => {
             })
             
             describe("Rapid recalculations", () => {
-                it("Reward should not change during one day", async () => {
+                it("Reward should change during one day", async () => {
+                    let { core, maze, farming, vesting } = await loadFixture(
+                        deploys
+                    );
+
+                    // Start farming
+                    let transferAmount = parseEther("20");
+                    let lockAmount1 = parseEther("8");
+                    await maze
+                        .connect(ownerAcc)
+                        .transfer(clientAcc1.address, transferAmount);
+                    await maze
+                        .connect(clientAcc1)
+                        .approve(
+                            farming.address, 
+                            lockAmount1
+                        );
+
+                    await farming.connect(clientAcc1).lock(lockAmount1);
+                    
+                    let rate = await farming.dailyRate();
+                    let oneDay = 3600 * 24;
+                    let oneHour = 3600;
+
+                    let reward1 = await farming.getReward(clientAcc1.address);
+                    
+                    await time.increase(oneHour);
+                    
+                    let reward2 = await farming.getReward(clientAcc1.address);
+
+                    await time.increase(oneHour);
+                    
+                    let reward3 = await farming.getReward(clientAcc1.address);
+                    
+                    expect(reward1).not.to.equal(reward2);
+                    expect(reward1).not.to.equal(reward3);
+                    expect(reward2).not.to.equal(reward3);
 
                 })
             })
