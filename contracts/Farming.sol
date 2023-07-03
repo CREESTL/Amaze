@@ -228,8 +228,10 @@ contract Farming is IFarming, Ownable, Pausable {
     function _recalculateReward(address user) private view returns (uint256) {
         require(user != address(0), "Farming: User cannot have zero address");
 
+        address _user = user;
+
         console.log("===\nIn _recalculateReward");
-        TokenFarming storage farming = _usersToFarmings[user];
+        TokenFarming storage farming = _usersToFarmings[_user];
 
         // Period to calculate rewards for
         // This is the time from the start of farming till the current moment
@@ -257,8 +259,6 @@ contract Farming is IFarming, Ownable, Pausable {
         uint256 lockedAmount;
         uint256 previousRate;
 
-        bool firstChangeInPeriodPassed;
-
         // Time to use in reward formula. It can be:
         // - Time before lock change
         // - Time after lock change
@@ -272,35 +272,143 @@ contract Farming is IFarming, Ownable, Pausable {
                 console.log("-\nProcessing rate change happened at: ", _rateChangesTimes[i]);
 
                 console.log("Rate was changed inside current period");
-                if (!firstChangeInPeriodPassed) {
-                    // If rate was not changed since the start of period,
-                    // use time from the start of the period till
-                    // the change of rate
-                    console.log("That is the first time rate was changed inside current period");
 
-                    firstChangeInPeriodPassed = true;
+                bool lockChangedBeforeRate;
+                
+                uint256 lastTimeToCalcRateFrom;
 
-                    // This is the first ever change of rate. Use default rate as previous one.
-                    previousRate = initialDailyRate;
-                    time = _rateChangesTimes[i] - periodStart - 1;
-                    lockedAmount = _findLockedAmount(user, periodStart, _rateChangesTimes[i]);
-                } else {
-                    // If rate was changed since the start of period,
-                    // use time from the previous rate change till
-                    // the current rate change
-                    console.log("This is *not* the first time rate was changed inside current period");
-                    // Time before rate was changed
-                    time = _rateChangesTimes[i] - _rateChangesTimes[i - 1] - 1;
-                    lockedAmount = _findLockedAmount(user, _rateChangesTimes[i - 1], _rateChangesTimes[i]);
-                    previousRate = _rateChanges[_rateChangesTimes[i - 1]];
+                // Lock might have changed before the rate change
+                for (
+                    uint256 j = 0;
+                    j < farming.lockChangesTimes.length;
+                    j++
+                ) {
+                    if (i == 0) {
+                        if (farming.lockChangesTimes[j] < _rateChangesTimes[i] && j != 0) {
+                                // Lock has changed before very first rate change after start of farming
+                                lockChangedBeforeRate = true;
+                                console.log("Before rate changes lock has changed as well");
+                                console.log("Lock was changed before very first rate change after start of farming");
+                                // Time from first rate change to the last lock change before it
+                                time = _rateChangesTimes[i] - farming.lockChangesTimes[j] - 1;
+                                lockedAmount = farming.lockChanges[farming.lockChangesTimes[j - 1]];
+                                previousRate = initialDailyRate;
+                                console.log("Counting reward 1");
+                                console.log("Old reward: ", reward);
+                                console.log("Locked amount: ", lockedAmount);
+                                console.log("Previous rate: ", previousRate);
+                                console.log("Time *before* lock was changed: ", time);
+                                reward += (lockedAmount * previousRate * time) / (_converter * 24 hours);
+                                console.log("Reward is now: ", reward);
+
+                                lastTimeToCalcRateFrom = farming.lockChangesTimes[j];
+                            
+                            // If this is the last lock change before rate change, calculate reward
+                            // for the time from lock change to rate change
+                            if (j == farming.lockChangesTimes.length - 1) {
+                                console.log("This is the last lock change before rate change. Calculate reward till rate change 1");
+                                // Time from last lock change before rate change
+                                time = _rateChangesTimes[i] - farming.lockChangesTimes[j] - 1;
+                                lockedAmount = farming.lockChanges[farming.lockChangesTimes[j]];
+                                if (i > 0) {
+                                    previousRate = _rateChanges[_rateChangesTimes[i - 1]];
+                                } else {
+                                    previousRate = initialDailyRate;
+                                }
+                                console.log("Counting reward 2");
+                                console.log("Old reward: ", reward);
+                                console.log("Locked amount: ", lockedAmount);
+                                console.log("Previous rate: ", previousRate);
+                                console.log("Time *after* lock was changed: ", time);
+                                reward += (lockedAmount * previousRate * time) / (_converter * 24 hours);
+                                console.log("Reward is now: ", reward);
+
+                            } else if (farming.lockChangesTimes[j + 1] > _rateChangesTimes[i]) {
+                                console.log("This is the last lock change before rate change. Calculate reward till rate change 2");
+                                // Time from last lock change before rate change
+                                time = _rateChangesTimes[i] - farming.lockChangesTimes[j] - 1;
+                                lockedAmount = farming.lockChanges[farming.lockChangesTimes[j]];
+                                if (i > 0) {
+                                    previousRate = _rateChanges[_rateChangesTimes[i - 1]];
+                                } else {
+                                    previousRate = initialDailyRate;
+                                }
+                                console.log("Counting reward 3");
+                                console.log("Old reward: ", reward);
+                                console.log("Locked amount: ", lockedAmount);
+                                console.log("Previous rate: ", previousRate);
+                                console.log("Time *after* lock was changed: ", time);
+                                reward += (lockedAmount * previousRate * time) / (_converter * 24 hours);
+                                console.log("Reward is now: ", reward);
+                                
+                            }
+                        }
+                    } else {
+                        if (
+                            farming.lockChangesTimes[j] > _rateChangesTimes[i - 1] && 
+                            farming.lockChangesTimes[j] < _rateChangesTimes[i] &&
+                            j != 0
+                        ) {
+                                // Lock has changed between two rate changes
+                                lockChangedBeforeRate = true;
+                                console.log("Before rate changes lock has changed as well");
+                                console.log("Lock has changed between two rate changes");
+                                if (lastTimeToCalcRateFrom == 0) {
+                                    // 'j' cannot be 0 here
+                                    lastTimeToCalcRateFrom = farming.lockChangesTimes[j - 1];
+                                }
+                                // Time between two lock changes
+                                time = farming.lockChangesTimes[j] - lastTimeToCalcRateFrom - 1;
+                                if (j > 0) {
+                                    lockedAmount = farming.lockChanges[farming.lockChangesTimes[j - 1]];
+                                } else {
+                                    lockedAmount = farming.lockChanges[farming.lockChangesTimes[j]];
+                                }
+                                previousRate = _rateChanges[_rateChangesTimes[i -1]];
+                                console.log("Counting reward 4");
+                                console.log("Old reward: ", reward);
+                                console.log("Locked amount: ", lockedAmount);
+                                console.log("Previous rate: ", previousRate);
+                                console.log("Time *before* lock was changed: ", time);
+                                reward += (lockedAmount * previousRate * time) / (_converter * 24 hours);
+                                console.log("Reward is now: ", reward);
+
+                                lastTimeToCalcRateFrom = farming.lockChangesTimes[j];
+                        }
+                        
+                    }
+
                 }
-                console.log("Counting reward 1");
-                console.log("Old reward: ", reward);
-                console.log("Locked amount: ", lockedAmount);
-                console.log("Previous rate: ", previousRate);
-                console.log("Time *before* rate was changed: ", time);
-                reward += (lockedAmount * previousRate * time) / (_converter * 24 hours);
-                console.log("Reward is now: ", reward);
+                
+                if (!lockChangedBeforeRate) {
+                    if (i > 0) {
+                        // Rate was changed in that period before
+                        console.log("This is *not* the first time rate was changed inside current period");
+                        // Time from last rate change till the current one
+                        time = _rateChangesTimes[i] - _rateChangesTimes[i - 1] - 1;
+                        lockedAmount = _findLockedAmount(_user, _rateChangesTimes[i - 1], _rateChangesTimes[i]);
+                        previousRate = _rateChanges[_rateChangesTimes[i - 1]];
+                    } else {
+                        // Rate was not changed in that period before
+                        console.log("That is the first time rate was changed inside current period");
+
+                        // This is the first ever change of rate. Use default rate as previous one.
+                        previousRate = initialDailyRate;
+                        
+                        // Time from start of period till the rate was changed
+                        time = _rateChangesTimes[i] - periodStart - 1;
+                        lockedAmount = _findLockedAmount(_user, periodStart, _rateChangesTimes[i]);
+                    }
+                    console.log("Counting reward 5");
+                    console.log("Old reward: ", reward);
+                    console.log("Locked amount: ", lockedAmount);
+                    console.log("Previous rate: ", previousRate);
+                    console.log("Time *before* rate was changed: ", time);
+                    reward += (lockedAmount * previousRate * time) / (_converter * 24 hours);
+                    console.log("Reward is now: ", reward);
+                    
+                }
+
 
                 // If it's the last rate change in the period, increase
                 // the reward by the amount from that change till the end of the period
@@ -315,7 +423,8 @@ contract Farming is IFarming, Ownable, Pausable {
                     uint256 lastTimeToCalcLockFrom = _rateChangesTimes[i];
 
                     for (uint256 j = 0; j < farming.lockChangesTimes.length; j++) {
-                        // Check if lock has changed since last rate change till the end of period
+                        // If lock has changed since the last rate change till the end of the period
+                        // this time gets split into parts based on lock changes
                         if (
                             farming.lockChangesTimes[j] >= lastTimeToCalcLockFrom &&
                             farming.lockChangesTimes[j] < periodEnd
@@ -324,10 +433,15 @@ contract Farming is IFarming, Ownable, Pausable {
                             // 'j' cannot be 0 here
                             console.log("Lock changed since the last rate change");
                             // Time before lock was changed
-                            time = farming.lockChangesTimes[j] - lastTimeToCalcLockFrom - 1;
-                            lockedAmount = _findLockedAmount(user, lastTimeToCalcLockFrom, farming.lockChangesTimes[j]);
+                            if (j > 0) {
+                                lockedAmount = farming.lockChanges[farming.lockChangesTimes[j - 1]];
+                            } else {
+                                lockedAmount = farming.lockChanges[j];
+                            }
+
+                            time = farming.lockChangesTimes[j] - _rateChangesTimes[i] - 1;
                             previousRate = _rateChanges[_rateChangesTimes[i]];
-                            console.log("Counting reward 2");
+                            console.log("Counting reward 6");
                             console.log("Old reward: ", reward);
                             console.log("Locked amount: ", lockedAmount);
                             console.log("Previous rate: ", previousRate);
@@ -345,9 +459,9 @@ contract Farming is IFarming, Ownable, Pausable {
                                 );
                                 // Time after lock was changed
                                 time = periodEnd - lastTimeToCalcLockFrom;
-                                lockedAmount = _findLockedAmount(user, lastTimeToCalcLockFrom, periodEnd);
+                                lockedAmount = farming.lockChanges[farming.lockChangesTimes[j]];
                                 previousRate = _rateChanges[_rateChangesTimes[i]];
-                                console.log("Counting reward 3");
+                                console.log("Counting reward 7");
                                 console.log("Old reward: ", reward);
                                 console.log("Locked amount: ", lockedAmount);
                                 console.log("Previous rate: ", previousRate);
@@ -357,13 +471,14 @@ contract Farming is IFarming, Ownable, Pausable {
                             }
                         }
                     }
+                    // If lock did not change, calculate reward for the whole time
                     if (!lockChangedAfterLastRateChange) {
                         console.log("Lock did not change since the last rate change");
                         // Time after rate was changed
                         time = periodEnd - _rateChangesTimes[i];
-                        lockedAmount = _findLockedAmount(user, _rateChangesTimes[i], periodEnd);
+                        lockedAmount = _findLockedAmount(_user, _rateChangesTimes[i], periodEnd);
                         previousRate = _rateChanges[_rateChangesTimes[i]];
-                        console.log("Counting reward 4");
+                        console.log("Counting reward 8");
                         console.log("Old reward: ", reward);
                         console.log("Locked amount: ", lockedAmount);
                         console.log("Previous rate: ", previousRate);
@@ -383,12 +498,8 @@ contract Farming is IFarming, Ownable, Pausable {
                     console.log("Lock was changed some time after constructor");
                     // Time before lock was changed
                     time = farming.lockChangesTimes[i] - farming.lockChangesTimes[i - 1] - 1;
-                    lockedAmount = _findLockedAmount(
-                        user,
-                        farming.lockChangesTimes[i - 1],
-                        farming.lockChangesTimes[i]
-                    );
-                    console.log("Counting reward 5");
+                    lockedAmount = farming.lockChanges[farming.lockChangesTimes[i - 1]];
+                    console.log("Counting reward 9");
                     console.log("Old reward: ", reward);
                     console.log("Locked amount: ", lockedAmount);
                     console.log("Default rate: ", initialDailyRate);
@@ -403,8 +514,8 @@ contract Farming is IFarming, Ownable, Pausable {
 
                         // Time after lock was changed
                         time = periodEnd - farming.lockChangesTimes[i];
-                        lockedAmount = _findLockedAmount(user, farming.lockChangesTimes[i], periodEnd);
-                        console.log("Counting reward 6");
+                        lockedAmount = farming.lockChanges[farming.lockChangesTimes[i]];
+                        console.log("Counting reward 10");
                         console.log("Old reward: ", reward);
                         console.log("Locked amount: ", lockedAmount);
                         console.log("Default rate: ", initialDailyRate);
@@ -418,8 +529,8 @@ contract Farming is IFarming, Ownable, Pausable {
                     console.log("Lock was only set at start of farming");
                     // Time after lock was changed
                     time = periodEnd - farming.lockChangesTimes[i];
-                    lockedAmount = _findLockedAmount(user, farming.lockChangesTimes[0], periodEnd);
-                    console.log("Counting reward 9");
+                    lockedAmount = farming.lockChanges[farming.lockChangesTimes[0]];
+                    console.log("Counting reward 11");
                     console.log("Old reward: ", reward);
                     console.log("Locked amount: ", lockedAmount);
                     console.log("Default rate: ", initialDailyRate);
