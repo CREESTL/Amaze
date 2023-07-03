@@ -60,9 +60,9 @@ describe("Core", () => {
 
             await core.connect(ownerAcc).pause();
 
-            await expect(
-                core.connect(ownerAcc).addToBlacklist(clientAcc1.address)
-            ).to.be.revertedWith("Pausable: paused");
+            await expect(core.connect(ownerAcc).addToBlacklist(clientAcc1.address)).to.be.revertedWith(
+                "Pausable: paused"
+            );
 
             await core.connect(ownerAcc).unpause();
 
@@ -75,11 +75,7 @@ describe("Core", () => {
 
             await core.connect(ownerAcc).pause();
 
-            expect(
-                await core
-                    .connect(ownerAcc)
-                    .checkBlacklisted(clientAcc1.address)
-            ).to.equal(true);
+            expect(await core.connect(ownerAcc).checkBlacklisted(clientAcc1.address)).to.equal(true);
         });
     });
 
@@ -87,15 +83,11 @@ describe("Core", () => {
         it("Should check that user is in blacklist", async () => {
             let { core, maze, farming, vesting } = await loadFixture(deploys);
 
-            await expect(
-                await core.checkBlacklisted(clientAcc1.address)
-            ).to.equal(false);
+            await expect(await core.checkBlacklisted(clientAcc1.address)).to.equal(false);
 
             await core.connect(ownerAcc).addToBlacklist(clientAcc1.address);
 
-            await expect(
-                await core.checkBlacklisted(clientAcc1.address)
-            ).to.equal(true);
+            await expect(await core.checkBlacklisted(clientAcc1.address)).to.equal(true);
         });
     });
 
@@ -105,10 +97,7 @@ describe("Core", () => {
 
             let startMazeAddress = await core.maze();
 
-            await expect(core.setMaze(clientAcc1.address)).to.emit(
-                core,
-                "MazeChanged"
-            );
+            await expect(core.setMaze(clientAcc1.address)).to.emit(core, "MazeChanged");
 
             let endMazeAddress = await core.maze();
 
@@ -120,10 +109,7 @@ describe("Core", () => {
 
             let startVestingAddress = await core.vesting();
 
-            await expect(core.setVesting(clientAcc1.address)).to.emit(
-                core,
-                "VestingChanged"
-            );
+            await expect(core.setVesting(clientAcc1.address)).to.emit(core, "VestingChanged");
 
             let endVestingAddress = await core.vesting();
 
@@ -135,10 +121,7 @@ describe("Core", () => {
 
             let startFarmingAddress = await core.farming();
 
-            await expect(core.setFarming(clientAcc1.address)).to.emit(
-                core,
-                "FarmingChanged"
-            );
+            await expect(core.setFarming(clientAcc1.address)).to.emit(core, "FarmingChanged");
 
             let endFarmingAddress = await core.farming();
 
@@ -148,31 +131,19 @@ describe("Core", () => {
 
         describe("Fails", () => {
             it("Should fail to set zero address Maze", async () => {
-                let { core, maze, farming, vesting } = await loadFixture(
-                    deploys
-                );
+                let { core, maze, farming, vesting } = await loadFixture(deploys);
 
-                await expect(core.setMaze(zeroAddress)).to.be.revertedWith(
-                    "Core: Maze cannot have zero address"
-                );
+                await expect(core.setMaze(zeroAddress)).to.be.revertedWith("Core: Maze cannot have zero address");
             });
             it("Should fail to set zero address Vesting", async () => {
-                let { core, maze, farming, vesting } = await loadFixture(
-                    deploys
-                );
+                let { core, maze, farming, vesting } = await loadFixture(deploys);
 
-                await expect(core.setVesting(zeroAddress)).to.be.revertedWith(
-                    "Core: Vesting cannot have zero address"
-                );
+                await expect(core.setVesting(zeroAddress)).to.be.revertedWith("Core: Vesting cannot have zero address");
             });
             it("Should fail to set zero address Farming", async () => {
-                let { core, maze, farming, vesting } = await loadFixture(
-                    deploys
-                );
+                let { core, maze, farming, vesting } = await loadFixture(deploys);
 
-                await expect(core.setFarming(zeroAddress)).to.be.revertedWith(
-                    "Core: Farming cannot have zero address"
-                );
+                await expect(core.setFarming(zeroAddress)).to.be.revertedWith("Core: Farming cannot have zero address");
             });
         });
     });
@@ -180,79 +151,54 @@ describe("Core", () => {
     describe("Main functions", () => {
         describe("Add to core", () => {
             it("Should add users to core", async () => {
-                let { core, maze, farming, vesting } = await loadFixture(
-                    deploys
-                );
+                let { core, maze, farming, vesting } = await loadFixture(deploys);
 
-                await expect(
-                    await core.checkBlacklisted(clientAcc1.address)
-                ).to.equal(false);
+                await expect(await core.checkBlacklisted(clientAcc1.address)).to.equal(false);
 
-                await expect(
-                    core.connect(ownerAcc).addToBlacklist(clientAcc1.address)
-                ).to.emit(core, "AddToBlacklist");
+                await expect(core.connect(ownerAcc).addToBlacklist(clientAcc1.address)).to.emit(core, "AddToBlacklist");
 
-                await expect(
-                    await core.checkBlacklisted(clientAcc1.address)
-                ).to.equal(true);
+                await expect(await core.checkBlacklisted(clientAcc1.address)).to.equal(true);
             });
             describe("Fails", () => {
                 it("Should fail to core already blacklisted account", async () => {
-                    let { core, maze, farming, vesting } = await loadFixture(
-                        deploys
+                    let { core, maze, farming, vesting } = await loadFixture(deploys);
+
+                    await core.connect(ownerAcc).addToBlacklist(clientAcc1.address);
+
+                    await expect(core.connect(ownerAcc).addToBlacklist(clientAcc1.address)).to.be.revertedWith(
+                        "Core: Account already in blacklist"
                     );
-
-                    await core
-                        .connect(ownerAcc)
-                        .addToBlacklist(clientAcc1.address);
-
-                    await expect(
-                        core
-                            .connect(ownerAcc)
-                            .addToBlacklist(clientAcc1.address)
-                    ).to.be.revertedWith("Core: Account already in blacklist");
                 });
                 it("Should fail if user blacklists himself", async () => {
                     let { core } = await loadFixture(deploys);
 
-                    await expect(
-                        core.connect(ownerAcc).addToBlacklist(ownerAcc.address)
-                    ).to.be.revertedWith("Core: Cannot blacklist yourself");
+                    await expect(core.connect(ownerAcc).addToBlacklist(ownerAcc.address)).to.be.revertedWith(
+                        "Core: Cannot blacklist yourself"
+                    );
                 });
             });
         });
 
         describe("Remove from blacklist", () => {
             it("Should remove users from the blacklist", async () => {
-                let { core, maze, farming, vesting } = await loadFixture(
-                    deploys
+                let { core, maze, farming, vesting } = await loadFixture(deploys);
+
+                await expect(core.connect(ownerAcc).addToBlacklist(clientAcc1.address)).to.emit(core, "AddToBlacklist");
+
+                await expect(core.connect(ownerAcc).removeFromBlacklist(clientAcc1.address)).to.emit(
+                    core,
+                    "RemoveFromBlacklist"
                 );
 
-                await expect(
-                    core.connect(ownerAcc).addToBlacklist(clientAcc1.address)
-                ).to.emit(core, "AddToBlacklist");
-
-                await expect(
-                    core
-                        .connect(ownerAcc)
-                        .removeFromBlacklist(clientAcc1.address)
-                ).to.emit(core, "RemoveFromBlacklist");
-
-                await expect(
-                    await core.checkBlacklisted(clientAcc1.address)
-                ).to.equal(false);
+                await expect(await core.checkBlacklisted(clientAcc1.address)).to.equal(false);
             });
             describe("Fails", () => {
                 it("Should fail to remove not blacklisted account", async () => {
-                    let { core, maze, farming, vesting } = await loadFixture(
-                        deploys
-                    );
+                    let { core, maze, farming, vesting } = await loadFixture(deploys);
 
-                    await expect(
-                        core
-                            .connect(ownerAcc)
-                            .removeFromBlacklist(clientAcc1.address)
-                    ).to.be.revertedWith("Core: Account not in blacklist");
+                    await expect(core.connect(ownerAcc).removeFromBlacklist(clientAcc1.address)).to.be.revertedWith(
+                        "Core: Account not in blacklist"
+                    );
                 });
             });
         });

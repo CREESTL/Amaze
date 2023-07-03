@@ -57,9 +57,7 @@ interface IFarming {
     /// @return The time farming started
     /// @return The time farming ended
     /// @return The reward for farming
-    function getFarming(
-        address user
-    ) external view returns (uint256, uint256, uint256, uint256);
+    function getFarming(address user) external view returns (uint256, uint256, uint256, uint256);
 
     /// @notice Returns the farming reward of the user
     /// @notice Does not recalculate the reward on call. Returns the last known

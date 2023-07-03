@@ -34,10 +34,7 @@ contract Core is ICore, Ownable, Pausable {
 
     /// @notice See {ICore-setVesting}
     function setVesting(address vesting_) external whenNotPaused onlyOwner {
-        require(
-            vesting_ != address(0),
-            "Core: Vesting cannot have zero address"
-        );
+        require(vesting_ != address(0), "Core: Vesting cannot have zero address");
 
         vesting = vesting_;
 
@@ -46,10 +43,7 @@ contract Core is ICore, Ownable, Pausable {
 
     /// @notice See {ICore-setFarming}
     function setFarming(address farming_) external whenNotPaused onlyOwner {
-        require(
-            farming_ != address(0),
-            "Core: Farming cannot have zero address"
-        );
+        require(farming_ != address(0), "Core: Farming cannot have zero address");
 
         farming = farming_;
 
@@ -65,9 +59,7 @@ contract Core is ICore, Ownable, Pausable {
     }
 
     /// @notice See {ICore-removeFromBlacklist}
-    function removeFromBlacklist(
-        address account
-    ) external whenNotPaused onlyOwner {
+    function removeFromBlacklist(address account) external whenNotPaused onlyOwner {
         require(blacklist[account], "Core: Account not in blacklist");
         blacklist[account] = false;
         emit RemoveFromBlacklist(account);

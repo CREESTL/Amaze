@@ -8,11 +8,7 @@ interface IMaze {
     event Transfer(address indexed from, address indexed to, uint256 amount);
 
     /// @notice Indicates that allowance from `owner` for `spender` is now equal to `allowance`
-    event Approval(
-        address indexed owner,
-        address indexed spender,
-        uint256 allowance
-    );
+    event Approval(address indexed owner, address indexed spender, uint256 allowance);
 
     /// @notice Indicates that fee amount has been changed
     event SetFees(uint256 newFeeAmount);
@@ -42,10 +38,7 @@ interface IMaze {
     /// @notice Returns the amount of tokens that spender is allowed to spend on behalf of owner
     /// @param owner Token owner's address
     /// @param spender Spender's address
-    function allowance(
-        address owner,
-        address spender
-    ) external view returns (uint256);
+    function allowance(address owner, address spender) external view returns (uint256);
 
     /// @notice Allows spender to spend tokens on behalf of the transaction sender via transferFrom
     /// @param spender Spender's address
@@ -57,19 +50,13 @@ interface IMaze {
     /// @param spender Spender's address
     /// @param addedValue Amount of tokens to add to allowance
     /// @return Boolean value indicating that operation succeded
-    function increaseAllowance(
-        address spender,
-        uint256 addedValue
-    ) external returns (bool);
+    function increaseAllowance(address spender, uint256 addedValue) external returns (bool);
 
     /// @notice Decrease the amount of tokens to spend on behalf of an owner
     /// @param spender Spender's address
     /// @param subtractedValue Amount of tokens to subtract from allowance
     /// @return Boolean value indicating that operation succeded
-    function decreaseAllowance(
-        address spender,
-        uint256 subtractedValue
-    ) external returns (bool);
+    function decreaseAllowance(address spender, uint256 subtractedValue) external returns (bool);
 
     /// @notice Transfers tokens to the given address
     /// @param to Recipient's address
@@ -82,11 +69,7 @@ interface IMaze {
     /// @param to Recipient's address
     /// @param amount The amount of tokens to send
     /// @return Boolean value indicating that operation succeded
-    function transferFrom(
-        address from,
-        address to,
-        uint256 amount
-    ) external returns (bool);
+    function transferFrom(address from, address to, uint256 amount) external returns (bool);
 
     /// @notice Set transaction fee amount in basis points
     /// @param _feeInBP Fee amount in basis points

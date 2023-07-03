@@ -105,8 +105,7 @@ async function main() {
     if (network.name === "ethereum_mainnet") {
         url = "https://etherscan.io/address/" + farming.address + "#code";
     } else if (network.name === "ethereum_testnet") {
-        url =
-            "https://sepolia.etherscan.io/address/" + farming.address + "#code";
+        url = "https://sepolia.etherscan.io/address/" + farming.address + "#code";
     }
 
     OUTPUT_DEPLOY[network.name][contractName].verification = url;
@@ -142,8 +141,7 @@ async function main() {
     if (network.name === "ethereum_mainnet") {
         url = "https://etherscan.io/address/" + vesting.address + "#code";
     } else if (network.name === "ethereum_testnet") {
-        url =
-            "https://sepolia.etherscan.io/address/" + vesting.address + "#code";
+        url = "https://sepolia.etherscan.io/address/" + vesting.address + "#code";
     }
 
     OUTPUT_DEPLOY[network.name][contractName].verification = url;
@@ -179,15 +177,10 @@ async function main() {
 
     // ====================================================
 
-    fs.writeFileSync(
-        path.resolve(__dirname, fileName),
-        JSON.stringify(OUTPUT_DEPLOY, null, "  ")
-    );
+    fs.writeFileSync(path.resolve(__dirname, fileName), JSON.stringify(OUTPUT_DEPLOY, null, "  "));
 
     console.log(
-        `\n***Deployment and verification are completed!***\n***See Results in "${
-            __dirname + fileName
-        }" file***`
+        `\n***Deployment and verification are completed!***\n***See Results in "${__dirname + fileName}" file***`
     );
 }
 

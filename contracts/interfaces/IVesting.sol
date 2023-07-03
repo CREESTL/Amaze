@@ -63,9 +63,7 @@ interface IVesting {
     /// @notice Returns list of IDs of vestings assigned to the user
     /// @param user The address of the user
     /// @return The list of IDs of vestings assigned to the user
-    function getUserVestings(
-        address user
-    ) external view returns (uint256[] memory);
+    function getUserVestings(address user) external view returns (uint256[] memory);
 
     /// @notice Returns information about the vesting by its ID
     /// @param id The ID of the vesting to get information about

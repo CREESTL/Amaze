@@ -60,10 +60,7 @@ contract Maze is IMaze, Ownable, Pausable {
 
     /// @notice Checks that account is not blacklisted
     modifier ifNotBlacklisted(address account) {
-        require(
-            !core.checkBlacklisted(account),
-            "Maze: Account is blacklisted"
-        );
+        require(!core.checkBlacklisted(account), "Maze: Account is blacklisted");
         _;
     }
 
@@ -102,18 +99,12 @@ contract Maze is IMaze, Ownable, Pausable {
     }
 
     /// @notice See {IMaze-allowance}
-    function allowance(
-        address owner,
-        address spender
-    ) external view returns (uint256) {
+    function allowance(address owner, address spender) external view returns (uint256) {
         return _allowances[owner][spender];
     }
 
     /// @notice See {IMaze-approve}
-    function approve(
-        address spender,
-        uint256 amount
-    ) external whenNotPaused returns (bool) {
+    function approve(address spender, uint256 amount) external whenNotPaused returns (bool) {
         _approve(msg.sender, spender, amount);
         return true;
     }
@@ -124,57 +115,34 @@ contract Maze is IMaze, Ownable, Pausable {
     }
 
     /// @notice See {IMaze-transfer}
-    function transfer(
-        address to,
-        uint256 amount
-    ) external whenNotPaused returns (bool) {
+    function transfer(address to, uint256 amount) external whenNotPaused returns (bool) {
         _transfer(msg.sender, to, amount);
         return true;
     }
 
     /// @notice See {IMaze-transferFrom}
-    function transferFrom(
-        address sender,
-        address recipient,
-        uint256 amount
-    ) external whenNotPaused returns (bool) {
+    function transferFrom(address sender, address recipient, uint256 amount) external whenNotPaused returns (bool) {
         _transfer(sender, recipient, amount);
         _approve(
             sender,
             msg.sender,
-            _allowances[sender][msg.sender].sub(
-                amount,
-                "Maze: Transfer amount exceeds allowance"
-            )
+            _allowances[sender][msg.sender].sub(amount, "Maze: Transfer amount exceeds allowance")
         );
         return true;
     }
 
     /// @notice See {IMaze-increaseAllowance}
-    function increaseAllowance(
-        address spender,
-        uint256 addedValue
-    ) external whenNotPaused returns (bool) {
-        _approve(
-            msg.sender,
-            spender,
-            _allowances[msg.sender][spender].add(addedValue)
-        );
+    function increaseAllowance(address spender, uint256 addedValue) external whenNotPaused returns (bool) {
+        _approve(msg.sender, spender, _allowances[msg.sender][spender].add(addedValue));
         return true;
     }
 
     /// @notice See {IMaze-decreaseAllowance}
-    function decreaseAllowance(
-        address spender,
-        uint256 subtractedValue
-    ) external whenNotPaused returns (bool) {
+    function decreaseAllowance(address spender, uint256 subtractedValue) external whenNotPaused returns (bool) {
         _approve(
             msg.sender,
             spender,
-            _allowances[msg.sender][spender].sub(
-                subtractedValue,
-                "Maze: Allowance cannot be below zero"
-            )
+            _allowances[msg.sender][spender].sub(subtractedValue, "Maze: Allowance cannot be below zero")
         );
         return true;
     }
@@ -194,9 +162,7 @@ contract Maze is IMaze, Ownable, Pausable {
     }
 
     /// @notice See {IMaze-removeFromWhitelist}
-    function removeFromWhitelist(
-        address account
-    ) external whenNotPaused onlyOwner {
+    function removeFromWhitelist(address account) external whenNotPaused onlyOwner {
         require(isWhitelisted[account], "Maze: Account not whitelisted");
         isWhitelisted[account] = false;
         emit RemoveFromWhitelist(account);
@@ -213,9 +179,7 @@ contract Maze is IMaze, Ownable, Pausable {
     }
 
     /// @notice See {IMaze-includeIntoStakers}
-    function includeIntoStakers(
-        address account
-    ) external whenNotPaused onlyOwner {
+    function includeIntoStakers(address account) external whenNotPaused onlyOwner {
         require(account != address(0), "Maze: Cannot include zero address");
         require(isExcluded[account], "Maze: Account is already included");
         for (uint256 i = 0; i < _excluded.length; i++) {
@@ -233,9 +197,7 @@ contract Maze is IMaze, Ownable, Pausable {
     }
 
     /// @notice See {IMaze-excludeFromStakers}
-    function excludeFromStakers(
-        address account
-    ) external whenNotPaused onlyOwner {
+    function excludeFromStakers(address account) external whenNotPaused onlyOwner {
         require(account != address(0), "Maze: Cannot exclude zero address");
         require(!isExcluded[account], "Maze: Account is already excluded");
         // Update owned amount in t-space before excluding
@@ -251,13 +213,8 @@ contract Maze is IMaze, Ownable, Pausable {
     /// @param rAmountWithFee Token amount in r-space
     /// @return The reflected amount of tokens (r-space)
     /// @dev tAmountWithFee = rAmountWithFee / rate
-    function _reflectToTSpace(
-        uint256 rAmountWithFee
-    ) private view returns (uint256) {
-        require(
-            rAmountWithFee <= _rTotal,
-            "Maze: Amount must be less than total reflections"
-        );
+    function _reflectToTSpace(uint256 rAmountWithFee) private view returns (uint256) {
+        require(rAmountWithFee <= _rTotal, "Maze: Amount must be less than total reflections");
         uint256 rate = _getRate();
         return rAmountWithFee.div(rate);
     }
@@ -269,16 +226,10 @@ contract Maze is IMaze, Ownable, Pausable {
     /// @return Amount of tokens to be takes as fees (r-space)
     /// @return The whole transferred amount including fees (t-space)
     /// @return Amount of tokens to be taken as fees (t-space)
-    function _getValues(
-        uint256 tAmountNoFee
-    ) private view returns (uint256, uint256, uint256, uint256, uint256) {
+    function _getValues(uint256 tAmountNoFee) private view returns (uint256, uint256, uint256, uint256, uint256) {
         (uint256 tAmountWithFee, uint256 tFee) = _getTValues(tAmountNoFee);
         uint256 rate = _getRate();
-        (
-            uint256 rAmountWithFee,
-            uint256 rAmountNoFee,
-            uint256 rFee
-        ) = _getRValues(tAmountWithFee, tFee, rate);
+        (uint256 rAmountWithFee, uint256 rAmountNoFee, uint256 rFee) = _getRValues(tAmountWithFee, tFee, rate);
         return (rAmountWithFee, rAmountNoFee, rFee, tAmountWithFee, tFee);
     }
 
@@ -286,9 +237,7 @@ contract Maze is IMaze, Ownable, Pausable {
     /// @param tAmountNoFee The transferred amount without fees (t-space)
     /// @return Amount of tokens to be withdrawn from sender including fees (t-space)
     /// @return Amount of tokens to be taken as fees (t-space)
-    function _getTValues(
-        uint256 tAmountNoFee
-    ) private view returns (uint256, uint256) {
+    function _getTValues(uint256 tAmountNoFee) private view returns (uint256, uint256) {
         uint256 tFee = 0;
         // Whitelisted users don't pay fees
         if (!isWhitelisted[msg.sender]) {
@@ -337,10 +286,7 @@ contract Maze is IMaze, Ownable, Pausable {
         uint256 tSupply = _tTotal;
         // Decrease supplies by amount owned by non-stakers
         for (uint256 i = 0; i < _excluded.length; i++) {
-            if (
-                _rOwned[_excluded[i]] > rSupply ||
-                _tOwned[_excluded[i]] > tSupply
-            ) {
+            if (_rOwned[_excluded[i]] > rSupply || _tOwned[_excluded[i]] > tSupply) {
                 return (_rTotal, _tTotal);
             }
             rSupply = rSupply.sub(_rOwned[_excluded[i]]);
@@ -371,10 +317,7 @@ contract Maze is IMaze, Ownable, Pausable {
     /// @dev Burns user's tokens decreasing supply in both t-space and r-space
     /// @param from The address to burn tokens from
     /// @param amount The amount of tokens to burn
-    function _burn(
-        address from,
-        uint256 amount
-    ) private ifNotBlacklisted(from) {
+    function _burn(address from, uint256 amount) private ifNotBlacklisted(from) {
         require(from != address(0), "Maze: Burn from the zero address");
         require(balanceOf(from) >= amount, "Maze: Burn amount exceeds balance");
         uint256 rate = _getRate();
@@ -398,16 +341,9 @@ contract Maze is IMaze, Ownable, Pausable {
     /// @param from Sender's address
     /// @param to Recipient's address
     /// @param amount The amount of tokens to send without fees
-    function _transfer(
-        address from,
-        address to,
-        uint256 amount
-    ) private ifNotBlacklisted(from) ifNotBlacklisted(to) {
+    function _transfer(address from, address to, uint256 amount) private ifNotBlacklisted(from) ifNotBlacklisted(to) {
         require(from != address(0), "Maze: Transfer from the zero address");
-        require(
-            balanceOf(from) >= amount,
-            "Maze: Transfer amount exceeds balance"
-        );
+        require(balanceOf(from) >= amount, "Maze: Transfer amount exceeds balance");
 
         // Next transfer logic depends on which accout is excluded (in any)
         // If account is excluded his t-space balance does not change
@@ -428,22 +364,11 @@ contract Maze is IMaze, Ownable, Pausable {
     /// @param from Sender's address
     /// @param to Recipient's address
     /// @param tAmountNoFee The amount of tokens to send without fees
-    function _transferStandard(
-        address from,
-        address to,
-        uint256 tAmountNoFee
-    ) private {
-        (
-            uint256 rAmountWithFee,
-            uint256 rAmountNoFee,
-            uint256 rFee,
-            uint256 tAmountWithFee,
-            uint256 tFee
-        ) = _getValues(tAmountNoFee);
-        require(
-            _rOwned[from] >= rAmountWithFee,
-            "Maze: not enough tokens to pay the fee"
+    function _transferStandard(address from, address to, uint256 tAmountNoFee) private {
+        (uint256 rAmountWithFee, uint256 rAmountNoFee, uint256 rFee, uint256 tAmountWithFee, uint256 tFee) = _getValues(
+            tAmountNoFee
         );
+        require(_rOwned[from] >= rAmountWithFee, "Maze: not enough tokens to pay the fee");
         // Only change sender's and recipient's balances in r-space (they are both included)
         // Sender looses whole amount plus fees
         _rOwned[from] = _rOwned[from].sub(rAmountWithFee);
@@ -457,22 +382,11 @@ contract Maze is IMaze, Ownable, Pausable {
     /// @param from Sender's address
     /// @param to Recipient's address
     /// @param tAmountNoFee The amount of tokens to send without fees
-    function _transferToExcluded(
-        address from,
-        address to,
-        uint256 tAmountNoFee
-    ) private {
-        (
-            uint256 rAmountWithFee,
-            uint256 rAmountNoFee,
-            uint256 rFee,
-            uint256 tAmountWithFee,
-            uint256 tFee
-        ) = _getValues(tAmountNoFee);
-        require(
-            _rOwned[from] >= rAmountWithFee,
-            "Maze: not enough tokens to pay the fee"
+    function _transferToExcluded(address from, address to, uint256 tAmountNoFee) private {
+        (uint256 rAmountWithFee, uint256 rAmountNoFee, uint256 rFee, uint256 tAmountWithFee, uint256 tFee) = _getValues(
+            tAmountNoFee
         );
+        require(_rOwned[from] >= rAmountWithFee, "Maze: not enough tokens to pay the fee");
         // Only decrease sender's balance in r-space (he is included)
         // Sender looses whole amount plus fees
         _rOwned[from] = _rOwned[from].sub(rAmountWithFee);
@@ -488,26 +402,12 @@ contract Maze is IMaze, Ownable, Pausable {
     /// @param from Sender's address
     /// @param to Recipient's address
     /// @param tAmountNoFee The amount of tokens to send without fees
-    function _transferFromExcluded(
-        address from,
-        address to,
-        uint256 tAmountNoFee
-    ) private {
-        (
-            uint256 rAmountWithFee,
-            uint256 rAmountNoFee,
-            uint256 rFee,
-            uint256 tAmountWithFee,
-            uint256 tFee
-        ) = _getValues(tAmountNoFee);
-        require(
-            _rOwned[from] >= rAmountWithFee,
-            "Maze: not enough tokens to pay the fee"
+    function _transferFromExcluded(address from, address to, uint256 tAmountNoFee) private {
+        (uint256 rAmountWithFee, uint256 rAmountNoFee, uint256 rFee, uint256 tAmountWithFee, uint256 tFee) = _getValues(
+            tAmountNoFee
         );
-        require(
-            _tOwned[from] >= tAmountWithFee,
-            "Maze: not enough tokens to pay the fee"
-        );
+        require(_rOwned[from] >= rAmountWithFee, "Maze: not enough tokens to pay the fee");
+        require(_tOwned[from] >= tAmountWithFee, "Maze: not enough tokens to pay the fee");
         // Decrease sender's balances in both t-space and r-space
         // Sender looses whole amount plus fees
         _tOwned[from] = _tOwned[from].sub(tAmountWithFee);
@@ -523,26 +423,12 @@ contract Maze is IMaze, Ownable, Pausable {
     /// @param from Sender's address
     /// @param to Recipient's address
     /// @param tAmountNoFee The amount of tokens to send without fees
-    function _transferBothExcluded(
-        address from,
-        address to,
-        uint256 tAmountNoFee
-    ) private {
-        (
-            uint256 rAmountWithFee,
-            uint256 rAmountNoFee,
-            uint256 rFee,
-            uint256 tAmountWithFee,
-            uint256 tFee
-        ) = _getValues(tAmountNoFee);
-        require(
-            _rOwned[from] >= rAmountWithFee,
-            "Maze: not enough tokens to pay the fee"
+    function _transferBothExcluded(address from, address to, uint256 tAmountNoFee) private {
+        (uint256 rAmountWithFee, uint256 rAmountNoFee, uint256 rFee, uint256 tAmountWithFee, uint256 tFee) = _getValues(
+            tAmountNoFee
         );
-        require(
-            _tOwned[from] >= tAmountWithFee,
-            "Maze: not enough tokens to pay the fee"
-        );
+        require(_rOwned[from] >= rAmountWithFee, "Maze: not enough tokens to pay the fee");
+        require(_tOwned[from] >= tAmountWithFee, "Maze: not enough tokens to pay the fee");
         // Decrease sender's balances in both t-space and r-space
         // Sender looses whole amount plus fees
         _tOwned[from] = _tOwned[from].sub(tAmountWithFee);
