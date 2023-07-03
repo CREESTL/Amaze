@@ -483,6 +483,23 @@ Indicates that tokens were unlocked by the user
 | user  | address | undefined |
 | newLock  | uint256 | undefined |
 
+### UnlockedOnBehalf
+
+```solidity
+event UnlockedOnBehalf(address user, uint256 amount)
+```
+
+Indicates that locked amount of the user has decreased
+
+
+
+#### Parameters
+
+| Name | Type | Description |
+|---|---|---|
+| user  | address | undefined |
+| amount  | uint256 | undefined |
+
 ### Unpaused
 
 ```solidity

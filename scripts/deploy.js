@@ -180,7 +180,9 @@ async function main() {
     fs.writeFileSync(path.resolve(__dirname, fileName), JSON.stringify(OUTPUT_DEPLOY, null, "  "));
 
     console.log(
-        `\n***Deployment and verification are completed!***\n***See Results in "${__dirname + fileName}" file***`
+        `\n***Deployment and verification are completed!***\n***See Results in "${
+            __dirname + fileName
+        }" file***`
     );
 }
 

@@ -81,7 +81,9 @@ describe("Farming contract", () => {
 
                 await farming.pause();
 
-                await expect(farming.connect(ownerAcc).setMinLockPeriod(555)).to.be.revertedWith("Pausable: paused");
+                await expect(farming.connect(ownerAcc).setMinLockPeriod(555)).to.be.revertedWith(
+                    "Pausable: paused"
+                );
 
                 await farming.unpause();
 
@@ -93,7 +95,9 @@ describe("Farming contract", () => {
                 let { core, maze, farming, vesting } = await loadFixture(deploys);
 
                 await expect(
-                    farming.connect(ownerAcc).lockOnBehalf(ownerAcc.address, clientAcc1.address, parseEther("1"))
+                    farming
+                        .connect(ownerAcc)
+                        .lockOnBehalf(ownerAcc.address, clientAcc1.address, parseEther("1"))
                 ).to.be.revertedWith("Farming: Caller is not Vesting");
             });
         });
@@ -131,7 +135,9 @@ describe("Farming contract", () => {
                 await maze.connect(clientAcc1).approve(farming.address, lockAmount);
 
                 // Before any farming was started for the user
-                let [lockedAmount1, startTime1, endTime1, reward1] = await farming.getFarming(clientAcc1.address);
+                let [lockedAmount1, startTime1, endTime1, reward1] = await farming.getFarming(
+                    clientAcc1.address
+                );
 
                 expect(lockedAmount1).to.equal(0);
                 expect(startTime1).to.equal(0);
@@ -142,7 +148,9 @@ describe("Farming contract", () => {
                 await farming.connect(clientAcc1).lock(lockAmount);
 
                 // Get info about the only one farming
-                let [lockedAmount2, startTime2, endTime2, reward2] = await farming.getFarming(clientAcc1.address);
+                let [lockedAmount2, startTime2, endTime2, reward2] = await farming.getFarming(
+                    clientAcc1.address
+                );
 
                 expect(lockedAmount2).to.equal(lockAmount);
                 // Farming not claimed and not ended yet
@@ -233,7 +241,10 @@ describe("Farming contract", () => {
                 let oldRate = await farming.dailyRate();
 
                 let rate = 7500;
-                await expect(farming.connect(ownerAcc).setDailyRate(rate)).to.emit(farming, "DailyRateChanged");
+                await expect(farming.connect(ownerAcc).setDailyRate(rate)).to.emit(
+                    farming,
+                    "DailyRateChanged"
+                );
 
                 let newRate = await farming.dailyRate();
 
@@ -260,12 +271,13 @@ describe("Farming contract", () => {
                 let farmingStartBalance = await maze.balanceOf(farming.address);
 
                 // Start vesting and lock tokens on behalf of client
-                await expect(vesting.startVesting(to, amount, cliffDuration, cliffUnlock, claimablePeriods)).to.emit(
-                    farming,
-                    "LockedOnBehalf"
-                );
+                await expect(
+                    vesting.startVesting(to, amount, cliffDuration, cliffUnlock, claimablePeriods)
+                ).to.emit(farming, "LockedOnBehalf");
 
-                let [lockedAmount, startTime, endTime, reward] = await farming.getFarming(clientAcc1.address);
+                let [lockedAmount, startTime, endTime, reward] = await farming.getFarming(
+                    clientAcc1.address
+                );
 
                 expect(lockedAmount).to.equal(amount);
                 // Farming not claimed and not ended yet
@@ -293,9 +305,14 @@ describe("Farming contract", () => {
                 let clientStartBalance = await maze.balanceOf(clientAcc1.address);
                 let farmingStartBalance = await maze.balanceOf(farming.address);
 
-                await expect(farming.connect(clientAcc1).lock(lockAmount)).to.emit(farming, "Locked");
+                await expect(farming.connect(clientAcc1).lock(lockAmount)).to.emit(
+                    farming,
+                    "Locked"
+                );
 
-                let [lockedAmount2, startTime2, endTime2, reward2] = await farming.getFarming(clientAcc1.address);
+                let [lockedAmount2, startTime2, endTime2, reward2] = await farming.getFarming(
+                    clientAcc1.address
+                );
 
                 expect(lockedAmount2).to.equal(lockAmount);
                 // Farming not claimed and not ended yet
@@ -341,7 +358,10 @@ describe("Farming contract", () => {
 
                 let fiveYears = 3600 * 24 * 365 * 5;
                 await time.increase(fiveYears);
-                await expect(farming.connect(clientAcc1).unlock(unlockAmount)).to.emit(farming, "Unlocked");
+                await expect(farming.connect(clientAcc1).unlock(unlockAmount)).to.emit(
+                    farming,
+                    "Unlocked"
+                );
 
                 let clientEndBalance = await maze.balanceOf(clientAcc1.address);
                 let farmingEndBalance = await maze.balanceOf(farming.address);
@@ -364,7 +384,10 @@ describe("Farming contract", () => {
 
                 let fiveYears = 3600 * 24 * 365 * 5;
                 await time.increase(fiveYears);
-                await expect(farming.connect(clientAcc1).unlock(lockAmount)).to.emit(farming, "Unlocked");
+                await expect(farming.connect(clientAcc1).unlock(lockAmount)).to.emit(
+                    farming,
+                    "Unlocked"
+                );
 
                 let clientEndBalance = await maze.balanceOf(clientAcc1.address);
                 let farmingEndBalance = await maze.balanceOf(farming.address);
@@ -413,9 +436,9 @@ describe("Farming contract", () => {
                     await maze.connect(clientAcc1).approve(farming.address, lockAmount);
 
                     await farming.connect(clientAcc1).lock(lockAmount);
-                    await expect(farming.connect(clientAcc1).unlock(lockAmount.mul(2))).to.be.revertedWith(
-                        "Farming: Unlock greater than lock"
-                    );
+                    await expect(
+                        farming.connect(clientAcc1).unlock(lockAmount.mul(2))
+                    ).to.be.revertedWith("Farming: Unlock greater than lock");
                 });
                 it("Should fail to unlock too early", async () => {
                     let { core, maze, farming, vesting } = await loadFixture(deploys);
@@ -473,10 +496,9 @@ describe("Farming contract", () => {
                 let clientStartBalance = await maze.balanceOf(clientAcc1.address);
                 let farmingStartBalance = await maze.balanceOf(farming.address);
 
-                await expect(vesting.startVesting(to, amount, cliffDuration, cliffUnlock, claimablePeriods)).to.emit(
-                    farming,
-                    "LockedOnBehalf"
-                );
+                await expect(
+                    vesting.startVesting(to, amount, cliffDuration, cliffUnlock, claimablePeriods)
+                ).to.emit(farming, "LockedOnBehalf");
 
                 // Claiming tokens unlocks them from farming
                 await vesting.connect(clientAcc1).claimTokens();
@@ -495,7 +517,9 @@ describe("Farming contract", () => {
                     let { core, maze, farming, vesting } = await loadFixture(deploys);
 
                     await expect(
-                        farming.connect(ownerAcc).unlockFromVesting(clientAcc1.address, parseEther("1"))
+                        farming
+                            .connect(ownerAcc)
+                            .unlockFromVesting(clientAcc1.address, parseEther("1"))
                     ).to.be.revertedWith("Farming: Caller is not Vesting");
                 });
             });
@@ -735,7 +759,9 @@ describe("Farming contract", () => {
                 let lockAmount1 = parseEther("8");
                 let lockAmount2 = parseEther("2");
                 await maze.connect(ownerAcc).transfer(clientAcc1.address, transferAmount);
-                await maze.connect(clientAcc1).approve(farming.address, lockAmount1.add(lockAmount2));
+                await maze
+                    .connect(clientAcc1)
+                    .approve(farming.address, lockAmount1.add(lockAmount2));
 
                 await farming.connect(clientAcc1).lock(lockAmount1);
 
@@ -775,7 +801,10 @@ describe("Farming contract", () => {
                 await maze.connect(ownerAcc).transfer(clientAcc1.address, transferAmount);
                 await maze
                     .connect(clientAcc1)
-                    .approve(farming.address, lockAmount0.add(lockAmount1).add(lockAmount2).add(lockAmount3));
+                    .approve(
+                        farming.address,
+                        lockAmount0.add(lockAmount1).add(lockAmount2).add(lockAmount3)
+                    );
 
                 await farming.connect(clientAcc1).lock(lockAmount0);
 
@@ -823,7 +852,10 @@ describe("Farming contract", () => {
                     .mul(rate)
                     .mul(oneHour * 7)
                     .div(converter * oneDay);
-                let expectedRewardFull = expectedReward1.add(expectedReward2).add(expectedReward3).add(expectedReward4);
+                let expectedRewardFull = expectedReward1
+                    .add(expectedReward2)
+                    .add(expectedReward3)
+                    .add(expectedReward4);
                 let reward = await farming.getReward(clientAcc1.address);
                 expect(reward).to.equal(expectedRewardFull);
             });
@@ -838,7 +870,9 @@ describe("Farming contract", () => {
                 let lockAmount1 = parseEther("8");
                 let lockAmount2 = parseEther("2");
                 await maze.connect(ownerAcc).transfer(clientAcc1.address, transferAmount);
-                await maze.connect(clientAcc1).approve(farming.address, lockAmount1.add(lockAmount2));
+                await maze
+                    .connect(clientAcc1)
+                    .approve(farming.address, lockAmount1.add(lockAmount2));
 
                 await farming.connect(clientAcc1).lock(lockAmount1);
 
@@ -885,7 +919,9 @@ describe("Farming contract", () => {
                 let lockAmount1 = parseEther("8");
                 let lockAmount2 = parseEther("2");
                 await maze.connect(ownerAcc).transfer(clientAcc1.address, transferAmount);
-                await maze.connect(clientAcc1).approve(farming.address, lockAmount1.add(lockAmount2));
+                await maze
+                    .connect(clientAcc1)
+                    .approve(farming.address, lockAmount1.add(lockAmount2));
 
                 await farming.connect(clientAcc1).lock(lockAmount1);
 
@@ -934,7 +970,9 @@ describe("Farming contract", () => {
                 let lockAmount2 = parseEther("2");
                 let lockAmount3 = parseEther("5");
                 await maze.connect(ownerAcc).transfer(clientAcc1.address, transferAmount);
-                await maze.connect(clientAcc1).approve(farming.address, lockAmount1.add(lockAmount2).add(lockAmount3));
+                await maze
+                    .connect(clientAcc1)
+                    .approve(farming.address, lockAmount1.add(lockAmount2).add(lockAmount3));
 
                 await farming.connect(clientAcc1).lock(lockAmount1);
 
@@ -982,7 +1020,10 @@ describe("Farming contract", () => {
                     .mul(rate2)
                     .mul(oneHour)
                     .div(converter * oneDay);
-                let expectedRewardFull = expectedReward1.add(expectedReward2).add(expectedReward3).add(expectedReward4);
+                let expectedRewardFull = expectedReward1
+                    .add(expectedReward2)
+                    .add(expectedReward3)
+                    .add(expectedReward4);
                 let reward = await farming.getReward(clientAcc1.address);
                 expect(reward).to.equal(expectedRewardFull);
             });
@@ -994,7 +1035,9 @@ describe("Farming contract", () => {
                 let lockAmount1 = parseEther("8");
                 let lockAmount2 = parseEther("2");
                 await maze.connect(ownerAcc).transfer(clientAcc1.address, transferAmount);
-                await maze.connect(clientAcc1).approve(farming.address, lockAmount1.add(lockAmount2));
+                await maze
+                    .connect(clientAcc1)
+                    .approve(farming.address, lockAmount1.add(lockAmount2));
 
                 await farming.connect(clientAcc1).lock(lockAmount1);
 
@@ -1041,7 +1084,10 @@ describe("Farming contract", () => {
                     .mul(rate3)
                     .mul(oneHour)
                     .div(converter * oneDay);
-                let expectedRewardFull = expectedReward1.add(expectedReward2).add(expectedReward3).add(expectedReward4);
+                let expectedRewardFull = expectedReward1
+                    .add(expectedReward2)
+                    .add(expectedReward3)
+                    .add(expectedReward4);
                 let reward = await farming.getReward(clientAcc1.address);
                 expect(reward).to.equal(expectedRewardFull);
             });
@@ -1054,7 +1100,9 @@ describe("Farming contract", () => {
                 let lockAmount2 = parseEther("2");
                 let lockAmount3 = parseEther("5");
                 await maze.connect(ownerAcc).transfer(clientAcc1.address, transferAmount);
-                await maze.connect(clientAcc1).approve(farming.address, lockAmount1.add(lockAmount2).add(lockAmount3));
+                await maze
+                    .connect(clientAcc1)
+                    .approve(farming.address, lockAmount1.add(lockAmount2).add(lockAmount3));
 
                 await farming.connect(clientAcc1).lock(lockAmount1);
 
@@ -1102,7 +1150,10 @@ describe("Farming contract", () => {
                     .mul(rate2)
                     .mul(oneHour)
                     .div(converter * oneDay);
-                let expectedRewardFull = expectedReward1.add(expectedReward2).add(expectedReward3).add(expectedReward4);
+                let expectedRewardFull = expectedReward1
+                    .add(expectedReward2)
+                    .add(expectedReward3)
+                    .add(expectedReward4);
                 let reward = await farming.getReward(clientAcc1.address);
                 expect(reward).to.equal(expectedRewardFull);
             });
@@ -1114,7 +1165,9 @@ describe("Farming contract", () => {
                 let lockAmount1 = parseEther("8");
                 let lockAmount2 = parseEther("2");
                 await maze.connect(ownerAcc).transfer(clientAcc1.address, transferAmount);
-                await maze.connect(clientAcc1).approve(farming.address, lockAmount1.add(lockAmount2));
+                await maze
+                    .connect(clientAcc1)
+                    .approve(farming.address, lockAmount1.add(lockAmount2));
 
                 await farming.connect(clientAcc1).lock(lockAmount1);
 
@@ -1163,7 +1216,10 @@ describe("Farming contract", () => {
                     .mul(rate3)
                     .mul(oneHour)
                     .div(converter * oneDay);
-                let expectedRewardFull = expectedReward1.add(expectedReward2).add(expectedReward3).add(expectedReward4);
+                let expectedRewardFull = expectedReward1
+                    .add(expectedReward2)
+                    .add(expectedReward3)
+                    .add(expectedReward4);
                 let reward = await farming.getReward(clientAcc1.address);
                 expect(reward).to.equal(expectedRewardFull);
             });
@@ -1176,7 +1232,9 @@ describe("Farming contract", () => {
                 let lockAmount2 = parseEther("2");
                 let lockAmount3 = parseEther("5");
                 await maze.connect(ownerAcc).transfer(clientAcc1.address, transferAmount);
-                await maze.connect(clientAcc1).approve(farming.address, lockAmount1.add(lockAmount2).add(lockAmount3));
+                await maze
+                    .connect(clientAcc1)
+                    .approve(farming.address, lockAmount1.add(lockAmount2).add(lockAmount3));
 
                 await farming.connect(clientAcc1).lock(lockAmount1);
 
@@ -1237,7 +1295,11 @@ describe("Farming contract", () => {
                     .mul(rate3)
                     .mul(oneHour)
                     .div(converter * oneDay);
-                let expectedRewardFull = expectedReward1.add(expectedReward2).add(expectedReward3).add(expectedReward4).add(expectedReward5);
+                let expectedRewardFull = expectedReward1
+                    .add(expectedReward2)
+                    .add(expectedReward3)
+                    .add(expectedReward4)
+                    .add(expectedReward5);
                 let reward = await farming.getReward(clientAcc1.address);
                 expect(reward).to.equal(expectedRewardFull);
             });
@@ -1250,7 +1312,9 @@ describe("Farming contract", () => {
                 let lockAmount2 = parseEther("2");
                 let lockAmount3 = parseEther("5");
                 await maze.connect(ownerAcc).transfer(clientAcc1.address, transferAmount);
-                await maze.connect(clientAcc1).approve(farming.address, lockAmount1.add(lockAmount2).add(lockAmount3));
+                await maze
+                    .connect(clientAcc1)
+                    .approve(farming.address, lockAmount1.add(lockAmount2).add(lockAmount3));
 
                 await farming.connect(clientAcc1).lock(lockAmount1);
 
@@ -1311,7 +1375,11 @@ describe("Farming contract", () => {
                     .mul(rate3)
                     .mul(oneHour)
                     .div(converter * oneDay);
-                let expectedRewardFull = expectedReward1.add(expectedReward2).add(expectedReward3).add(expectedReward4).add(expectedReward5);
+                let expectedRewardFull = expectedReward1
+                    .add(expectedReward2)
+                    .add(expectedReward3)
+                    .add(expectedReward4)
+                    .add(expectedReward5);
                 let reward = await farming.getReward(clientAcc1.address);
                 expect(reward).to.equal(expectedRewardFull);
             });
@@ -1326,7 +1394,12 @@ describe("Farming contract", () => {
                 let lockAmount3 = parseEther("5");
                 let lockAmount4 = parseEther("1");
                 await maze.connect(ownerAcc).transfer(clientAcc1.address, transferAmount);
-                await maze.connect(clientAcc1).approve(farming.address, lockAmount1.add(lockAmount2).add(lockAmount3).add(lockAmount4));
+                await maze
+                    .connect(clientAcc1)
+                    .approve(
+                        farming.address,
+                        lockAmount1.add(lockAmount2).add(lockAmount3).add(lockAmount4)
+                    );
 
                 await farming.connect(clientAcc1).lock(lockAmount1);
 
@@ -1399,7 +1472,12 @@ describe("Farming contract", () => {
                     .mul(rate3)
                     .mul(oneHour)
                     .div(converter * oneDay);
-                let expectedRewardFull = expectedReward1.add(expectedReward2).add(expectedReward3).add(expectedReward4).add(expectedReward5).add(expectedReward6);
+                let expectedRewardFull = expectedReward1
+                    .add(expectedReward2)
+                    .add(expectedReward3)
+                    .add(expectedReward4)
+                    .add(expectedReward5)
+                    .add(expectedReward6);
                 let reward = await farming.getReward(clientAcc1.address);
                 expect(reward).to.equal(expectedRewardFull);
             });

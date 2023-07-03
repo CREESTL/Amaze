@@ -216,7 +216,9 @@ contract Vesting is IVesting, Ownable, Pausable {
                 // the number of periods from last claimed period to
                 // the last claimable period
                 if (unclaimedPeriods > vesting.claimablePeriods) {
-                    console.log("Periods passed greater than number of periods. Decrease periods to claim for");
+                    console.log(
+                        "Periods passed greater than number of periods. Decrease periods to claim for"
+                    );
                     unclaimedPeriods = vesting.claimablePeriods - vesting.lastClaimedPeriod;
                     console.log("Now Periods to claim for: ", unclaimedPeriods);
                 }

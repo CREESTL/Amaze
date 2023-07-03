@@ -101,7 +101,13 @@ describe("Vesting contract", () => {
 
                 await maze.connect(ownerAcc).approve(farming.address, amount);
 
-                await vesting.startVesting(to, amount, cliffDuration, cliffUnlock, claimablePeriods);
+                await vesting.startVesting(
+                    to,
+                    amount,
+                    cliffDuration,
+                    cliffUnlock,
+                    claimablePeriods
+                );
 
                 let endVestings = await vesting.getUserVestings(clientAcc1.address);
 
@@ -133,7 +139,13 @@ describe("Vesting contract", () => {
 
                 await maze.connect(ownerAcc).approve(farming.address, amount);
 
-                await vesting.startVesting(to, amount, cliffDuration, cliffUnlock, claimablePeriods);
+                await vesting.startVesting(
+                    to,
+                    amount,
+                    cliffDuration,
+                    cliffUnlock,
+                    claimablePeriods
+                );
 
                 let [
                     _id,
@@ -164,7 +176,9 @@ describe("Vesting contract", () => {
                 it("Should fail to get the unexisting vesting", async () => {
                     let { core, maze, farming, vesting } = await loadFixture(deploys);
 
-                    await expect(vesting.getVesting(777)).to.be.revertedWith("Vesting: Vesting does not exist");
+                    await expect(vesting.getVesting(777)).to.be.revertedWith(
+                        "Vesting: Vesting does not exist"
+                    );
                 });
             });
         });
@@ -186,10 +200,9 @@ describe("Vesting contract", () => {
                 let ownerStartBalance = await maze.balanceOf(ownerAcc.address);
                 let farmingStartBalance = await maze.balanceOf(farming.address);
 
-                await expect(vesting.startVesting(to, amount, cliffDuration, cliffUnlock, claimablePeriods)).to.emit(
-                    vesting,
-                    "VestingStarted"
-                );
+                await expect(
+                    vesting.startVesting(to, amount, cliffDuration, cliffUnlock, claimablePeriods)
+                ).to.emit(vesting, "VestingStarted");
 
                 let [
                     _id,
@@ -240,7 +253,13 @@ describe("Vesting contract", () => {
 
                 await maze.connect(ownerAcc).approve(farming.address, amount1);
 
-                await vesting.startVesting(to1, amount1, cliffDuration1, cliffUnlock1, claimablePeriods1);
+                await vesting.startVesting(
+                    to1,
+                    amount1,
+                    cliffDuration1,
+                    cliffUnlock1,
+                    claimablePeriods1
+                );
 
                 let [
                     _id1,
@@ -275,7 +294,13 @@ describe("Vesting contract", () => {
 
                 await maze.connect(ownerAcc).approve(farming.address, amount2);
 
-                await vesting.startVesting(to2, amount2, cliffDuration2, cliffUnlock2, claimablePeriods2);
+                await vesting.startVesting(
+                    to2,
+                    amount2,
+                    cliffDuration2,
+                    cliffUnlock2,
+                    claimablePeriods2
+                );
 
                 let [
                     _id2,
@@ -319,7 +344,13 @@ describe("Vesting contract", () => {
                     let claimablePeriods = 5;
 
                     await expect(
-                        vesting.startVesting(to, amount, cliffDuration, cliffUnlock, claimablePeriods)
+                        vesting.startVesting(
+                            to,
+                            amount,
+                            cliffDuration,
+                            cliffUnlock,
+                            claimablePeriods
+                        )
                     ).to.be.revertedWith("Vesting: Reciever cannot be zero address");
                 });
 
@@ -333,7 +364,13 @@ describe("Vesting contract", () => {
                     let claimablePeriods = 5;
 
                     await expect(
-                        vesting.startVesting(to, amount, cliffDuration, cliffUnlock, claimablePeriods)
+                        vesting.startVesting(
+                            to,
+                            amount,
+                            cliffDuration,
+                            cliffUnlock,
+                            claimablePeriods
+                        )
                     ).to.be.revertedWith("Vesting: Amount cannot be zero");
                 });
 
@@ -347,7 +384,13 @@ describe("Vesting contract", () => {
                     let claimablePeriods = 5;
 
                     await expect(
-                        vesting.startVesting(to, amount, cliffDuration, cliffUnlock, claimablePeriods)
+                        vesting.startVesting(
+                            to,
+                            amount,
+                            cliffDuration,
+                            cliffUnlock,
+                            claimablePeriods
+                        )
                     ).to.be.revertedWith("Vesting: Cliff duration cannot be zero");
                 });
                 it("Should fail to start vesting with whole amount unlock at cliff", async () => {
@@ -360,7 +403,13 @@ describe("Vesting contract", () => {
                     let claimablePeriods = 5;
 
                     await expect(
-                        vesting.startVesting(to, amount, cliffDuration, cliffUnlock, claimablePeriods)
+                        vesting.startVesting(
+                            to,
+                            amount,
+                            cliffDuration,
+                            cliffUnlock,
+                            claimablePeriods
+                        )
                     ).to.be.revertedWith("Vesting: Whole amount cannot be unlocked");
                 });
                 it("Should fail to start vesting with zero claimable periods", async () => {
@@ -373,7 +422,13 @@ describe("Vesting contract", () => {
                     let claimablePeriods = 0;
 
                     await expect(
-                        vesting.startVesting(to, amount, cliffDuration, cliffUnlock, claimablePeriods)
+                        vesting.startVesting(
+                            to,
+                            amount,
+                            cliffDuration,
+                            cliffUnlock,
+                            claimablePeriods
+                        )
                     ).to.be.revertedWith("Vesting: Number of periods cannot be zero");
                 });
             });
@@ -394,11 +449,19 @@ describe("Vesting contract", () => {
                 let claimablePeriods = 2;
 
                 let expectedCliffUnlockAmount = amount.mul(cliffUnlock).div(10000);
-                let expectedamountPerPeriod = amount.sub(expectedCliffUnlockAmount).div(claimablePeriods);
+                let expectedamountPerPeriod = amount
+                    .sub(expectedCliffUnlockAmount)
+                    .div(claimablePeriods);
 
                 await maze.connect(ownerAcc).approve(farming.address, amount);
 
-                await vesting.startVesting(to, amount, cliffDuration, cliffUnlock, claimablePeriods);
+                await vesting.startVesting(
+                    to,
+                    amount,
+                    cliffDuration,
+                    cliffUnlock,
+                    claimablePeriods
+                );
 
                 // Skip cliff
                 await time.increase(10);
@@ -413,9 +476,13 @@ describe("Vesting contract", () => {
                 let farmingEndBalance1 = await maze.balanceOf(farming.address);
 
                 // First period hasn't passed yet. Only claim cliff amount
-                expect(clientEndBalance1).to.equal(clientStartBalance.add(expectedCliffUnlockAmount));
+                expect(clientEndBalance1).to.equal(
+                    clientStartBalance.add(expectedCliffUnlockAmount)
+                );
 
-                expect(farmingEndBalance1).to.equal(farmingStartBalance.sub(expectedCliffUnlockAmount));
+                expect(farmingEndBalance1).to.equal(
+                    farmingStartBalance.sub(expectedCliffUnlockAmount)
+                );
 
                 // Skip first period
                 await time.increase(3600 * 24 * 30);
@@ -478,11 +545,19 @@ describe("Vesting contract", () => {
                 let claimablePeriods = 2;
 
                 let expectedCliffUnlockAmount = amount.mul(cliffUnlock).div(10000);
-                let expectedamountPerPeriod = amount.sub(expectedCliffUnlockAmount).div(claimablePeriods);
+                let expectedamountPerPeriod = amount
+                    .sub(expectedCliffUnlockAmount)
+                    .div(claimablePeriods);
 
                 await maze.connect(ownerAcc).approve(farming.address, amount);
 
-                await vesting.startVesting(to, amount, cliffDuration, cliffUnlock, claimablePeriods);
+                await vesting.startVesting(
+                    to,
+                    amount,
+                    cliffDuration,
+                    cliffUnlock,
+                    claimablePeriods
+                );
 
                 // Skip all periods (700 days to make sure)
                 await time.increase(3600 * 24 * 700);
@@ -490,7 +565,10 @@ describe("Vesting contract", () => {
                 let clientStartBalance = await maze.balanceOf(clientAcc1.address);
                 let farmingStartBalance = await maze.balanceOf(farming.address);
 
-                await expect(vesting.connect(clientAcc1).claimTokens()).to.emit(vesting, "TokensClaimed");
+                await expect(vesting.connect(clientAcc1).claimTokens()).to.emit(
+                    vesting,
+                    "TokensClaimed"
+                );
 
                 let clientEndBalance = await maze.balanceOf(clientAcc1.address);
                 let farmingEndBalance = await maze.balanceOf(farming.address);
@@ -530,11 +608,19 @@ describe("Vesting contract", () => {
                 let claimablePeriods1 = 5;
 
                 let expectedCliffUnlockAmount1 = amount1.mul(cliffUnlock1).div(10000);
-                let expectedamountPerPeriod1 = amount1.sub(expectedCliffUnlockAmount1).div(claimablePeriods1);
+                let expectedamountPerPeriod1 = amount1
+                    .sub(expectedCliffUnlockAmount1)
+                    .div(claimablePeriods1);
 
                 await maze.connect(ownerAcc).approve(farming.address, amount1);
 
-                await vesting.startVesting(to1, amount1, cliffDuration1, cliffUnlock1, claimablePeriods1);
+                await vesting.startVesting(
+                    to1,
+                    amount1,
+                    cliffDuration1,
+                    cliffUnlock1,
+                    claimablePeriods1
+                );
 
                 // Start vesting #2
 
@@ -549,11 +635,19 @@ describe("Vesting contract", () => {
                 let claimablePeriods2 = 3;
 
                 let expectedCliffUnlockAmount2 = amount2.mul(cliffUnlock2).div(10000);
-                let expectedamountPerPeriod2 = amount2.sub(expectedCliffUnlockAmount2).div(claimablePeriods2);
+                let expectedamountPerPeriod2 = amount2
+                    .sub(expectedCliffUnlockAmount2)
+                    .div(claimablePeriods2);
 
                 await maze.connect(ownerAcc).approve(farming.address, amount2);
 
-                await vesting.startVesting(to2, amount2, cliffDuration2, cliffUnlock2, claimablePeriods2);
+                await vesting.startVesting(
+                    to2,
+                    amount2,
+                    cliffDuration2,
+                    cliffUnlock2,
+                    claimablePeriods2
+                );
 
                 // Skip 4.5 periods. So Vesting #1 is in progress and Vesting #2 is finished
                 await time.increase(3600 * 24 * 30 * 4.5);
@@ -604,11 +698,19 @@ describe("Vesting contract", () => {
                 let claimablePeriods1 = 5;
 
                 let expectedCliffUnlockAmount1 = amount1.mul(cliffUnlock1).div(10000);
-                let expectedamountPerPeriod1 = amount1.sub(expectedCliffUnlockAmount1).div(claimablePeriods1);
+                let expectedamountPerPeriod1 = amount1
+                    .sub(expectedCliffUnlockAmount1)
+                    .div(claimablePeriods1);
 
                 await maze.connect(ownerAcc).approve(farming.address, amount1);
 
-                await vesting.startVesting(to1, amount1, cliffDuration1, cliffUnlock1, claimablePeriods1);
+                await vesting.startVesting(
+                    to1,
+                    amount1,
+                    cliffDuration1,
+                    cliffUnlock1,
+                    claimablePeriods1
+                );
 
                 // Start vesting #2
 
@@ -623,11 +725,19 @@ describe("Vesting contract", () => {
                 let claimablePeriods2 = 3;
 
                 let expectedCliffUnlockAmount2 = amount2.mul(cliffUnlock2).div(10000);
-                let expectedamountPerPeriod2 = amount2.sub(expectedCliffUnlockAmount2).div(claimablePeriods2);
+                let expectedamountPerPeriod2 = amount2
+                    .sub(expectedCliffUnlockAmount2)
+                    .div(claimablePeriods2);
 
                 await maze.connect(ownerAcc).approve(farming.address, amount2);
 
-                await vesting.startVesting(to2, amount2, cliffDuration2, cliffUnlock2, claimablePeriods2);
+                await vesting.startVesting(
+                    to2,
+                    amount2,
+                    cliffDuration2,
+                    cliffUnlock2,
+                    claimablePeriods2
+                );
 
                 // Skip 6 periods. So both Vestings are finished
                 await time.increase(3600 * 24 * 30 * 6);
@@ -679,11 +789,19 @@ describe("Vesting contract", () => {
                 let claimablePeriods1 = 5;
 
                 let expectedCliffUnlockAmount1 = amount1.mul(cliffUnlock1).div(10000);
-                let expectedamountPerPeriod1 = amount1.sub(expectedCliffUnlockAmount1).div(claimablePeriods1);
+                let expectedamountPerPeriod1 = amount1
+                    .sub(expectedCliffUnlockAmount1)
+                    .div(claimablePeriods1);
 
                 await maze.connect(ownerAcc).approve(farming.address, amount1);
 
-                await vesting.startVesting(to1, amount1, cliffDuration1, cliffUnlock1, claimablePeriods1);
+                await vesting.startVesting(
+                    to1,
+                    amount1,
+                    cliffDuration1,
+                    cliffUnlock1,
+                    claimablePeriods1
+                );
 
                 // Claim vesting #1
                 await time.increase(3600 * 24 * 30 * 6);
@@ -702,11 +820,19 @@ describe("Vesting contract", () => {
                 let claimablePeriods2 = 3;
 
                 let expectedCliffUnlockAmount2 = amount2.mul(cliffUnlock2).div(10000);
-                let expectedamountPerPeriod2 = amount2.sub(expectedCliffUnlockAmount2).div(claimablePeriods2);
+                let expectedamountPerPeriod2 = amount2
+                    .sub(expectedCliffUnlockAmount2)
+                    .div(claimablePeriods2);
 
                 await maze.connect(ownerAcc).approve(farming.address, amount2);
 
-                await vesting.startVesting(to2, amount2, cliffDuration2, cliffUnlock2, claimablePeriods2);
+                await vesting.startVesting(
+                    to2,
+                    amount2,
+                    cliffDuration2,
+                    cliffUnlock2,
+                    claimablePeriods2
+                );
 
                 // Skip 6 periods. So both Vestings are finished
                 await time.increase(3600 * 24 * 30 * 6);
@@ -723,11 +849,15 @@ describe("Vesting contract", () => {
                 // By now user should claim:
                 // From Vesting #2: 65 (cliff) + 655 (3 periods) =  720 tokens
                 expect(clientEndBalance).to.equal(
-                    clientStartBalance.add(expectedCliffUnlockAmount2).add(expectedamountPerPeriod2.mul(3))
+                    clientStartBalance
+                        .add(expectedCliffUnlockAmount2)
+                        .add(expectedamountPerPeriod2.mul(3))
                 );
 
                 expect(farmingEndBalance).to.equal(
-                    farmingStartBalance.sub(expectedCliffUnlockAmount2).sub(expectedamountPerPeriod2.mul(3))
+                    farmingStartBalance
+                        .sub(expectedCliffUnlockAmount2)
+                        .sub(expectedamountPerPeriod2.mul(3))
                 );
             });
 
@@ -746,11 +876,19 @@ describe("Vesting contract", () => {
                 let claimablePeriods = 3;
 
                 let expectedCliffUnlockAmount = amount.mul(cliffUnlock).div(10000);
-                let expectedamountPerPeriod = amount.sub(expectedCliffUnlockAmount).div(claimablePeriods);
+                let expectedamountPerPeriod = amount
+                    .sub(expectedCliffUnlockAmount)
+                    .div(claimablePeriods);
 
                 await maze.connect(ownerAcc).approve(farming.address, amount);
 
-                await vesting.startVesting(to, amount, cliffDuration, cliffUnlock, claimablePeriods);
+                await vesting.startVesting(
+                    to,
+                    amount,
+                    cliffDuration,
+                    cliffUnlock,
+                    claimablePeriods
+                );
 
                 // Skip all periods
                 await time.increase(3600 * 24 * 30 * 5);
@@ -791,11 +929,19 @@ describe("Vesting contract", () => {
                 let claimablePeriods = 5;
 
                 let expectedCliffUnlockAmount = amount.mul(cliffUnlock).div(10000);
-                let expectedamountPerPeriod = amount.sub(expectedCliffUnlockAmount).div(claimablePeriods);
+                let expectedamountPerPeriod = amount
+                    .sub(expectedCliffUnlockAmount)
+                    .div(claimablePeriods);
 
                 await maze.connect(ownerAcc).approve(farming.address, amount);
 
-                await vesting.startVesting(to, amount, cliffDuration, cliffUnlock, claimablePeriods);
+                await vesting.startVesting(
+                    to,
+                    amount,
+                    cliffDuration,
+                    cliffUnlock,
+                    claimablePeriods
+                );
 
                 // Skip cliff
                 await time.increase(150);
@@ -806,7 +952,9 @@ describe("Vesting contract", () => {
                     await vesting.connect(clientAcc1).claimTokens();
                 }
 
-                expect(await maze.balanceOf(clientAcc1.address)).to.equal(expectedamountPerPeriod.mul(4));
+                expect(await maze.balanceOf(clientAcc1.address)).to.equal(
+                    expectedamountPerPeriod.mul(4)
+                );
 
                 // Skip 880 more days. 1000 days since cliff in total
                 await time.increase(3600 * 24 * 880);
@@ -856,11 +1004,19 @@ describe("Vesting contract", () => {
                     let claimablePeriods = 5;
 
                     let expectedCliffUnlockAmount = amount.mul(cliffUnlock).div(10000);
-                    let expectedamountPerPeriod = amount.sub(expectedCliffUnlockAmount).div(claimablePeriods);
+                    let expectedamountPerPeriod = amount
+                        .sub(expectedCliffUnlockAmount)
+                        .div(claimablePeriods);
 
                     await maze.connect(ownerAcc).approve(farming.address, amount);
 
-                    await vesting.startVesting(to, amount, cliffDuration, cliffUnlock, claimablePeriods);
+                    await vesting.startVesting(
+                        to,
+                        amount,
+                        cliffDuration,
+                        cliffUnlock,
+                        claimablePeriods
+                    );
 
                     // Only skip 5 minutes. Cliff is 10
                     await time.increase(60 * 5);
@@ -890,7 +1046,13 @@ describe("Vesting contract", () => {
 
                     await maze.connect(ownerAcc).approve(farming.address, amount);
 
-                    await vesting.startVesting(to, amount, cliffDuration, cliffUnlock, claimablePeriods);
+                    await vesting.startVesting(
+                        to,
+                        amount,
+                        cliffDuration,
+                        cliffUnlock,
+                        claimablePeriods
+                    );
 
                     // Skip 2 periods
                     await time.increase(3600 * 24 * 30 * 2);

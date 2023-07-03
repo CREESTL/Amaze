@@ -65,7 +65,9 @@ describe("Maze token", () => {
         describe("Fails", () => {
             it("Should fail to deploy with zero core address", async () => {
                 let mazeFactory = await ethers.getContractFactory("Maze");
-                await expect(mazeFactory.deploy(zeroAddress)).to.be.revertedWith("Maze: Core cannot have zero address");
+                await expect(mazeFactory.deploy(zeroAddress)).to.be.revertedWith(
+                    "Maze: Core cannot have zero address"
+                );
             });
         });
     });
@@ -101,7 +103,9 @@ describe("Maze token", () => {
 
                 await maze.connect(ownerAcc).pause();
 
-                await expect(maze.connect(ownerAcc).burn(burnAmount)).to.be.revertedWith("Pausable: paused");
+                await expect(maze.connect(ownerAcc).burn(burnAmount)).to.be.revertedWith(
+                    "Pausable: paused"
+                );
 
                 await maze.connect(ownerAcc).unpause();
 
@@ -152,7 +156,9 @@ describe("Maze token", () => {
                     // Both owner and user get distributed fees as well
                     // Owner loses transfer amount and feeAmount
                     // but recieves some share of fee amount
-                    expect(ownerEndBalance).to.be.gt(ownerStartBalance.sub(transferAmount).sub(feeAmount));
+                    expect(ownerEndBalance).to.be.gt(
+                        ownerStartBalance.sub(transferAmount).sub(feeAmount)
+                    );
                     // Client recieves whole transfer amount and some share of fees
                     expect(clientEndBalance).to.be.gt(clientStartBalance.add(transferAmount));
                 });
@@ -184,7 +190,9 @@ describe("Maze token", () => {
                     // Owner looses both transfer amount and fee amount
                     // and recieves no fees
                     // He is excluded
-                    expect(ownerEndBalance).to.equal(ownerStartBalance.sub(transferAmount).sub(feeAmount));
+                    expect(ownerEndBalance).to.equal(
+                        ownerStartBalance.sub(transferAmount).sub(feeAmount)
+                    );
 
                     // Client recieves whole transfer amount and no fees
                     // He is excluded
@@ -202,11 +210,17 @@ describe("Maze token", () => {
                 let transferAmount = parseEther("0.1");
                 await maze.connect(ownerAcc).approve(clientAcc1.address, transferAmount);
 
-                expect(await maze.allowance(ownerAcc.address, clientAcc1.address)).to.equal(transferAmount);
+                expect(await maze.allowance(ownerAcc.address, clientAcc1.address)).to.equal(
+                    transferAmount
+                );
 
-                await maze.connect(ownerAcc).decreaseAllowance(clientAcc1.address, transferAmount.div(2));
+                await maze
+                    .connect(ownerAcc)
+                    .decreaseAllowance(clientAcc1.address, transferAmount.div(2));
 
-                expect(await maze.allowance(ownerAcc.address, clientAcc1.address)).to.equal(transferAmount.div(2));
+                expect(await maze.allowance(ownerAcc.address, clientAcc1.address)).to.equal(
+                    transferAmount.div(2)
+                );
             });
         });
     });
@@ -219,21 +233,22 @@ describe("Maze token", () => {
                 expect(await maze.allowance(ownerAcc.address, clientAcc1.address)).to.equal(0);
 
                 let transferAmount = parseEther("0.1");
-                await expect(maze.connect(ownerAcc).approve(clientAcc1.address, transferAmount)).to.emit(
-                    maze,
-                    "Approval"
-                );
+                await expect(
+                    maze.connect(ownerAcc).approve(clientAcc1.address, transferAmount)
+                ).to.emit(maze, "Approval");
 
-                expect(await maze.allowance(ownerAcc.address, clientAcc1.address)).to.equal(transferAmount);
+                expect(await maze.allowance(ownerAcc.address, clientAcc1.address)).to.equal(
+                    transferAmount
+                );
             });
 
             it("Should fail to approve for zero address spender", async () => {
                 let { maze, core } = await loadFixture(deploys);
 
                 let transferAmount = parseEther("0.1");
-                await expect(maze.connect(ownerAcc).approve(zeroAddress, transferAmount)).to.be.revertedWith(
-                    "Maze: Approve to the zero address"
-                );
+                await expect(
+                    maze.connect(ownerAcc).approve(zeroAddress, transferAmount)
+                ).to.be.revertedWith("Maze: Approve to the zero address");
             });
         });
 
@@ -312,17 +327,18 @@ describe("Maze token", () => {
                     let transferAmount = parseEther("0.1");
                     let feeAmount = transferAmount.div(100).mul(2);
 
-                    await expect(maze.connect(ownerAcc).transfer(clientAcc1.address, transferAmount)).to.emit(
-                        maze,
-                        "Transfer"
-                    );
+                    await expect(
+                        maze.connect(ownerAcc).transfer(clientAcc1.address, transferAmount)
+                    ).to.emit(maze, "Transfer");
 
                     let ownerEndBalance = await maze.balanceOf(ownerAcc.address);
                     let clientEndBalance = await maze.balanceOf(clientAcc1.address);
 
                     // Owner looses both transfer amount and fee amount but
                     // recieves some share of fees
-                    expect(ownerEndBalance).to.be.gt(ownerStartBalance.sub(transferAmount).sub(feeAmount));
+                    expect(ownerEndBalance).to.be.gt(
+                        ownerStartBalance.sub(transferAmount).sub(feeAmount)
+                    );
 
                     // Client recieves whole transfer amount and some share of fees
                     expect(clientEndBalance).to.be.gt(clientStartBalance.add(transferAmount));
@@ -341,10 +357,9 @@ describe("Maze token", () => {
                     let transferAmount = parseEther("0.1");
                     let feeAmount = transferAmount.div(100).mul(2);
 
-                    await expect(maze.connect(ownerAcc).transfer(clientAcc1.address, transferAmount)).to.emit(
-                        maze,
-                        "Transfer"
-                    );
+                    await expect(
+                        maze.connect(ownerAcc).transfer(clientAcc1.address, transferAmount)
+                    ).to.emit(maze, "Transfer");
 
                     let ownerEndBalance = await maze.balanceOf(ownerAcc.address);
                     let clientEndBalance = await maze.balanceOf(clientAcc1.address);
@@ -377,21 +392,24 @@ describe("Maze token", () => {
                     let transferAmount = parseEther("0.1");
                     let feeAmount = transferAmount.div(100).mul(2);
 
-                    await expect(maze.connect(ownerAcc).transfer(clientAcc1.address, transferAmount)).to.emit(
-                        maze,
-                        "Transfer"
-                    );
+                    await expect(
+                        maze.connect(ownerAcc).transfer(clientAcc1.address, transferAmount)
+                    ).to.emit(maze, "Transfer");
 
                     let ownerEndBalance = await maze.balanceOf(ownerAcc.address);
                     let clientEndBalance = await maze.balanceOf(clientAcc1.address);
 
                     // Owner looses both transfer amount and fee amount
                     // and he gets no fee shares back
-                    expect(ownerEndBalance).to.equal(ownerStartBalance.sub(transferAmount).sub(feeAmount));
+                    expect(ownerEndBalance).to.equal(
+                        ownerStartBalance.sub(transferAmount).sub(feeAmount)
+                    );
 
                     // Client recieves whole transfer amount and whole fee
                     // because he is the only staker
-                    expect(clientEndBalance).to.equal(clientStartBalance.add(transferAmount).add(feeAmount));
+                    expect(clientEndBalance).to.equal(
+                        clientStartBalance.add(transferAmount).add(feeAmount)
+                    );
                 });
             });
 
@@ -409,17 +427,18 @@ describe("Maze token", () => {
                     let transferAmount = parseEther("0.1");
                     let feeAmount = transferAmount.div(100).mul(2);
 
-                    await expect(maze.connect(ownerAcc).transfer(clientAcc1.address, transferAmount)).to.emit(
-                        maze,
-                        "Transfer"
-                    );
+                    await expect(
+                        maze.connect(ownerAcc).transfer(clientAcc1.address, transferAmount)
+                    ).to.emit(maze, "Transfer");
 
                     let ownerEndBalance = await maze.balanceOf(ownerAcc.address);
                     let clientEndBalance = await maze.balanceOf(clientAcc1.address);
 
                     // Owner looses both transfer amount and fee amount
                     // and he gets no fee shares back
-                    expect(ownerEndBalance).to.equal(ownerStartBalance.sub(transferAmount).sub(feeAmount));
+                    expect(ownerEndBalance).to.equal(
+                        ownerStartBalance.sub(transferAmount).sub(feeAmount)
+                    );
 
                     // Client recieves whole transfer and no fees
                     expect(clientEndBalance).to.equal(clientStartBalance.add(transferAmount));
@@ -489,7 +508,9 @@ describe("Maze token", () => {
                 let startAllowance = await maze.allowance(ownerAcc.address, clientAcc1.address);
 
                 let client2StartBalance = await maze.balanceOf(clientAcc2.address);
-                await maze.connect(clientAcc1).transferFrom(ownerAcc.address, clientAcc2.address, transferAmount);
+                await maze
+                    .connect(clientAcc1)
+                    .transferFrom(ownerAcc.address, clientAcc2.address, transferAmount);
                 let client2EndBalance = await maze.balanceOf(clientAcc2.address);
                 expect(client2EndBalance).to.equal(client2StartBalance.add(transferAmount));
 
@@ -507,9 +528,13 @@ describe("Maze token", () => {
 
                     expect(await maze.allowance(ownerAcc.address, clientAcc1.address)).to.equal(0);
 
-                    await maze.connect(ownerAcc).increaseAllowance(clientAcc1.address, transferAmount);
+                    await maze
+                        .connect(ownerAcc)
+                        .increaseAllowance(clientAcc1.address, transferAmount);
 
-                    expect(await maze.allowance(ownerAcc.address, clientAcc1.address)).to.equal(transferAmount);
+                    expect(await maze.allowance(ownerAcc.address, clientAcc1.address)).to.equal(
+                        transferAmount
+                    );
                 });
             });
             describe("Decrease allowance", () => {
@@ -520,11 +545,17 @@ describe("Maze token", () => {
 
                     await maze.connect(ownerAcc).approve(clientAcc1.address, transferAmount);
 
-                    expect(await maze.allowance(ownerAcc.address, clientAcc1.address)).to.equal(transferAmount);
+                    expect(await maze.allowance(ownerAcc.address, clientAcc1.address)).to.equal(
+                        transferAmount
+                    );
 
-                    await maze.connect(ownerAcc).decreaseAllowance(clientAcc1.address, transferAmount.div(2));
+                    await maze
+                        .connect(ownerAcc)
+                        .decreaseAllowance(clientAcc1.address, transferAmount.div(2));
 
-                    expect(await maze.allowance(ownerAcc.address, clientAcc1.address)).to.equal(transferAmount.div(2));
+                    expect(await maze.allowance(ownerAcc.address, clientAcc1.address)).to.equal(
+                        transferAmount.div(2)
+                    );
                 });
             });
         });
@@ -544,9 +575,9 @@ describe("Maze token", () => {
                 it("Should fail to set to high fee", async () => {
                     let { maze, core } = await loadFixture(deploys);
 
-                    await expect(maze.connect(ownerAcc).setFees(BigNumber.from("1000000000"))).to.be.revertedWith(
-                        "Maze: Fee too high"
-                    );
+                    await expect(
+                        maze.connect(ownerAcc).setFees(BigNumber.from("1000000000"))
+                    ).to.be.revertedWith("Maze: Fee too high");
                 });
             });
         });
@@ -572,9 +603,9 @@ describe("Maze token", () => {
 
                         await maze.connect(ownerAcc).addToWhitelist(clientAcc1.address);
 
-                        await expect(maze.connect(ownerAcc).addToWhitelist(clientAcc1.address)).to.be.revertedWith(
-                            "Maze: Account already whitelisted"
-                        );
+                        await expect(
+                            maze.connect(ownerAcc).addToWhitelist(clientAcc1.address)
+                        ).to.be.revertedWith("Maze: Account already whitelisted");
                     });
                 });
             });
@@ -587,10 +618,9 @@ describe("Maze token", () => {
 
                     expect(await maze.isWhitelisted(clientAcc1.address)).to.equal(true);
 
-                    await expect(maze.connect(ownerAcc).removeFromWhitelist(clientAcc1.address)).to.emit(
-                        maze,
-                        "RemoveFromWhitelist"
-                    );
+                    await expect(
+                        maze.connect(ownerAcc).removeFromWhitelist(clientAcc1.address)
+                    ).to.emit(maze, "RemoveFromWhitelist");
 
                     expect(await maze.isWhitelisted(clientAcc1.address)).to.equal(false);
                 });
@@ -599,9 +629,9 @@ describe("Maze token", () => {
                     it("Should fail to add to whitelist", async () => {
                         let { maze, core } = await loadFixture(deploys);
 
-                        await expect(maze.connect(ownerAcc).removeFromWhitelist(clientAcc1.address)).to.be.revertedWith(
-                            "Maze: Account not whitelisted"
-                        );
+                        await expect(
+                            maze.connect(ownerAcc).removeFromWhitelist(clientAcc1.address)
+                        ).to.be.revertedWith("Maze: Account not whitelisted");
                     });
                 });
             });
@@ -633,17 +663,17 @@ describe("Maze token", () => {
 
                         await maze.connect(ownerAcc).excludeFromStakers(clientAcc1.address);
 
-                        await expect(maze.connect(ownerAcc).excludeFromStakers(clientAcc1.address)).to.be.revertedWith(
-                            "Maze: Account is already excluded"
-                        );
+                        await expect(
+                            maze.connect(ownerAcc).excludeFromStakers(clientAcc1.address)
+                        ).to.be.revertedWith("Maze: Account is already excluded");
                     });
 
                     it("Should fail to exclude zero address account", async () => {
                         let { maze, core } = await loadFixture(deploys);
 
-                        await expect(maze.connect(ownerAcc).excludeFromStakers(zeroAddress)).to.be.revertedWith(
-                            "Maze: Cannot exclude zero address"
-                        );
+                        await expect(
+                            maze.connect(ownerAcc).excludeFromStakers(zeroAddress)
+                        ).to.be.revertedWith("Maze: Cannot exclude zero address");
                     });
                 });
             });
@@ -656,10 +686,9 @@ describe("Maze token", () => {
                     let clientStartBalance = await maze.balanceOf(clientAcc1.address);
                     expect(await maze.isExcluded(clientAcc1.address)).to.equal(true);
 
-                    await expect(maze.connect(ownerAcc).includeIntoStakers(clientAcc1.address)).to.emit(
-                        maze,
-                        "IncludeIntoStakers"
-                    );
+                    await expect(
+                        maze.connect(ownerAcc).includeIntoStakers(clientAcc1.address)
+                    ).to.emit(maze, "IncludeIntoStakers");
 
                     let clientEndBalance = await maze.balanceOf(clientAcc1.address);
                     expect(await maze.isExcluded(clientAcc1.address)).to.equal(false);
@@ -672,17 +701,17 @@ describe("Maze token", () => {
                     it("Should fail to include already included account", async () => {
                         let { maze, core } = await loadFixture(deploys);
 
-                        await expect(maze.connect(ownerAcc).includeIntoStakers(clientAcc1.address)).to.be.revertedWith(
-                            "Maze: Account is already included"
-                        );
+                        await expect(
+                            maze.connect(ownerAcc).includeIntoStakers(clientAcc1.address)
+                        ).to.be.revertedWith("Maze: Account is already included");
                     });
 
                     it("Should fail to include zero address account", async () => {
                         let { maze, core } = await loadFixture(deploys);
 
-                        await expect(maze.connect(ownerAcc).includeIntoStakers(zeroAddress)).to.be.revertedWith(
-                            "Maze: Cannot include zero address"
-                        );
+                        await expect(
+                            maze.connect(ownerAcc).includeIntoStakers(zeroAddress)
+                        ).to.be.revertedWith("Maze: Cannot include zero address");
                     });
                 });
             });

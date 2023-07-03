@@ -52,7 +52,7 @@ Returns information about user&#39;s farming
 function getReward(address user) external nonpayable returns (uint256)
 ```
 
-Returns the farming reward of the user
+Returns the farming reward of the userDoes not recalculate the reward on call. Returns the last known         reward value of the user
 
 
 
@@ -320,6 +320,23 @@ Indicates that tokens were unlocked by the user
 |---|---|---|
 | user  | address | The user who unlocked tokens |
 | newLock  | uint256 | The new locked amount of the user |
+
+### UnlockedOnBehalf
+
+```solidity
+event UnlockedOnBehalf(address user, uint256 amount)
+```
+
+Indicates that locked amount of the user has decreased
+
+
+
+#### Parameters
+
+| Name | Type | Description |
+|---|---|---|
+| user  | address | The user whos locked amount was decreased |
+| amount  | uint256 | The new locked amount of the user |
 
 
 
