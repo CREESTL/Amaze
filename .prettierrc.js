@@ -7,7 +7,7 @@ module.exports = {
             },
             options: {
                 bracketSpacing: false,
-                printWidth: 120,
+                printWidth: 100,
                 tabWidth: 4,
                 useTabs: false,
                 singleQuote: false,
@@ -16,7 +16,7 @@ module.exports = {
         {
             files: "*.js",
             options: {
-                printWidth: 120,
+                printWidth: 100,
                 semi: true,
                 tabWidth: 4,
                 singleQuote: false,
