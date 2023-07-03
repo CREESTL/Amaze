@@ -5,6 +5,7 @@ const {
     loadFixture,
     time,
 } = require("@nomicfoundation/hardhat-network-helpers");
+const { joinSignature } = require("ethers/lib/utils");
 const zeroAddress = ethers.constants.AddressZero;
 const parseEther = ethers.utils.parseEther;
 
@@ -1473,10 +1474,70 @@ describe("Farming contract", () => {
             // TODO
             describe("Long lock hold", () => {
                 it("After full unlock and long wait the reward should stay the same", async () => {
+                    let { core, maze, farming, vesting } = await loadFixture(
+                        deploys
+                    );
+
+                    // Start farming
+                    let transferAmount = parseEther("20");
+                    let lockAmount1 = parseEther("8");
+                    await maze
+                        .connect(ownerAcc)
+                        .transfer(clientAcc1.address, transferAmount);
+                    await maze
+                        .connect(clientAcc1)
+                        .approve(
+                            farming.address, 
+                            lockAmount1
+                        );
+
+                    await farming.connect(clientAcc1).lock(lockAmount1);
+                    
+                    let oneYear = 3600 * 24 * 365;
+
+                    // Wait 1 year and unlock all tokens
+                    await time.increase(oneYear);
+                    await farming.connect(clientAcc1).unlockAll();
+                    let reward1 = await farming.getReward(clientAcc1.address);
+                    
+                    // Wait 1 year and check reward
+                    await time.increase(oneYear);
+                    let reward2 = await farming.getReward(clientAcc1.address);
+                    
+                    expect(reward1).to.equal(reward2);
 
                 })
                 it("Correct reward for one year of holding the same lock", async () => {
+                    let { core, maze, farming, vesting } = await loadFixture(
+                        deploys
+                    );
 
+                    // Start farming
+                    let transferAmount = parseEther("20");
+                    let lockAmount1 = parseEther("8");
+                    await maze
+                        .connect(ownerAcc)
+                        .transfer(clientAcc1.address, transferAmount);
+                    await maze
+                        .connect(clientAcc1)
+                        .approve(
+                            farming.address, 
+                            lockAmount1
+                        );
+
+                    await farming.connect(clientAcc1).lock(lockAmount1);
+                    
+                    let rate = await farming.dailyRate();
+                    let oneYear = 3600 * 24 * 365;
+                    let oneDay = 3600 * 24;
+
+                    // Wait 1 year and recalculate reward
+                    await time.increase(oneYear);
+                    let reward = await farming.getReward(clientAcc1.address);
+                    
+                    let expectedReward = lockAmount1.mul(rate).mul(oneYear).div(converter * oneDay);
+                    
+                    expect(reward).to.equal(expectedReward);
                 })
             })
             
