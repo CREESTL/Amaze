@@ -289,8 +289,20 @@ contract Farming is IFarming, Ownable, Pausable {
                                 lockChangedBeforeRate = true;
                                 console.log("Before rate changes lock has changed as well");
                                 console.log("Lock was changed before very first rate change after start of farming");
-                                // Time from first rate change to the last lock change before it
-                                time = _rateChangesTimes[i] - farming.lockChangesTimes[j] - 1;
+                                // If this in not the only lock change before rate change, use
+                                // time till next lock change
+                                if (
+                                    j + 1 != farming.lockChangesTimes.length && 
+                                    farming.lockChangesTimes[j + 1] < _rateChangesTimes[i]
+                                ) {
+                                    console.log("This is *not* the only lock change before rate change");
+                                    time = farming.lockChangesTimes[j + 1] - farming.lockChangesTimes[j] - 1;
+                                // If this is the only lock change before rate change, use time from that lock
+                                // change till the rate change
+                                } else {
+                                    console.log("This is the only lock change before rate change");
+                                    time = _rateChangesTimes[i] - farming.lockChangesTimes[j] - 1;
+                                }
                                 lockedAmount = farming.lockChanges[farming.lockChangesTimes[j - 1]];
                                 previousRate = initialDailyRate;
                                 console.log("Counting reward 1");
