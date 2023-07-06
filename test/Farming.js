@@ -7,7 +7,27 @@ const zeroAddress = ethers.constants.AddressZero;
 const parseEther = ethers.utils.parseEther;
 
 let BigNumber = ethers.BigNumber;
+let toBN = BigNumber.from;
 let converter = 1e4;
+let initAmount = parseEther("45000000");
+let initRate = parseEther("0.003");
+let DAY = 60*60*24;
+
+function calculateReward(initAmount, rate, userAmount, totalSupply, daysPassed) {
+    // R = ((1 - (1 - rate)^t) * Tu * P / T
+    // t - days passed
+    // Tu - user staked amount
+    // T - total staked amount
+    // P - reward pool 
+    let _1E18 = parseEther("1");
+    // 1 - rate
+    let res = _1E18.sub(rate);
+    // 1 - (1 - rate)^t
+    res = _1E18.sub(res.pow(daysPassed));
+    // (1 - (1 - rate)^t) * P * Tu / T
+    res = res.mul(initAmount).mul(userAmount).div(totalSupply);
+    return res.div(_1E18);
+}
 
 describe("Farming contract", () => {
     // Deploy all contracts before each test suite
@@ -47,7 +67,8 @@ describe("Farming contract", () => {
         await core.setVesting(vesting.address);
 
         // Transfer tokens to pay rewards
-        await maze.connect(ownerAcc).transfer(farming.address, parseEther("45000000"));
+        await maze.connect(ownerAcc).transfer(farming.address, initAmount);
+        await farming.connect(ownerAcc).notifyRewardAmount(initAmount);
 
         return {
             core,
@@ -109,7 +130,7 @@ describe("Farming contract", () => {
             expect(await farming.core()).to.equal(core.address);
             expect(await farming.minLockPeriod()).to.equal(3600 * 24 * 30);
             expect(await farming.minClaimGap()).to.equal(3600 * 24 * 365);
-            expect(await farming.dailyRate()).to.equal(300);
+            expect(await farming.dailyRate()).to.equal(3 * 1e15);
         });
         describe("Fails", () => {
             it("Should fail to deploy with invalid parameters", async () => {
@@ -146,15 +167,15 @@ describe("Farming contract", () => {
 
                 // Lock and start farming
                 await farming.connect(clientAcc1).lock(lockAmount);
+                let currentTime = await time.latest();
 
                 // Get info about the only one farming
                 let [lockedAmount2, startTime2, endTime2, reward2] = await farming.getFarming(
                     clientAcc1.address
                 );
-
                 expect(lockedAmount2).to.equal(lockAmount);
                 // Farming not claimed and not ended yet
-                expect(endTime2).to.equal(0);
+                expect(endTime2).to.equal(currentTime + 30 * DAY);
                 // No rewards are assinged to user yet
                 expect(reward2).to.equal(0);
             });
@@ -195,10 +216,8 @@ describe("Farming contract", () => {
                 let rate = await farming.dailyRate();
                 await time.increase(oneDay);
 
-                let expectedReward3 = lockAmount
-                    .mul(rate)
-                    .mul(oneDay)
-                    .div(converter * oneDay);
+                let expectedReward3 = calculateReward(initAmount, initRate, lockAmount, lockAmount, toBN("1"));
+                console.log("TEST", expectedReward3)
                 let reward3 = await farming.getReward(clientAcc1.address);
                 expect(reward3).to.equal(expectedReward3);
             });
@@ -274,6 +293,7 @@ describe("Farming contract", () => {
                 await expect(
                     vesting.startVesting(to, amount, cliffDuration, cliffUnlock, claimablePeriods)
                 ).to.emit(farming, "LockedOnBehalf");
+                let currentTime = await time.latest();
 
                 let [lockedAmount, startTime, endTime, reward] = await farming.getFarming(
                     clientAcc1.address
@@ -281,7 +301,7 @@ describe("Farming contract", () => {
 
                 expect(lockedAmount).to.equal(amount);
                 // Farming not claimed and not ended yet
-                expect(endTime).to.equal(0);
+                expect(endTime).to.equal(currentTime + 30 * DAY);
                 // No rewards are assinged to user yet
                 expect(reward).to.equal(0);
 
@@ -309,6 +329,7 @@ describe("Farming contract", () => {
                     farming,
                     "Locked"
                 );
+                let currentTime = await time.latest();
 
                 let [lockedAmount2, startTime2, endTime2, reward2] = await farming.getFarming(
                     clientAcc1.address
@@ -316,7 +337,7 @@ describe("Farming contract", () => {
 
                 expect(lockedAmount2).to.equal(lockAmount);
                 // Farming not claimed and not ended yet
-                expect(endTime2).to.equal(0);
+                expect(endTime2).to.equal(currentTime + 30 * DAY);
                 // No rewards are assinged to user yet
                 expect(reward2).to.equal(0);
 
@@ -647,10 +668,7 @@ describe("Farming contract", () => {
                     let oneDay = 3600 * 24;
                     await time.increase(oneDay);
 
-                    let expectedReward = lockAmount
-                        .mul(rate)
-                        .mul(oneDay)
-                        .div(converter * oneDay);
+                    let expectedReward = calculateReward(initAmount, initRate, lockAmount, lockAmount, toBN("1"));
                     let reward = await farming.getReward(clientAcc1.address);
                     expect(reward).to.equal(expectedReward);
                 });
@@ -677,14 +695,8 @@ describe("Farming contract", () => {
                     // Wait another half a day
                     await time.increase(oneDay / 2);
 
-                    let expectedRewardFirstHalf = lockAmount
-                        .mul(oldRate)
-                        .mul(oneDay / 2)
-                        .div(converter * oneDay);
-                    let expectedRewardSecondHalf = lockAmount
-                        .mul(newRate)
-                        .mul(oneDay / 2)
-                        .div(converter * oneDay);
+                    let expectedRewardFirstHalf = calculateReward(initAmount, oldRate, lockAmount, lockAmount, toBN("1"));
+                    let expectedRewardSecondHalf = calculateReward(initAmount, newRate, lockAmount, lockAmount, toBN("1"));
                     let expectedRewardFull = expectedRewardFirstHalf.add(expectedRewardSecondHalf);
                     let reward = await farming.getReward(clientAcc1.address);
                     expect(reward).to.equal(expectedRewardFull);

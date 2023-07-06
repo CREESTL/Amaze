@@ -40,6 +40,10 @@ interface IFarming {
     /// @param rate The new daily rate
     event DailyRateChanged(uint256 rate);
 
+    /// @notice Indicates that funds were added to the staking for distribution 
+    /// @param amount Token amount added
+    event FundsAdded(uint256 amount);
+
     /// @notice Indicates that locked amount of the user has decreased
     /// @param user The user whos locked amount was decreased
     /// @param amount The new locked amount of the user
@@ -54,8 +58,8 @@ interface IFarming {
     /// @notice Returns information about user's farming
     /// @param user The user who is farming tokens
     /// @return The current locked amount
-    /// @return The time farming started
-    /// @return The time farming ended
+    /// @return The time lock has started
+    /// @return The time lock will end
     /// @return The reward for farming
     function getFarming(address user) external view returns (uint256, uint256, uint256, uint256);
 

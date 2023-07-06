@@ -392,7 +392,7 @@ contract Maze is IMaze, Ownable, Pausable {
             uint256 rAmountWithFee,
             uint256 rAmountNoFee,
             uint256 rFee,
-            uint256 tAmountWithFee,
+            ,
             uint256 tFee
         ) = _getValues(tAmountNoFee);
         require(_rOwned[from] >= rAmountWithFee, "Maze: not enough tokens to pay the fee");
@@ -414,7 +414,7 @@ contract Maze is IMaze, Ownable, Pausable {
             uint256 rAmountWithFee,
             uint256 rAmountNoFee,
             uint256 rFee,
-            uint256 tAmountWithFee,
+            ,
             uint256 tFee
         ) = _getValues(tAmountNoFee);
         require(_rOwned[from] >= rAmountWithFee, "Maze: not enough tokens to pay the fee");

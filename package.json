@@ -18,6 +18,7 @@
   "dependencies": {
     "@nomicfoundation/hardhat-network-helpers": "^1.0.8",
     "@openzeppelin/contracts": "^4.8.0",
+    "@prb/math": "^4.0.1",
     "chai": "4.3.6",
     "delay": "5.0.0",
     "dotenv": "16.0.1",
