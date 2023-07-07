@@ -63,14 +63,14 @@ contract Farming is IFarming, Ownable, Pausable {
 
     modifier updateReward(address _account) {
         rewardPerTokenStored = rewardPerToken();
-        totalReward = totalReward - totalReward * _calcCompound(block.timestamp - updatedAt) / 1e18;
+        if(totalSupply !=0)
+            totalReward = totalReward - totalReward * _calcCompound(block.timestamp - updatedAt) / 1e18;
         updatedAt = block.timestamp;
   
         if (_account != address(0)) {
             rewards[_account] = getReward(_account);
             userRewardPerTokenPaid[_account] = rewardPerTokenStored;
         }
-
         _;
     }
 
@@ -237,11 +237,24 @@ contract Farming is IFarming, Ownable, Pausable {
     // t - days passed
     function _calcCompound(uint256 duration) internal view returns(uint256) {
         uint256 daysPassed = duration / DAY;
+        uint256 remainder = duration % DAY;
         UD60x18 x = ud(1e18);
         UD60x18 y = ud(dailyRate);
         UD60x18 z = convert(daysPassed);
         UD60x18 res = x.sub(y).pow(z);
         res = x.sub(res);
+
+        uint256 intraday = _calcIntradayReward(remainder);
+        return intoUint256(res) + intraday;
+    }
+
+    function _calcIntradayReward(uint256 timeInsideDay) internal view returns(uint256) {
+        if(timeInsideDay == 0) return 0;
+        UD60x18 x = convert(timeInsideDay);
+        UD60x18 y = convert(DAY);
+        UD60x18 z = ud(dailyRate);
+        UD60x18 res = y.div(x);
+        res = z.div(res);
         return intoUint256(res);
     }
 }

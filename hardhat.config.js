@@ -13,7 +13,7 @@ const { ETHERSCAN_API_KEY, INFURA_API_KEY, ACC_PRIVATE_KEY } = process.env;
 
 module.exports = {
     solidity: {
-        version: "0.8.12",
+        version: "0.8.19",
         settings: {
             optimizer: {
                 enabled: true,
