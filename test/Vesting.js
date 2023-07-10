@@ -440,8 +440,8 @@ describe("Vesting contract", () => {
                 // Start 1 vesting
                 let to = clientAcc1.address;
                 let amount = parseEther("100");
-                let cliffDuration = 10;
-                // 10% of tokens should be unlocked in 10 second after cliff
+                let cliffDuration = 3600 * 24 * 30;
+                // 10% of tokens should be unlocked after 30 days cliff
                 // 100 * 0.1 = 10 tokens
                 let cliffUnlock = 1000;
                 // 100 tokens shuld be unlocked during 2 periods
@@ -464,7 +464,7 @@ describe("Vesting contract", () => {
                 );
 
                 // Skip cliff
-                await time.increase(10);
+                await time.increase(cliffDuration);
 
                 let clientStartBalance = await maze.balanceOf(clientAcc1.address);
                 let farmingStartBalance = await maze.balanceOf(farming.address);

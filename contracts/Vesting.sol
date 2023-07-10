@@ -143,22 +143,18 @@ contract Vesting is IVesting, Ownable, Pausable {
     /// @dev Calculates amount of vested tokens available for claim for the user
     /// @param user The address of the user to calculated vested tokens for
     function _calculateVestedAmount(address user) private whenNotPaused returns (uint256) {
-        console.log("\nIn _calculateVestedAmount:");
         // Total amount available for the user
         uint256 totalAvailableAmount;
 
-        console.log("Number of vestings: ", _usersToIds[user].length());
         // Iterate over all vestings assigned to the user
         // and calculate vested amount for each of them
         for (uint256 i = 0; i < _usersToIds[user].length(); i++) {
             uint256 vestingId = _usersToIds[user].at(i);
 
-            console.log("Processing vesting: ", vestingId);
             TokenVesting storage vesting = _idsToVestings[vestingId];
 
             // Skip claimed vestings
             if (vesting.status == VestingStatus.Claimed) {
-                console.log("Vesting has been claimed. Skip it");
                 continue;
             }
 
@@ -166,37 +162,30 @@ contract Vesting is IVesting, Ownable, Pausable {
             if (vesting.startTime + vesting.cliffDuration > block.timestamp) {
                 continue;
             }
-            console.log("Cliff reached");
 
             // If cliff was reached, cliff amount is claimed
             uint256 amountUnlockedOnCliff = (vesting.amount * vesting.cliffUnlock) / _converter;
             uint256 amount = vesting.amount - amountUnlockedOnCliff;
-            console.log("Amount unlocked on cliff: ", amountUnlockedOnCliff);
 
             // If cliff amount was not claimed - claim it
             if (!vesting.cliffClaimed) {
-                console.log("Cliff was not claimed. Claim it");
                 // If cliff was reached, some part of total amount is available
                 totalAvailableAmount += amountUnlockedOnCliff;
                 // Mark that user has claimed specific amount in the current vesting
                 vesting.amountClaimed += amountUnlockedOnCliff;
                 // Mark that cliff was claimed
                 vesting.cliffClaimed = true;
-                console.log("Available amount after cliff is: ", totalAvailableAmount);
             }
 
             // Each period the same amount is vested
             uint256 amountPerPeriod = amount / vesting.claimablePeriods;
-            console.log("Amount per period is: ", amountPerPeriod);
 
             // Calculate the number of periods since cliff
             uint256 timeSinceCliff = block.timestamp - (vesting.startTime + vesting.cliffDuration);
             // Each claim period is one period. Cannot be changed
             uint256 onePeriod = 1 days * 30;
-            console.log("Time since cliff: ", timeSinceCliff);
             uint256 periodsSinceCliff = timeSinceCliff / onePeriod;
 
-            console.log("Periods since cliff: ", periodsSinceCliff);
 
             // If user has already claimed current vesting in current period - skip this vesting
             if (_claimedPeriodsInId[user][vestingId][periodsSinceCliff]) {
@@ -210,17 +199,12 @@ contract Vesting is IVesting, Ownable, Pausable {
             // The resulting amount of periods will be used to calculate the available amount
             if (periodsSinceCliff > vesting.lastClaimedPeriod) {
                 unclaimedPeriods = periodsSinceCliff - vesting.lastClaimedPeriod;
-                console.log("Periods to claim for: ", unclaimedPeriods);
                 // If there are too many unclaimed periods (user hasn't claimed
                 // for a long time), decrease them. They cannot be greater than
                 // the number of periods from last claimed period to
                 // the last claimable period
                 if (unclaimedPeriods > vesting.claimablePeriods) {
-                    console.log(
-                        "Periods passed greater than number of periods. Decrease periods to claim for"
-                    );
                     unclaimedPeriods = vesting.claimablePeriods - vesting.lastClaimedPeriod;
-                    console.log("Now Periods to claim for: ", unclaimedPeriods);
                 }
             }
 
@@ -239,15 +223,10 @@ contract Vesting is IVesting, Ownable, Pausable {
 
             // If user has claimed the last period, the whole vesting was claimed
             if (vesting.lastClaimedPeriod == vesting.claimablePeriods) {
-                console.log("Last period claimed. Vesting finished.");
                 vesting.status = VestingStatus.Claimed;
             }
 
-            console.log("CLAIMED IN ONE VESTING: ", totalAvailableAmount);
-            console.log("Vesting amount is:", vesting.amount);
         }
-
-        console.log("TOTAL CLAIMED: ", totalAvailableAmount);
 
         return totalAvailableAmount;
     }

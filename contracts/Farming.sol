@@ -11,9 +11,6 @@ import "./interfaces/IFarming.sol";
 import "./interfaces/ICore.sol";
 import "./interfaces/IMaze.sol";
 
-// TODO remove logs.
-import "hardhat/console.sol";
-
 /// @title The rewards farming contract
 contract Farming is IFarming, Ownable, Pausable {
     using SafeERC20 for ERC20;
@@ -21,29 +18,35 @@ contract Farming is IFarming, Ownable, Pausable {
 
     /// @notice The address of the Core contract
     ICore public core;
+    /// @notice Total available reward
     uint256 public totalReward;
+    /// @notice Daily reward rate 0.3% by default
     uint256 public dailyRate;
+    /// @notice Last staking state update timestamp
     uint256 public updatedAt;
-    // Sum of (reward rate * dt * 1e18 / total supply)
+    /// @notice Total reward per token stored at the staking
     uint256 public rewardPerTokenStored;
-    // User address => rewardPerTokenStored
+    /// @notice Reward per token paid to the user
     mapping(address => uint256) public userRewardPerTokenPaid;
-    // User address => rewards to be claimed
+    /// @notice Rewards of the user
     mapping(address => uint256) public rewards;
 
-    // Total staked
+    /// @notice Total staked
     uint256 public totalSupply;
-    // User address => staked amount
+    /// @notice Staked amount of the user
     mapping(address => uint256) public balanceOf;
-    // Cooldown after unlock
+    /// @notice Vested amount of the user
+    mapping(address => uint256) public vestedAmount;
+    /// @notice Time after full unlock until user can't claim his rewards
     mapping(address => uint256) public unlockCooldown;
+    /// @notice Time after that unlock is available
     mapping(address => uint256) public lockEnds;
+    /// @notice First user lock timestamp
     mapping(address => uint256) public farmingStart;
 
     /// @notice The minumum lock period.
     ///         During this period after lock users cannot unlock tokens.
     ///         By default period is 1 month.
-    //      because cliff can be less than min locking period
     uint256 public minLockPeriod = DAY * 30;
     /// @notice The minimum gap between two calls of `claim` function.
     ///         After that gap tokens are actually claimed
@@ -61,6 +64,7 @@ contract Farming is IFarming, Ownable, Pausable {
         _;
     }
 
+    /// @dev Updates staking contract state
     modifier updateReward(address _account) {
         rewardPerTokenStored = rewardPerToken();
         if(totalSupply !=0)
@@ -91,6 +95,7 @@ contract Farming is IFarming, Ownable, Pausable {
         _unpause();
     }
 
+    /// @notice See {IFarming-getFarming}
     function getFarming(address staker) external view returns (uint256, uint256, uint256, uint256) {
         require(staker != address(0), "Farming: User cannot have zero address");
         return(
@@ -100,7 +105,8 @@ contract Farming is IFarming, Ownable, Pausable {
             rewards[staker]
         );
     }
-    
+
+    /// @notice See {IFarming-getReward}
     function getReward(address staker) public view returns (uint256) {
         require(staker != address(0), "Farming: User cannot have zero address");
         return
@@ -109,6 +115,7 @@ contract Farming is IFarming, Ownable, Pausable {
             rewards[staker];
     }
 
+    /// @notice See {IFarming-rewardPerToken}
     function rewardPerToken() public view returns (uint) {
         if (totalSupply == 0) {
             return rewardPerTokenStored;
@@ -119,6 +126,7 @@ contract Farming is IFarming, Ownable, Pausable {
             totalReward * compound / totalSupply;
     }
 
+    /// @notice See {IFarming-notifyRewardAmount}
     function notifyRewardAmount(
         uint256 amount
     ) external onlyOwner whenNotPaused updateReward(address(0)) {
@@ -126,39 +134,54 @@ contract Farming is IFarming, Ownable, Pausable {
         emit FundsAdded(amount);
     }
 
+    /// @notice See {IFarming-setMinLockPeriod}
     function setMinLockPeriod(uint256 period) external onlyOwner whenNotPaused {
         minLockPeriod = period;
         emit MinLockPeriodChanged(period);
     }
 
+    /// @notice See {IFarming-setDailyRate}
     function setDailyRate(uint256 rate) external onlyOwner whenNotPaused updateReward(address(0)) {
         require(rate < 1e18, "Farming: rate cannot be bigger than 1e18");
         dailyRate = rate;
         emit DailyRateChanged(rate);
     }
 
+    /// @notice See {IFarming-lock}
     function lock(uint256 amount) external {
         _lock(msg.sender, msg.sender, amount);
         emit Locked(msg.sender, amount);
     }
 
+    /// @notice See {IFarming-lockOnBehalf}
     function lockOnBehalf(address admin, address user, uint256 amount) onlyVesting external {
+        vestedAmount[user] += amount;
         _lock(admin, user, amount);
         emit LockedOnBehalf(admin, user, amount);
     }
 
+    /// @notice See {IFarming-unlock}
     function unlock(uint256 amount) external {
+        require(vestedAmount[msg.sender] == 0 || vestedAmount[msg.sender] < balanceOf[msg.sender], "Farming: No free funds");
+        uint256 freeAmount = balanceOf[msg.sender] - vestedAmount[msg.sender];
+        require(freeAmount >= amount, "Farming: Insufficient funds");
         _unlock(msg.sender, amount);
     }
 
+    /// @notice See {IFarming-unlockAll}
     function unlockAll() external {
-        _unlock(msg.sender, balanceOf[msg.sender]);
+        require(vestedAmount[msg.sender] == 0 || vestedAmount[msg.sender] < balanceOf[msg.sender], "Farming: No free funds");
+        uint256 freeAmount = balanceOf[msg.sender] - vestedAmount[msg.sender];
+        _unlock(msg.sender, freeAmount);
     }
 
+    /// @notice See {IFarming-unlockFromVesting}
     function unlockFromVesting(address staker, uint256 amount) onlyVesting external {
+        vestedAmount[staker] -= amount;
         _unlock(staker, amount);
     }
 
+    /// @notice See {IFarming-claim}
     function claim()
         external
         whenNotPaused
@@ -248,6 +271,11 @@ contract Farming is IFarming, Ownable, Pausable {
         return intoUint256(res) + intraday;
     }
 
+    // calculate fraction of the daily reward,
+    // r * d / t 
+    // r - current daily rate
+    // d - seconds in day
+    // t - seconds passed
     function _calcIntradayReward(uint256 timeInsideDay) internal view returns(uint256) {
         if(timeInsideDay == 0) return 0;
         UD60x18 x = convert(timeInsideDay);

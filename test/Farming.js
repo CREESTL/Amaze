@@ -440,14 +440,14 @@ describe("Farming contract", () => {
                     await farming.connect(clientAcc1).unlock(lockAmount);
                     // Try to unlock one again
                     await expect(farming.connect(clientAcc1).unlock(5)).to.be.revertedWith(
-                        "Farming: No tokens to unlock"
+                        "Farming: Insufficient funds"
                     );
                 });
                 it("Should fail to unlock if no lock was made", async () => {
                     let { core, maze, farming, vesting } = await loadFixture(deploys);
 
                     await expect(farming.connect(clientAcc1).unlock(5)).to.be.revertedWith(
-                        "Farming: No tokens to unlock"
+                        "Farming: Insufficient funds"
                     );
                 });
                 it("Should fail to unlock more than locked", async () => {
@@ -461,7 +461,7 @@ describe("Farming contract", () => {
                     await farming.connect(clientAcc1).lock(lockAmount);
                     await expect(
                         farming.connect(clientAcc1).unlock(lockAmount.mul(2))
-                    ).to.be.revertedWith("Farming: Unlock greater than lock");
+                    ).to.be.revertedWith("Farming: Insufficient funds");
                 });
                 it("Should fail to unlock too early", async () => {
                     let { core, maze, farming, vesting } = await loadFixture(deploys);
