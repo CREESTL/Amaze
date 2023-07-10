@@ -175,6 +175,9 @@ The Admin creates a vesting for a user. He spicifies the following parameters of
 - `claimablePeriods`: The number of periods after cliff. At the end of each period unlocked amount for the `reciever` is increased.
   - Each period is exactly **30 days**
 
+> Notice: `cliffDuration` cannot be lesser than a min lock duration of the staking - 30 days 
+
+
 After vesting is created, all vested tokens are transferred from Admin to the Vesting contract (and Farming afterwards, TBD).  
 The `amount` is evenly distributed between periods.
 
@@ -184,6 +187,44 @@ Unlocked (claimable) amount is increased only at the end of each period. For exa
 Each user might have multiple vestings assigned to him. When claiming, he will recieve vested tokens from _all_ of these vestings at once.  
 Waiting for a longer period than the number of `claimablePeriods` will not increase user's vested amount. For example, if there are only 5 periods (5 months) and the user waits for a year and claims tokens afterwards, he will only recieve the amount for 5 months.
 
+#### Farming
+
+Stake your Amaze tokens and receive rewards
+
+**Admin side:**  
+
+To distribute rewards to stakers, the admin first needs to transfer some tokens to the staking and then call `notifyRewardAmount(amount)`, where `amount` is the token amount. By default it is done in the deploy script, where we send 45_000_000 tokens. But if you want to add more rewards you should follow the steps above.
+Admin can also change the daily reward rate, it can't be greater than 1e18 which is `100% (1e17 - 10%, 1e16 - 1% etc)`. Default value is `0.003%` or `0.003 * 1e18`.
+
+**User side:**  
+
+Users should follow the steps below to lock their tokens and receive rewards
+
+- approve farming address to transfer their Amaze tokens
+- call `lock` function with the specified amount of amaze tokens
+- after that tokens are locked for a min locked period - 30 days, the user can't unlock them until this period
+- each subsequent lock will prolong the lock period for 30 days
+- if 30 days or more have passed user can unlock his tokens
+- to receive a reward he must unlock all his tokens
+- then he needs to call the `claim` function
+- this will start a new 365 days timer
+- after 365 days the user can finally claim his reward
+
+Rewards are calculated with the following formula
+
+`R = P * (1 - (1 - r)^t) * U / T`
+
+- P - total reward left in  the staking contract
+- r - daily reward rate
+- t - amount of days
+- U - tokens staked by the user
+- T - total amount staked by multiple users
+
+Consider this example:
+
+Let's say we have 1000 tokens that we want to distribute to our stakers and a 10% daile rate. On the first day Alice stakes 50 tokens. By the end of the first day she'll receive `1000 * (1 - (1 - 0.1)) * 50 / 50` = 100 tokens.
+At the start of the second day Bob also stakes 50 tokens. Therefore Alice's reward at the end of the second day is `900 * (1 - (1 - 0.1)) * 50 / 100` = 45 tokens. Notice that we use `900` instead of `1000` because we distributed 100 tokens in the first day.
+  
 #### All Contracts
 
 All contracts are [Pausable](https://docs.openzeppelin.com/contracts/4.x/api/security#Pausable) and [Ownable](https://docs.openzeppelin.com/contracts/4.x/api/access#Ownable).
