@@ -1,20 +1,20 @@
 {
   "ethereum_testnet": {
     "Core": {
-      "address": "0xfD1DfdE128C2e9f8abB621E3C0e70365098c6Ed3",
-      "verification": "https://sepolia.etherscan.io/address/0xfD1DfdE128C2e9f8abB621E3C0e70365098c6Ed3#code"
+      "address": "0xD6B7e63a19dc46982BEa184F897979112D85C9E6",
+      "verification": "https://sepolia.etherscan.io/address/0xD6B7e63a19dc46982BEa184F897979112D85C9E6#code"
     },
     "Maze": {
-      "address": "0x9d29b1965c559ff947B9c941eFCcE9D1f5C92C3E",
-      "verification": "https://sepolia.etherscan.io/address/0x9d29b1965c559ff947B9c941eFCcE9D1f5C92C3E#code"
+      "address": "0xEC02a0331Fa179e13a82a70e67728978205AFfFd",
+      "verification": "https://sepolia.etherscan.io/address/0xEC02a0331Fa179e13a82a70e67728978205AFfFd#code"
     },
     "Farming": {
-      "address": "0x8F78b91128829bE4B689d539D3084bFEd8272f6D",
-      "verification": "https://sepolia.etherscan.io/address/0x8F78b91128829bE4B689d539D3084bFEd8272f6D#code"
+      "address": "0xFD9D51cBc113A446fC464d26D48AA757f65E4f29",
+      "verification": "https://sepolia.etherscan.io/address/0xFD9D51cBc113A446fC464d26D48AA757f65E4f29#code"
     },
     "Vesting": {
-      "address": "0xFCf8cbDE11961e54F1D2B967eD786D291A75Eca3",
-      "verification": "https://sepolia.etherscan.io/address/0xFCf8cbDE11961e54F1D2B967eD786D291A75Eca3#code"
+      "address": "0x33EA2046B2390ead0D912472a89928cAC95D7A07",
+      "verification": "https://sepolia.etherscan.io/address/0x33EA2046B2390ead0D912472a89928cAC95D7A07#code"
     }
   },
   "ethereum_mainnet": {

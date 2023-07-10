@@ -64,8 +64,6 @@ interface IFarming {
     function getFarming(address user) external view returns (uint256, uint256, uint256, uint256);
 
     /// @notice Returns the farming reward of the user
-    /// @notice Does not recalculate the reward on call. Returns the last known
-    ///         reward value of the user
     /// @param user The user to get the reward of
     /// @return Farming reward of the user
     function getReward(address user) external returns (uint256);
@@ -76,7 +74,17 @@ interface IFarming {
 
     /// @notice Sets new daily period
     /// @param rate The new rate to set. Represented in Basis Points
+    /// 1e18 - 100%
+    /// 1e17 - 10%
+    /// 1e16 - 1%
+    /// etc
     function setDailyRate(uint256 rate) external;
+
+    /// @notice Notify contract of the avalable reward amount
+    /// @dev Before a staking contract could distribute rewards to the stakers the admin should send 
+    /// tokens to it and call this function 
+    /// @param amount amount sent to the staking 
+    function notifyRewardAmount(uint256 amount) external;
 
     /// @notice Recieves tokens from the admin and locks them
     ///         on behalf of the user
@@ -106,4 +114,7 @@ interface IFarming {
     ///         Two calls of this function are required to claim.
     ///         Claim is only possible after full unlock.
     function claim() external;
+
+    /// @notice Reward amount for each token stored by the user
+    function rewardPerToken() external view returns (uint);
 }
