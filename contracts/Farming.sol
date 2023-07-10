@@ -67,10 +67,13 @@ contract Farming is IFarming, Ownable, Pausable {
     /// @dev Updates staking contract state
     modifier updateReward(address _account) {
         rewardPerTokenStored = rewardPerToken();
-        if(totalSupply !=0)
-            totalReward = totalReward - totalReward * _calcCompound(block.timestamp - updatedAt) / 1e18;
+        if (totalSupply != 0)
+            totalReward =
+                totalReward -
+                (totalReward * _calcCompound(block.timestamp - updatedAt)) /
+                1e18;
         updatedAt = block.timestamp;
-  
+
         if (_account != address(0)) {
             rewards[_account] = getReward(_account);
             userRewardPerTokenPaid[_account] = rewardPerTokenStored;
@@ -98,20 +101,14 @@ contract Farming is IFarming, Ownable, Pausable {
     /// @notice See {IFarming-getFarming}
     function getFarming(address staker) external view returns (uint256, uint256, uint256, uint256) {
         require(staker != address(0), "Farming: User cannot have zero address");
-        return(
-            balanceOf[staker],
-            farmingStart[staker],
-            lockEnds[staker],
-            rewards[staker]
-        );
+        return (balanceOf[staker], farmingStart[staker], lockEnds[staker], rewards[staker]);
     }
 
     /// @notice See {IFarming-getReward}
     function getReward(address staker) public view returns (uint256) {
         require(staker != address(0), "Farming: User cannot have zero address");
         return
-            (balanceOf[staker] *
-                (rewardPerToken() - userRewardPerTokenPaid[staker])/1e18) +
+            ((balanceOf[staker] * (rewardPerToken() - userRewardPerTokenPaid[staker])) / 1e18) +
             rewards[staker];
     }
 
@@ -121,9 +118,7 @@ contract Farming is IFarming, Ownable, Pausable {
             return rewardPerTokenStored;
         }
         uint256 compound = _calcCompound(block.timestamp - updatedAt);
-        return
-            rewardPerTokenStored +
-            totalReward * compound / totalSupply;
+        return rewardPerTokenStored + (totalReward * compound) / totalSupply;
     }
 
     /// @notice See {IFarming-notifyRewardAmount}
@@ -154,7 +149,7 @@ contract Farming is IFarming, Ownable, Pausable {
     }
 
     /// @notice See {IFarming-lockOnBehalf}
-    function lockOnBehalf(address admin, address user, uint256 amount) onlyVesting external {
+    function lockOnBehalf(address admin, address user, uint256 amount) external onlyVesting {
         vestedAmount[user] += amount;
         _lock(admin, user, amount);
         emit LockedOnBehalf(admin, user, amount);
@@ -162,7 +157,10 @@ contract Farming is IFarming, Ownable, Pausable {
 
     /// @notice See {IFarming-unlock}
     function unlock(uint256 amount) external {
-        require(vestedAmount[msg.sender] == 0 || vestedAmount[msg.sender] < balanceOf[msg.sender], "Farming: No free funds");
+        require(
+            vestedAmount[msg.sender] == 0 || vestedAmount[msg.sender] < balanceOf[msg.sender],
+            "Farming: No free funds"
+        );
         uint256 freeAmount = balanceOf[msg.sender] - vestedAmount[msg.sender];
         require(freeAmount >= amount, "Farming: Insufficient funds");
         _unlock(msg.sender, amount);
@@ -170,54 +168,48 @@ contract Farming is IFarming, Ownable, Pausable {
 
     /// @notice See {IFarming-unlockAll}
     function unlockAll() external {
-        require(vestedAmount[msg.sender] == 0 || vestedAmount[msg.sender] < balanceOf[msg.sender], "Farming: No free funds");
+        require(
+            vestedAmount[msg.sender] == 0 || vestedAmount[msg.sender] < balanceOf[msg.sender],
+            "Farming: No free funds"
+        );
         uint256 freeAmount = balanceOf[msg.sender] - vestedAmount[msg.sender];
         _unlock(msg.sender, freeAmount);
     }
 
     /// @notice See {IFarming-unlockFromVesting}
-    function unlockFromVesting(address staker, uint256 amount) onlyVesting external {
+    function unlockFromVesting(address staker, uint256 amount) external onlyVesting {
         vestedAmount[staker] -= amount;
         _unlock(staker, amount);
     }
 
     /// @notice See {IFarming-claim}
-    function claim()
-        external
-        whenNotPaused
-        updateReward(msg.sender)
-        ifNotBlacklisted(msg.sender)     
-    {
+    function claim() external whenNotPaused updateReward(msg.sender) ifNotBlacklisted(msg.sender) {
         uint256 reward = rewards[msg.sender];
         require(
             balanceOf[msg.sender] == 0 && farmingStart[msg.sender] > 0,
             "Farming: Unable to claim before full unlock"
         );
 
-        if(unlockCooldown[msg.sender] == 0) {
+        if (unlockCooldown[msg.sender] == 0) {
             unlockCooldown[msg.sender] = block.timestamp + minClaimGap;
             emit ClaimAttempt(msg.sender);
             return;
         }
 
-        if(unlockCooldown[msg.sender] !=0 && unlockCooldown[msg.sender] <= block.timestamp) {
+        if (unlockCooldown[msg.sender] != 0 && unlockCooldown[msg.sender] <= block.timestamp) {
             rewards[msg.sender] = 0;
             ERC20(core.maze()).safeTransfer(msg.sender, reward);
             unlockCooldown[msg.sender] = 0;
             farmingStart[msg.sender] = 0;
             emit Claimed(msg.sender, reward);
-        }
-        else
-            revert("Farming: Minimum interval between claimes not passed");
+        } else revert("Farming: Minimum interval between claimes not passed");
     }
 
-    function _lock(address payer, address staker, uint256 amount)
-        internal 
-        whenNotPaused
-        updateReward(staker)
-        ifNotBlacklisted(payer)
-        ifNotBlacklisted(staker)
-    {
+    function _lock(
+        address payer,
+        address staker,
+        uint256 amount
+    ) internal whenNotPaused updateReward(staker) ifNotBlacklisted(payer) ifNotBlacklisted(staker) {
         require(staker != address(0), "Farming: User cannot have zero address");
         require(amount > 0, "Farming: Lock amount cannot be zero");
         balanceOf[staker] += amount;
@@ -226,14 +218,15 @@ contract Farming is IFarming, Ownable, Pausable {
         if (lockEnds[staker] == 0) {
             farmingStart[staker] = block.timestamp;
             lockEnds[staker] = block.timestamp + minLockPeriod;
-        }
-        else
-            lockEnds[staker] += minLockPeriod;
+        } else lockEnds[staker] += minLockPeriod;
 
         ERC20(core.maze()).safeTransferFrom(payer, address(this), amount);
     }
 
-    function _unlock(address staker, uint256 amount)
+    function _unlock(
+        address staker,
+        uint256 amount
+    )
         internal
         whenNotPaused
         updateReward(staker)
@@ -243,22 +236,24 @@ contract Farming is IFarming, Ownable, Pausable {
         require(staker != address(0), "Farming: User cannot have zero address");
         require(amount > 0, "Farming: Unlock amount cannot be zero");
         require(balanceOf[staker] > 0, "Farming: No tokens to unlock");
-        require(balanceOf[staker] >=  amount, "Farming: Unlock greater than lock");
-        require(lockEnds[staker] <= block.timestamp, "Farming: Minimum lock period has not passed yet");
+        require(balanceOf[staker] >= amount, "Farming: Unlock greater than lock");
+        require(
+            lockEnds[staker] <= block.timestamp,
+            "Farming: Minimum lock period has not passed yet"
+        );
         balanceOf[staker] -= amount;
         totalSupply -= amount;
         ERC20(core.maze()).safeTransfer(staker, amount);
-        
-        if(balanceOf[staker] == 0)
-            lockEnds[staker] = 0;
-        
+
+        if (balanceOf[staker] == 0) lockEnds[staker] = 0;
+
         emit Unlocked(staker, amount);
     }
-    
+
     // calculate (1 - (1 - r)^t),
     // r - current daily rate
     // t - days passed
-    function _calcCompound(uint256 duration) internal view returns(uint256) {
+    function _calcCompound(uint256 duration) internal view returns (uint256) {
         uint256 daysPassed = duration / DAY;
         uint256 remainder = duration % DAY;
         UD60x18 x = ud(1e18);
@@ -272,12 +267,12 @@ contract Farming is IFarming, Ownable, Pausable {
     }
 
     // calculate fraction of the daily reward,
-    // r * d / t 
+    // r * d / t
     // r - current daily rate
     // d - seconds in day
     // t - seconds passed
-    function _calcIntradayReward(uint256 timeInsideDay) internal view returns(uint256) {
-        if(timeInsideDay == 0) return 0;
+    function _calcIntradayReward(uint256 timeInsideDay) internal view returns (uint256) {
+        if (timeInsideDay == 0) return 0;
         UD60x18 x = convert(timeInsideDay);
         UD60x18 y = convert(DAY);
         UD60x18 z = ud(dailyRate);

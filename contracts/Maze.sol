@@ -388,13 +388,9 @@ contract Maze is IMaze, Ownable, Pausable {
     /// @param to Recipient's address
     /// @param tAmountNoFee The amount of tokens to send without fees
     function _transferStandard(address from, address to, uint256 tAmountNoFee) private {
-        (
-            uint256 rAmountWithFee,
-            uint256 rAmountNoFee,
-            uint256 rFee,
-            ,
-            uint256 tFee
-        ) = _getValues(tAmountNoFee);
+        (uint256 rAmountWithFee, uint256 rAmountNoFee, uint256 rFee, , uint256 tFee) = _getValues(
+            tAmountNoFee
+        );
         require(_rOwned[from] >= rAmountWithFee, "Maze: not enough tokens to pay the fee");
         // Only change sender's and recipient's balances in r-space (they are both included)
         // Sender looses whole amount plus fees
@@ -410,13 +406,9 @@ contract Maze is IMaze, Ownable, Pausable {
     /// @param to Recipient's address
     /// @param tAmountNoFee The amount of tokens to send without fees
     function _transferToExcluded(address from, address to, uint256 tAmountNoFee) private {
-        (
-            uint256 rAmountWithFee,
-            uint256 rAmountNoFee,
-            uint256 rFee,
-            ,
-            uint256 tFee
-        ) = _getValues(tAmountNoFee);
+        (uint256 rAmountWithFee, uint256 rAmountNoFee, uint256 rFee, , uint256 tFee) = _getValues(
+            tAmountNoFee
+        );
         require(_rOwned[from] >= rAmountWithFee, "Maze: not enough tokens to pay the fee");
         // Only decrease sender's balance in r-space (he is included)
         // Sender looses whole amount plus fees

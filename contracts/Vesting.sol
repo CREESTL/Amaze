@@ -186,7 +186,6 @@ contract Vesting is IVesting, Ownable, Pausable {
             uint256 onePeriod = 1 days * 30;
             uint256 periodsSinceCliff = timeSinceCliff / onePeriod;
 
-
             // If user has already claimed current vesting in current period - skip this vesting
             if (_claimedPeriodsInId[user][vestingId][periodsSinceCliff]) {
                 continue;
@@ -225,7 +224,6 @@ contract Vesting is IVesting, Ownable, Pausable {
             if (vesting.lastClaimedPeriod == vesting.claimablePeriods) {
                 vesting.status = VestingStatus.Claimed;
             }
-
         }
 
         return totalAvailableAmount;

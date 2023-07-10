@@ -12,7 +12,7 @@ let toBN = BigNumber.from;
 let converter = 1e4;
 let initAmount = parseEther("45000000");
 let initRate = parseEther("0.003");
-const DAY = 60*60*24;
+const DAY = 60 * 60 * 24;
 const EPSILON = parseEther("0.000001");
 
 function calculateReward(initAmount, rate, userAmount, totalSupply, daysPassed) {
@@ -20,11 +20,11 @@ function calculateReward(initAmount, rate, userAmount, totalSupply, daysPassed) 
     // t - days passed
     // u - user staked amount
     // Ts - total staked amount
-    // init - reward pool 
-    let init = math.bignumber(initAmount/1e18);
-    let r = math.bignumber(rate/1e18);
-    let u = math.bignumber(userAmount/1e18);
-    let ts = math.bignumber(totalSupply/1e18);
+    // init - reward pool
+    let init = math.bignumber(initAmount / 1e18);
+    let r = math.bignumber(rate / 1e18);
+    let u = math.bignumber(userAmount / 1e18);
+    let ts = math.bignumber(totalSupply / 1e18);
     let _1 = math.bignumber(1);
     let res = _1.sub(r);
     res = _1.sub(res.pow(daysPassed));
@@ -222,7 +222,13 @@ describe("Farming contract", () => {
                 let rate = await farming.dailyRate();
                 await time.increase(oneDay);
 
-                let expectedReward3 = calculateReward(initAmount, initRate, lockAmount, lockAmount, math.bignumber(1));
+                let expectedReward3 = calculateReward(
+                    initAmount,
+                    initRate,
+                    lockAmount,
+                    lockAmount,
+                    math.bignumber(1)
+                );
                 let reward3 = await farming.getReward(clientAcc1.address);
                 expect(reward3).to.equal(expectedReward3);
             });
@@ -513,7 +519,7 @@ describe("Farming contract", () => {
 
                 let to = clientAcc1.address;
                 let amount = parseEther("1");
-                let cliffDuration = 3600*24*30;
+                let cliffDuration = 3600 * 24 * 30;
                 let cliffUnlock = 1000;
                 let claimablePeriods = 5;
 
@@ -526,7 +532,7 @@ describe("Farming contract", () => {
                     vesting.startVesting(to, amount, cliffDuration, cliffUnlock, claimablePeriods)
                 ).to.emit(farming, "LockedOnBehalf");
 
-                await time.increase(cliffDuration + 3600*24*30*claimablePeriods);
+                await time.increase(cliffDuration + 3600 * 24 * 30 * claimablePeriods);
 
                 // Claiming tokens unlocks them from farming
                 await vesting.connect(clientAcc1).claimTokens();
@@ -582,15 +588,15 @@ describe("Farming contract", () => {
 
             // Claim #2
             // Should transfer reward tokens
-             let expectedReward = await farming.getReward(clientAcc1.address);
+            let expectedReward = await farming.getReward(clientAcc1.address);
             let clientStartBalance2 = await maze.balanceOf(clientAcc1.address);
             let farmingStartBalance2 = await maze.balanceOf(farming.address);
             await expect(farming.connect(clientAcc1).claim()).to.emit(farming, "Claimed");
             let clientEndBalance2 = await maze.balanceOf(clientAcc1.address);
             let farmingEndBalance2 = await maze.balanceOf(farming.address);
 
-             expect(clientEndBalance2).to.equal(clientStartBalance2.add(expectedReward))
-             expect(farmingEndBalance2).to.equal(farmingStartBalance2.sub(expectedReward));
+            expect(clientEndBalance2).to.equal(clientStartBalance2.add(expectedReward));
+            expect(farmingEndBalance2).to.equal(farmingStartBalance2.sub(expectedReward));
         });
 
         describe("Fails", () => {
@@ -669,7 +675,13 @@ describe("Farming contract", () => {
                     let oneDay = 3600 * 24;
                     await time.increase(oneDay);
 
-                    let expectedReward = calculateReward(initAmount, initRate, lockAmount, lockAmount, math.bignumber(1));
+                    let expectedReward = calculateReward(
+                        initAmount,
+                        initRate,
+                        lockAmount,
+                        lockAmount,
+                        math.bignumber(1)
+                    );
                     let reward = await farming.getReward(clientAcc1.address);
                     expect(reward).to.be.closeTo(expectedReward, EPSILON);
                 });
@@ -687,7 +699,7 @@ describe("Farming contract", () => {
 
                     // Wait half a day and change rate
                     let oneDay = 3600 * 24;
-                    await time.increase((oneDay / 2)-1);
+                    await time.increase(oneDay / 2 - 1);
 
                     let oldRate = await farming.dailyRate();
                     let newRate = oldRate.mul(3);
@@ -734,15 +746,15 @@ describe("Farming contract", () => {
                     let newRate3 = initialDailyRate.mul(4);
 
                     // Wait one hour and change rate (change #1)
-                    await time.increase(oneHour-1);
+                    await time.increase(oneHour - 1);
                     await farming.setDailyRate(newRate1);
 
                     // Wait one hour and change rate (change #2)
-                    await time.increase(oneHour-1);
+                    await time.increase(oneHour - 1);
                     await farming.setDailyRate(newRate2);
 
                     // Wait one hour and change rate (change #3)
-                    await time.increase(oneHour-1);
+                    await time.increase(oneHour - 1);
                     await farming.setDailyRate(newRate3);
 
                     // Wait 7 more hours (10 in total)
@@ -775,7 +787,9 @@ describe("Farming contract", () => {
                         lockAmount,
                         lockAmount,
                         math.bignumber(1)
-                    ).mul("7").div("24");
+                    )
+                        .mul("7")
+                        .div("24");
                     let expectedRewardFull = expectedReward1
                         .add(expectedReward2)
                         .add(expectedReward3)
@@ -806,7 +820,7 @@ describe("Farming contract", () => {
                 let rate = await farming.dailyRate();
 
                 // Wait half a day and change lock
-                await time.increase((oneDay / 2)-1);
+                await time.increase(oneDay / 2 - 1);
                 await farming.connect(clientAcc1).lock(lockAmount2);
 
                 // Wait another half a day
@@ -855,15 +869,15 @@ describe("Farming contract", () => {
                 let rate = await farming.dailyRate();
 
                 // Wait an hour and change lock (change #1)
-                await time.increase(oneHour-1);
+                await time.increase(oneHour - 1);
                 await farming.connect(clientAcc1).lock(lockAmount1);
 
                 // Wait an hour and change lock (change #2)
-                await time.increase(oneHour-1);
+                await time.increase(oneHour - 1);
                 await farming.connect(clientAcc1).lock(lockAmount2);
 
                 // Wait an hour and change lock (change #3)
-                await time.increase(oneHour-1);
+                await time.increase(oneHour - 1);
                 await farming.connect(clientAcc1).lock(lockAmount3);
 
                 // Wait another 7 hours (10 in total)
@@ -896,7 +910,9 @@ describe("Farming contract", () => {
                     lockAmount0.add(lockAmount1).add(lockAmount2).add(lockAmount3),
                     lockAmount0.add(lockAmount1).add(lockAmount2).add(lockAmount3),
                     math.bignumber(1)
-                ).mul("7").div("24");
+                )
+                    .mul("7")
+                    .div("24");
                 let expectedRewardFull = expectedReward1
                     .add(expectedReward2)
                     .add(expectedReward3)
@@ -927,12 +943,12 @@ describe("Farming contract", () => {
                 let oneHour = 3600;
 
                 // Wait 1 hour and change rate
-                await time.increase(oneHour-1);
+                await time.increase(oneHour - 1);
 
                 await farming.setDailyRate(rate2);
 
                 // Wait another 1 hour and change lock
-                await time.increase(oneHour-1);
+                await time.increase(oneHour - 1);
 
                 await farming.connect(clientAcc1).lock(lockAmount2);
 
@@ -984,12 +1000,12 @@ describe("Farming contract", () => {
                 let oneHour = 3600;
 
                 // Wait 1 hour and change lock
-                await time.increase(oneHour-1);
+                await time.increase(oneHour - 1);
 
                 await farming.connect(clientAcc1).lock(lockAmount2);
 
                 // Wait another 1 hour and change rate
-                await time.increase(oneHour-1);
+                await time.increase(oneHour - 1);
 
                 await farming.setDailyRate(rate2);
 
@@ -1042,17 +1058,17 @@ describe("Farming contract", () => {
                 let oneHour = 3600;
 
                 // Wait 1 hour and change lock
-                await time.increase(oneHour-1);
+                await time.increase(oneHour - 1);
 
                 await farming.connect(clientAcc1).lock(lockAmount2);
 
                 // Wait 1 hour and change lock again
-                await time.increase(oneHour-1);
+                await time.increase(oneHour - 1);
 
                 await farming.connect(clientAcc1).lock(lockAmount3);
 
                 // Wait another 1 hour and change rate
-                await time.increase(oneHour-1);
+                await time.increase(oneHour - 1);
 
                 await farming.setDailyRate(rate2);
 
@@ -1117,17 +1133,17 @@ describe("Farming contract", () => {
                 let oneHour = 3600;
 
                 // Wait another 1 hour and change rate
-                await time.increase(oneHour-1);
+                await time.increase(oneHour - 1);
 
                 await farming.setDailyRate(rate2);
 
                 // Wait 1 hour and change rate again
-                await time.increase(oneHour-1);
+                await time.increase(oneHour - 1);
 
                 await farming.setDailyRate(rate3);
 
                 // Wait 1 hour and change lock
-                await time.increase(oneHour-1);
+                await time.increase(oneHour - 1);
 
                 await farming.connect(clientAcc1).lock(lockAmount2);
 
@@ -1191,17 +1207,17 @@ describe("Farming contract", () => {
                 let oneHour = 3600;
 
                 // Wait 1 hour and change lock
-                await time.increase(oneHour-1);
+                await time.increase(oneHour - 1);
 
                 await farming.connect(clientAcc1).lock(lockAmount2);
 
                 // Wait 1 hour and change rate
-                await time.increase(oneHour-1);
+                await time.increase(oneHour - 1);
 
                 await farming.setDailyRate(rate2);
 
                 // Wait 1 hour and change lock again
-                await time.increase(oneHour-1);
+                await time.increase(oneHour - 1);
 
                 await farming.connect(clientAcc1).lock(lockAmount3);
 
@@ -1267,17 +1283,17 @@ describe("Farming contract", () => {
                 let oneHour = 3600;
 
                 // Wait 1 hour and change rate
-                await time.increase(oneHour-1);
+                await time.increase(oneHour - 1);
 
                 await farming.setDailyRate(rate2);
 
                 // Wait 1 hour and change lock
-                await time.increase(oneHour-1);
+                await time.increase(oneHour - 1);
 
                 await farming.connect(clientAcc1).lock(lockAmount2);
 
                 // Wait 1 hour and change rate again
-                await time.increase(oneHour-1);
+                await time.increase(oneHour - 1);
 
                 await farming.setDailyRate(rate3);
 
@@ -1344,22 +1360,22 @@ describe("Farming contract", () => {
                 let oneHour = 3600;
 
                 // Wait 1 hour and change rate
-                await time.increase(oneHour-1);
+                await time.increase(oneHour - 1);
 
                 await farming.setDailyRate(rate2);
 
                 // Wait 1 hour and change lock
-                await time.increase(oneHour-1);
+                await time.increase(oneHour - 1);
 
                 await farming.connect(clientAcc1).lock(lockAmount2);
 
                 // Wait 1 hour and change lock again
-                await time.increase(oneHour-1);
+                await time.increase(oneHour - 1);
 
                 await farming.connect(clientAcc1).lock(lockAmount3);
 
                 // Wait 1 hour and change rate again
-                await time.increase(oneHour-1);
+                await time.increase(oneHour - 1);
 
                 await farming.setDailyRate(rate3);
 
@@ -1395,7 +1411,11 @@ describe("Farming contract", () => {
                     math.bignumber(1)
                 ).div("24");
                 let expectedReward5 = calculateReward(
-                    initAmount.sub(expectedReward1).sub(expectedReward2).sub(expectedReward3).sub(expectedReward4),
+                    initAmount
+                        .sub(expectedReward1)
+                        .sub(expectedReward2)
+                        .sub(expectedReward3)
+                        .sub(expectedReward4),
                     rate3,
                     lockAmount1.add(lockAmount2).add(lockAmount3),
                     lockAmount1.add(lockAmount2).add(lockAmount3),
@@ -1434,22 +1454,22 @@ describe("Farming contract", () => {
                 let oneHour = 3600;
 
                 // Wait 1 hour and change lock
-                await time.increase(oneHour-1);
+                await time.increase(oneHour - 1);
 
                 await farming.connect(clientAcc1).lock(lockAmount2);
 
                 // Wait 1 hour and change rate
-                await time.increase(oneHour-1);
+                await time.increase(oneHour - 1);
 
                 await farming.setDailyRate(rate2);
 
                 // Wait 1 hour and change rate again
-                await time.increase(oneHour-1);
+                await time.increase(oneHour - 1);
 
                 await farming.setDailyRate(rate3);
 
                 // Wait 1 hour and change lock again
-                await time.increase(oneHour-1);
+                await time.increase(oneHour - 1);
 
                 await farming.connect(clientAcc1).lock(lockAmount3);
 
@@ -1485,7 +1505,11 @@ describe("Farming contract", () => {
                     math.bignumber(1)
                 ).div("24");
                 let expectedReward5 = calculateReward(
-                    initAmount.sub(expectedReward1).sub(expectedReward2).sub(expectedReward3).sub(expectedReward4),
+                    initAmount
+                        .sub(expectedReward1)
+                        .sub(expectedReward2)
+                        .sub(expectedReward3)
+                        .sub(expectedReward4),
                     rate3,
                     lockAmount1.add(lockAmount2).add(lockAmount3),
                     lockAmount1.add(lockAmount2).add(lockAmount3),
@@ -1529,27 +1553,27 @@ describe("Farming contract", () => {
                 let oneHour = 3600;
 
                 // Wait 1 hour and change rate
-                await time.increase(oneHour-1);
+                await time.increase(oneHour - 1);
 
                 await farming.setDailyRate(rate2);
 
                 // Wait 1 hour and change lock
-                await time.increase(oneHour-1);
+                await time.increase(oneHour - 1);
 
                 await farming.connect(clientAcc1).lock(lockAmount2);
 
                 // Wait 1 hour and change lock again
-                await time.increase(oneHour-1);
+                await time.increase(oneHour - 1);
 
                 await farming.connect(clientAcc1).lock(lockAmount3);
 
                 // Wait 1 hour and change rate again
-                await time.increase(oneHour-1);
+                await time.increase(oneHour - 1);
 
                 await farming.setDailyRate(rate3);
 
                 // Wait 1 hour and change lock again
-                await time.increase(oneHour-1);
+                await time.increase(oneHour - 1);
 
                 await farming.connect(clientAcc1).lock(lockAmount4);
 
@@ -1585,14 +1609,23 @@ describe("Farming contract", () => {
                     math.bignumber(1)
                 ).div("24");
                 let expectedReward5 = calculateReward(
-                    initAmount.sub(expectedReward1).sub(expectedReward2).sub(expectedReward3).sub(expectedReward4),
+                    initAmount
+                        .sub(expectedReward1)
+                        .sub(expectedReward2)
+                        .sub(expectedReward3)
+                        .sub(expectedReward4),
                     rate3,
                     lockAmount1.add(lockAmount2).add(lockAmount3),
                     lockAmount1.add(lockAmount2).add(lockAmount3),
                     math.bignumber(1)
                 ).div("24");
                 let expectedReward6 = calculateReward(
-                    initAmount.sub(expectedReward1).sub(expectedReward2).sub(expectedReward3).sub(expectedReward4).sub(expectedReward5),
+                    initAmount
+                        .sub(expectedReward1)
+                        .sub(expectedReward2)
+                        .sub(expectedReward3)
+                        .sub(expectedReward4)
+                        .sub(expectedReward5),
                     rate3,
                     lockAmount1.add(lockAmount2).add(lockAmount3).add(lockAmount4),
                     lockAmount1.add(lockAmount2).add(lockAmount3).add(lockAmount4),
@@ -1728,7 +1761,7 @@ describe("Farming contract", () => {
                 await expect(farming.connect(clientAcc1).claim()).to.emit(farming, "Claimed");
                 farmingStart = await farming.farmingStart(clientAcc1.address);
                 expect(farmingStart).to.equal(0);
-                
+
                 // Do lock-claim routine again
                 await farming.connect(clientAcc1).lock(lockAmount);
                 farmingStart = await farming.farmingStart(clientAcc1.address);

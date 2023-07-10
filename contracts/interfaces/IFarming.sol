@@ -40,7 +40,7 @@ interface IFarming {
     /// @param rate The new daily rate
     event DailyRateChanged(uint256 rate);
 
-    /// @notice Indicates that funds were added to the staking for distribution 
+    /// @notice Indicates that funds were added to the staking for distribution
     /// @param amount Token amount added
     event FundsAdded(uint256 amount);
 
@@ -81,9 +81,9 @@ interface IFarming {
     function setDailyRate(uint256 rate) external;
 
     /// @notice Notify contract of the avalable reward amount
-    /// @dev Before a staking contract could distribute rewards to the stakers the admin should send 
-    /// tokens to it and call this function 
-    /// @param amount amount sent to the staking 
+    /// @dev Before a staking contract could distribute rewards to the stakers the admin should send
+    /// tokens to it and call this function
+    /// @param amount amount sent to the staking
     function notifyRewardAmount(uint256 amount) external;
 
     /// @notice Recieves tokens from the admin and locks them
