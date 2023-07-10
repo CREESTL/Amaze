@@ -214,7 +214,7 @@ event Paused(address account)
 
 
 
-
+*Emitted when the pause is triggered by `account`.*
 
 #### Parameters
 
@@ -236,8 +236,8 @@ Indicates that user has claimed vested tokens
 
 | Name | Type | Description |
 |---|---|---|
-| to  | address | undefined |
-| amount  | uint256 | undefined |
+| to  | address | The reciever of vested tokens |
+| amount  | uint256 | The amount of tokens claimed |
 
 ### Unpaused
 
@@ -247,7 +247,7 @@ event Unpaused(address account)
 
 
 
-
+*Emitted when the pause is lifted by `account`.*
 
 #### Parameters
 
@@ -269,11 +269,11 @@ Indicates that a new vesting has
 
 | Name | Type | Description |
 |---|---|---|
-| to  | address | undefined |
-| amount  | uint256 | undefined |
-| cliffDuration  | uint256 | undefined |
-| cliffUnlock  | uint256 | undefined |
-| claimablePeriods  | uint256 | undefined |
+| to  | address | The recipient of tokens after cliff |
+| amount  | uint256 | The total amount of tokens to be vested |
+| cliffDuration  | uint256 | The duration of cliff period |
+| cliffUnlock  | uint256 | Percentage of tokens unlocked right after the cliff |
+| claimablePeriods  | uint256 | The number of periods after cliff in which user can claim tokens |
 
 
 

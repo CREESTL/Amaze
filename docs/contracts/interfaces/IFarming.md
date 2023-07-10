@@ -42,8 +42,8 @@ Returns information about user&#39;s farming
 | Name | Type | Description |
 |---|---|---|
 | _0 | uint256 | The current locked amount |
-| _1 | uint256 | The time farming started |
-| _2 | uint256 | The time farming ended |
+| _1 | uint256 | The time lock has started |
+| _2 | uint256 | The time lock will end |
 | _3 | uint256 | The reward for farming |
 
 ### getReward
@@ -52,7 +52,7 @@ Returns information about user&#39;s farming
 function getReward(address user) external nonpayable returns (uint256)
 ```
 
-Returns the farming reward of the userDoes not recalculate the reward on call. Returns the last known         reward value of the user
+Returns the farming reward of the user
 
 
 
@@ -102,6 +102,22 @@ Recieves tokens from the admin and locks them         on behalf of the user
 | user | address | The address of the user to lock on behalf of |
 | amount | uint256 | The amount of tokens to lock |
 
+### notifyRewardAmount
+
+```solidity
+function notifyRewardAmount(uint256 amount) external nonpayable
+```
+
+Notify contract of the avalable reward amount
+
+*Before a staking contract could distribute rewards to the stakers the admin should send tokens to it and call this function*
+
+#### Parameters
+
+| Name | Type | Description |
+|---|---|---|
+| amount | uint256 | amount sent to the staking |
+
 ### pause
 
 ```solidity
@@ -112,6 +128,23 @@ Pause the contract
 
 
 
+
+### rewardPerToken
+
+```solidity
+function rewardPerToken() external view returns (uint256)
+```
+
+Reward amount for each token stored by the user
+
+
+
+
+#### Returns
+
+| Name | Type | Description |
+|---|---|---|
+| _0 | uint256 | undefined |
 
 ### setDailyRate
 
@@ -127,7 +160,7 @@ Sets new daily period
 
 | Name | Type | Description |
 |---|---|---|
-| rate | uint256 | The new rate to set. Represented in Basis Points |
+| rate | uint256 | The new rate to set. Represented in Basis Points 1e18 - 100% 1e17 - 10% 1e16 - 1% etc |
 
 ### setMinLockPeriod
 
@@ -252,6 +285,22 @@ Indicates that a new daily rate was set
 | Name | Type | Description |
 |---|---|---|
 | rate  | uint256 | The new daily rate |
+
+### FundsAdded
+
+```solidity
+event FundsAdded(uint256 amount)
+```
+
+Indicates that funds were added to the staking for distribution
+
+
+
+#### Parameters
+
+| Name | Type | Description |
+|---|---|---|
+| amount  | uint256 | Token amount added |
 
 ### Locked
 

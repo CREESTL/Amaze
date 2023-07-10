@@ -10,6 +10,28 @@
 
 ## Methods
 
+### balanceOf
+
+```solidity
+function balanceOf(address) external view returns (uint256)
+```
+
+Staked amount of the user
+
+
+
+#### Parameters
+
+| Name | Type | Description |
+|---|---|---|
+| _0 | address | undefined |
+
+#### Returns
+
+| Name | Type | Description |
+|---|---|---|
+| _0 | uint256 | undefined |
+
 ### claim
 
 ```solidity
@@ -44,7 +66,7 @@ The address of the Core contract
 function dailyRate() external view returns (uint256)
 ```
 
-The daily rate of rewards         Is represented in Basis Points
+Daily reward rate 0.3% by default
 
 
 
@@ -55,10 +77,32 @@ The daily rate of rewards         Is represented in Basis Points
 |---|---|---|
 | _0 | uint256 | undefined |
 
+### farmingStart
+
+```solidity
+function farmingStart(address) external view returns (uint256)
+```
+
+First user lock timestamp
+
+
+
+#### Parameters
+
+| Name | Type | Description |
+|---|---|---|
+| _0 | address | undefined |
+
+#### Returns
+
+| Name | Type | Description |
+|---|---|---|
+| _0 | uint256 | undefined |
+
 ### getFarming
 
 ```solidity
-function getFarming(address user) external view returns (uint256, uint256, uint256, uint256)
+function getFarming(address staker) external view returns (uint256, uint256, uint256, uint256)
 ```
 
 See {IFarming-getFarming}
@@ -69,7 +113,7 @@ See {IFarming-getFarming}
 
 | Name | Type | Description |
 |---|---|---|
-| user | address | undefined |
+| staker | address | undefined |
 
 #### Returns
 
@@ -83,7 +127,7 @@ See {IFarming-getFarming}
 ### getReward
 
 ```solidity
-function getReward(address user) external view returns (uint256)
+function getReward(address staker) external view returns (uint256)
 ```
 
 See {IFarming-getReward}
@@ -94,7 +138,7 @@ See {IFarming-getReward}
 
 | Name | Type | Description |
 |---|---|---|
-| user | address | undefined |
+| staker | address | undefined |
 
 #### Returns
 
@@ -117,6 +161,28 @@ See {IFarming-lock}
 | Name | Type | Description |
 |---|---|---|
 | amount | uint256 | undefined |
+
+### lockEnds
+
+```solidity
+function lockEnds(address) external view returns (uint256)
+```
+
+Time after that unlock is available
+
+
+
+#### Parameters
+
+| Name | Type | Description |
+|---|---|---|
+| _0 | address | undefined |
+
+#### Returns
+
+| Name | Type | Description |
+|---|---|---|
+| _0 | uint256 | undefined |
 
 ### lockOnBehalf
 
@@ -169,6 +235,22 @@ The minumum lock period.         During this period after lock users cannot unlo
 | Name | Type | Description |
 |---|---|---|
 | _0 | uint256 | undefined |
+
+### notifyRewardAmount
+
+```solidity
+function notifyRewardAmount(uint256 amount) external nonpayable
+```
+
+See {IFarming-notifyRewardAmount}
+
+
+
+#### Parameters
+
+| Name | Type | Description |
+|---|---|---|
+| amount | uint256 | undefined |
 
 ### owner
 
@@ -226,6 +308,62 @@ function renounceOwnership() external nonpayable
 *Leaves the contract without owner. It will not be possible to call `onlyOwner` functions. Can only be called by the current owner. NOTE: Renouncing ownership will leave the contract without an owner, thereby disabling any functionality that is only available to the owner.*
 
 
+### rewardPerToken
+
+```solidity
+function rewardPerToken() external view returns (uint256)
+```
+
+See {IFarming-rewardPerToken}
+
+
+
+
+#### Returns
+
+| Name | Type | Description |
+|---|---|---|
+| _0 | uint256 | undefined |
+
+### rewardPerTokenStored
+
+```solidity
+function rewardPerTokenStored() external view returns (uint256)
+```
+
+Total reward per token stored at the staking
+
+
+
+
+#### Returns
+
+| Name | Type | Description |
+|---|---|---|
+| _0 | uint256 | undefined |
+
+### rewards
+
+```solidity
+function rewards(address) external view returns (uint256)
+```
+
+Rewards of the user
+
+
+
+#### Parameters
+
+| Name | Type | Description |
+|---|---|---|
+| _0 | address | undefined |
+
+#### Returns
+
+| Name | Type | Description |
+|---|---|---|
+| _0 | uint256 | undefined |
+
 ### setDailyRate
 
 ```solidity
@@ -257,6 +395,40 @@ See {IFarming-setMinLockPeriod}
 | Name | Type | Description |
 |---|---|---|
 | period | uint256 | undefined |
+
+### totalReward
+
+```solidity
+function totalReward() external view returns (uint256)
+```
+
+Total available reward
+
+
+
+
+#### Returns
+
+| Name | Type | Description |
+|---|---|---|
+| _0 | uint256 | undefined |
+
+### totalSupply
+
+```solidity
+function totalSupply() external view returns (uint256)
+```
+
+Total staked
+
+
+
+
+#### Returns
+
+| Name | Type | Description |
+|---|---|---|
+| _0 | uint256 | undefined |
 
 ### transferOwnership
 
@@ -301,10 +473,32 @@ See {IFarming-unlockAll}
 
 
 
+### unlockCooldown
+
+```solidity
+function unlockCooldown(address) external view returns (uint256)
+```
+
+Time after full unlock until user can&#39;t claim his rewards
+
+
+
+#### Parameters
+
+| Name | Type | Description |
+|---|---|---|
+| _0 | address | undefined |
+
+#### Returns
+
+| Name | Type | Description |
+|---|---|---|
+| _0 | uint256 | undefined |
+
 ### unlockFromVesting
 
 ```solidity
-function unlockFromVesting(address user, uint256 amount) external nonpayable
+function unlockFromVesting(address staker, uint256 amount) external nonpayable
 ```
 
 See {IFarming-unlockFromVesting}
@@ -315,7 +509,7 @@ See {IFarming-unlockFromVesting}
 
 | Name | Type | Description |
 |---|---|---|
-| user | address | undefined |
+| staker | address | undefined |
 | amount | uint256 | undefined |
 
 ### unpause
@@ -328,6 +522,67 @@ See {IFarming-unpause}
 
 
 
+
+### updatedAt
+
+```solidity
+function updatedAt() external view returns (uint256)
+```
+
+Last staking state update timestamp
+
+
+
+
+#### Returns
+
+| Name | Type | Description |
+|---|---|---|
+| _0 | uint256 | undefined |
+
+### userRewardPerTokenPaid
+
+```solidity
+function userRewardPerTokenPaid(address) external view returns (uint256)
+```
+
+Reward per token paid to the user
+
+
+
+#### Parameters
+
+| Name | Type | Description |
+|---|---|---|
+| _0 | address | undefined |
+
+#### Returns
+
+| Name | Type | Description |
+|---|---|---|
+| _0 | uint256 | undefined |
+
+### vestedAmount
+
+```solidity
+function vestedAmount(address) external view returns (uint256)
+```
+
+Vested amount of the user
+
+
+
+#### Parameters
+
+| Name | Type | Description |
+|---|---|---|
+| _0 | address | undefined |
+
+#### Returns
+
+| Name | Type | Description |
+|---|---|---|
+| _0 | uint256 | undefined |
 
 
 
@@ -347,7 +602,7 @@ Indicates that first call to claim function was made
 
 | Name | Type | Description |
 |---|---|---|
-| user  | address | undefined |
+| user  | address | The user who is trying to claim tokens |
 
 ### Claimed
 
@@ -363,8 +618,8 @@ Indicates that tokens were claimed by the user
 
 | Name | Type | Description |
 |---|---|---|
-| user  | address | undefined |
-| amount  | uint256 | undefined |
+| user  | address | The user who claimed the tokens |
+| amount  | uint256 | The amount of claimed tokens |
 
 ### DailyRateChanged
 
@@ -380,7 +635,23 @@ Indicates that a new daily rate was set
 
 | Name | Type | Description |
 |---|---|---|
-| rate  | uint256 | undefined |
+| rate  | uint256 | The new daily rate |
+
+### FundsAdded
+
+```solidity
+event FundsAdded(uint256 amount)
+```
+
+Indicates that funds were added to the staking for distribution
+
+
+
+#### Parameters
+
+| Name | Type | Description |
+|---|---|---|
+| amount  | uint256 | Token amount added |
 
 ### Locked
 
@@ -396,8 +667,8 @@ Indicates that tokens have been locked by the user
 
 | Name | Type | Description |
 |---|---|---|
-| user  | address | undefined |
-| amount  | uint256 | undefined |
+| user  | address | The user tokens were locked on behalf of |
+| amount  | uint256 | The amount of tokens locked |
 
 ### LockedOnBehalf
 
@@ -413,9 +684,9 @@ Indicates that tokens have been locked by the admin         on behalf of the use
 
 | Name | Type | Description |
 |---|---|---|
-| admin  | address | undefined |
-| user  | address | undefined |
-| amount  | uint256 | undefined |
+| admin  | address | The admin who locked the tokens |
+| user  | address | The user who is considered to be a locker |
+| amount  | uint256 | The amount of tokens locked |
 
 ### MinLockPeriodChanged
 
@@ -431,7 +702,7 @@ Indicates that a new minimum locking period was set
 
 | Name | Type | Description |
 |---|---|---|
-| period  | uint256 | undefined |
+| period  | uint256 | A new locking period in seconds |
 
 ### OwnershipTransferred
 
@@ -458,7 +729,7 @@ event Paused(address account)
 
 
 
-
+*Emitted when the pause is triggered by `account`.*
 
 #### Parameters
 
@@ -480,8 +751,8 @@ Indicates that tokens were unlocked by the user
 
 | Name | Type | Description |
 |---|---|---|
-| user  | address | undefined |
-| newLock  | uint256 | undefined |
+| user  | address | The user who unlocked tokens |
+| newLock  | uint256 | The new locked amount of the user |
 
 ### UnlockedOnBehalf
 
@@ -497,8 +768,8 @@ Indicates that locked amount of the user has decreased
 
 | Name | Type | Description |
 |---|---|---|
-| user  | address | undefined |
-| amount  | uint256 | undefined |
+| user  | address | The user whos locked amount was decreased |
+| amount  | uint256 | The new locked amount of the user |
 
 ### Unpaused
 
@@ -508,7 +779,7 @@ event Unpaused(address account)
 
 
 
-
+*Emitted when the pause is lifted by `account`.*
 
 #### Parameters
 
@@ -516,5 +787,91 @@ event Unpaused(address account)
 |---|---|---|
 | account  | address | undefined |
 
+
+
+## Errors
+
+### PRBMath_MulDiv18_Overflow
+
+```solidity
+error PRBMath_MulDiv18_Overflow(uint256 x, uint256 y)
+```
+
+Thrown when the resultant value in {mulDiv18} overflows uint256.
+
+
+
+#### Parameters
+
+| Name | Type | Description |
+|---|---|---|
+| x | uint256 | undefined |
+| y | uint256 | undefined |
+
+### PRBMath_MulDiv_Overflow
+
+```solidity
+error PRBMath_MulDiv_Overflow(uint256 x, uint256 y, uint256 denominator)
+```
+
+Thrown when the resultant value in {mulDiv} overflows uint256.
+
+
+
+#### Parameters
+
+| Name | Type | Description |
+|---|---|---|
+| x | uint256 | undefined |
+| y | uint256 | undefined |
+| denominator | uint256 | undefined |
+
+### PRBMath_UD60x18_Convert_Overflow
+
+```solidity
+error PRBMath_UD60x18_Convert_Overflow(uint256 x)
+```
+
+Thrown when converting a basic integer to the fixed-point format overflows UD60x18.
+
+
+
+#### Parameters
+
+| Name | Type | Description |
+|---|---|---|
+| x | uint256 | undefined |
+
+### PRBMath_UD60x18_Exp2_InputTooBig
+
+```solidity
+error PRBMath_UD60x18_Exp2_InputTooBig(UD60x18 x)
+```
+
+Thrown when taking the binary exponent of a base greater than 192e18.
+
+
+
+#### Parameters
+
+| Name | Type | Description |
+|---|---|---|
+| x | UD60x18 | undefined |
+
+### PRBMath_UD60x18_Log_InputTooSmall
+
+```solidity
+error PRBMath_UD60x18_Log_InputTooSmall(UD60x18 x)
+```
+
+Thrown when taking the logarithm of a number less than 1.
+
+
+
+#### Parameters
+
+| Name | Type | Description |
+|---|---|---|
+| x | UD60x18 | undefined |
 
 

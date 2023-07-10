@@ -286,7 +286,7 @@ Indicates that account has been added to the blacklist
 
 | Name | Type | Description |
 |---|---|---|
-| account  | address | undefined |
+| account  | address | The account added to the blacklist |
 
 ### FarmingChanged
 
@@ -302,7 +302,7 @@ Indicates that new Farming address was set
 
 | Name | Type | Description |
 |---|---|---|
-| farming  | address | undefined |
+| farming  | address | The new address of the Farming contract |
 
 ### MazeChanged
 
@@ -318,7 +318,7 @@ Indicates that new Maze address was set
 
 | Name | Type | Description |
 |---|---|---|
-| maze  | address | undefined |
+| maze  | address | The new address of the Maze token |
 
 ### OwnershipTransferred
 
@@ -345,7 +345,7 @@ event Paused(address account)
 
 
 
-
+*Emitted when the pause is triggered by `account`.*
 
 #### Parameters
 
@@ -367,7 +367,7 @@ Indicates that account has been removed from the blacklist
 
 | Name | Type | Description |
 |---|---|---|
-| account  | address | undefined |
+| account  | address | The account removed from the blacklist |
 
 ### Unpaused
 
@@ -377,7 +377,7 @@ event Unpaused(address account)
 
 
 
-
+*Emitted when the pause is lifted by `account`.*
 
 #### Parameters
 
@@ -399,7 +399,7 @@ Indicates that new Vesting address was set
 
 | Name | Type | Description |
 |---|---|---|
-| vesting  | address | undefined |
+| vesting  | address | The new address of the Vesting contract |
 
 
 
