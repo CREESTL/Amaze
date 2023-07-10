@@ -60,9 +60,12 @@ describe("Farming contract", () => {
         // Exlude contracts from stakers
         await maze.excludeFromStakers(farming.address);
         await maze.excludeFromStakers(vesting.address);
+        await maze.excludeFromStakers(ownerAcc.address);
+        await maze.excludeFromStakers(clientAcc1.address);
         // Contracts do not pay fees
         await maze.addToWhitelist(farming.address);
         await maze.addToWhitelist(vesting.address);
+        await maze.addToWhitelist(ownerAcc.address);
 
         // Set addresses of all contracts into core
         await core.setMaze(maze.address);
@@ -510,7 +513,7 @@ describe("Farming contract", () => {
 
                 let to = clientAcc1.address;
                 let amount = parseEther("1");
-                let cliffDuration = 3600;
+                let cliffDuration = 3600*24*30;
                 let cliffUnlock = 1000;
                 let claimablePeriods = 5;
 
@@ -523,17 +526,15 @@ describe("Farming contract", () => {
                     vesting.startVesting(to, amount, cliffDuration, cliffUnlock, claimablePeriods)
                 ).to.emit(farming, "LockedOnBehalf");
 
+                await time.increase(cliffDuration + 3600*24*30*claimablePeriods);
+
                 // Claiming tokens unlocks them from farming
                 await vesting.connect(clientAcc1).claimTokens();
 
-                let expectedReward = await farming.getReward(clientAcc1.address);
-
                 let clientEndBalance = await maze.balanceOf(clientAcc1.address);
                 let farmingEndBalance = await maze.balanceOf(farming.address);
-
-                // TODO
-                // expect(clientEndBalance).to.equal(clientStartBalance.add(expectedReward));
-                // expect(farmingEndBalance).to.equal(farmingStartBalance.sub(expectedReward));
+                expect(clientEndBalance).to.equal(clientStartBalance.add(amount));
+                expect(farmingEndBalance).to.equal(farmingStartBalance);
             });
             describe("Fails", () => {
                 it("Should fail to unlock if called not from Vesting", async () => {
@@ -581,17 +582,15 @@ describe("Farming contract", () => {
 
             // Claim #2
             // Should transfer reward tokens
-            // TODO
-            // let expectedReward = await farming.getReward(clientAcc1.address);
+             let expectedReward = await farming.getReward(clientAcc1.address);
             let clientStartBalance2 = await maze.balanceOf(clientAcc1.address);
             let farmingStartBalance2 = await maze.balanceOf(farming.address);
             await expect(farming.connect(clientAcc1).claim()).to.emit(farming, "Claimed");
             let clientEndBalance2 = await maze.balanceOf(clientAcc1.address);
             let farmingEndBalance2 = await maze.balanceOf(farming.address);
 
-            // TODO
-            // expect(clientEndBalance2).to.equal(clientStartBalance2.add(expectedReward))
-            // expect(farmingEndBalance2).to.equal(farmingStartBalance2.sub(expectedReward));
+             expect(clientEndBalance2).to.equal(clientStartBalance2.add(expectedReward))
+             expect(farmingEndBalance2).to.equal(farmingStartBalance2.sub(expectedReward));
         });
 
         describe("Fails", () => {
@@ -1500,7 +1499,7 @@ describe("Farming contract", () => {
                 let reward = await farming.getReward(clientAcc1.address);
                 expect(reward).to.be.closeTo(expectedRewardFull, EPSILON);
             });
-            // TODO
+
             it("In 1 days changed: rate, lock, lock, rate, lock", async () => {
                 let { core, maze, farming, vesting } = await loadFixture(deploys);
 
@@ -1698,12 +1697,58 @@ describe("Farming contract", () => {
             });
         });
 
-        // TODO
         describe("Farm, claim, farm agaim", () => {
-            it("Claim should reset farming. New farming start from scratch", async () => {});
-        });
+            it("Claim should reset farming. New farming start from scratch", async () => {
+                let { core, maze, farming, vesting } = await loadFixture(deploys);
 
-        // TODO If any can happen
-        describe("Fails", () => {});
+                // Lock tokens and start farming
+
+                let transferAmount = parseEther("2");
+                let lockAmount = parseEther("1");
+                await maze.connect(ownerAcc).transfer(clientAcc1.address, transferAmount);
+                await maze.connect(clientAcc1).approve(farming.address, transferAmount);
+
+                await farming.connect(clientAcc1).lock(lockAmount);
+                let farmingStart = await farming.farmingStart(clientAcc1.address);
+                expect(farmingStart).to.equal(await time.latest());
+
+                let fiveYears = 3600 * 24 * 365 * 5;
+                await time.increase(fiveYears);
+
+                // Unlock all tokens before claiming
+                await farming.connect(clientAcc1).unlockAll();
+
+                // Claim #1
+                await expect(farming.connect(clientAcc1).claim()).to.emit(farming, "ClaimAttempt");
+
+                // Wait for 1 year (min gap between claims)
+                let oneYear = 3600 * 24 * 365;
+                await time.increase(oneYear);
+
+                await expect(farming.connect(clientAcc1).claim()).to.emit(farming, "Claimed");
+                farmingStart = await farming.farmingStart(clientAcc1.address);
+                expect(farmingStart).to.equal(0);
+                
+                // Do lock-claim routine again
+                await farming.connect(clientAcc1).lock(lockAmount);
+                farmingStart = await farming.farmingStart(clientAcc1.address);
+                expect(farmingStart).to.equal(await time.latest());
+
+                await time.increase(fiveYears);
+
+                // Unlock all tokens before claiming
+                await farming.connect(clientAcc1).unlockAll();
+
+                // Claim #1
+                await expect(farming.connect(clientAcc1).claim()).to.emit(farming, "ClaimAttempt");
+
+                // Wait for 1 year (min gap between claims)
+                await time.increase(oneYear);
+
+                await expect(farming.connect(clientAcc1).claim()).to.emit(farming, "Claimed");
+                farmingStart = await farming.farmingStart(clientAcc1.address);
+                expect(farmingStart).to.equal(0);
+            });
+        });
     });
 });
