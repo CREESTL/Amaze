@@ -9,6 +9,7 @@ const fileName = "./deployOutput.json";
 const OUTPUT_DEPLOY = require(fileName);
 
 let contractName;
+let amountToFarming = 45000000 * 1e18; //45 mil
 
 async function main() {
     console.log(`[NOTICE!] Chain of deployment: ${network.name}`);
@@ -173,6 +174,11 @@ async function main() {
     await core.setMaze(maze.address);
     await core.setFarming(farming.address);
     await core.setVesting(vesting.address);
+
+    // Transfer 45M tokens to the farming
+    await maze.transfer(farming.address, amountToFarming);
+    await farming.notifyRewardAmount(amountToFarming);
+
     // ============================
 
     // ====================================================
