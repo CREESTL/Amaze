@@ -13,9 +13,6 @@ import "./interfaces/IFarming.sol";
 import "./interfaces/IMaze.sol";
 import "./interfaces/ICore.sol";
 
-// TODO remove logs
-import "hardhat/console.sol";
-
 /// @title The contract for Maze tokens vesting
 contract Vesting is IVesting, Ownable, Pausable {
     using SafeERC20 for ERC20;
