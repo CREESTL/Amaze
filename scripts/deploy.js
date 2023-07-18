@@ -9,7 +9,7 @@ const fileName = "./deployOutput.json";
 const OUTPUT_DEPLOY = require(fileName);
 
 let contractName;
-let amountToFarming = 45000000 * 1e18; //45 mil
+let amountToFarming = 44500000 * 1e18; //44.5 mil
 
 async function main() {
     console.log(`[NOTICE!] Chain of deployment: ${network.name}`);

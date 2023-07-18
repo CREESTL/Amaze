@@ -84,8 +84,8 @@ contract Farming is IFarming, Ownable, Pausable {
     constructor(address core_) {
         require(core_ != address(0), "Farming: Core cannot have zero address");
         core = ICore(core_);
-        // default rate 0.3%
-        dailyRate = 0.003 ether; // 100% - 1e18, 10% - 1e17, 1% - 1e16
+        // rate 0.03%
+        dailyRate = 3 * 10**14; // 100% - 1e18, 10% - 1e17, 1% - 1e16
     }
 
     /// @notice See {IFarming-pause}
