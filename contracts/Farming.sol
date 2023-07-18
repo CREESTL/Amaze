@@ -39,15 +39,9 @@ contract Farming is IFarming, Ownable, Pausable {
     mapping(address => uint256) public vestedAmount;
     /// @notice Time after full unlock until user can't claim his rewards
     mapping(address => uint256) public unlockCooldown;
-    /// @notice Time after that unlock is available
-    mapping(address => uint256) public lockEnds;
     /// @notice First user lock timestamp
     mapping(address => uint256) public farmingStart;
 
-    /// @notice The minumum lock period.
-    ///         During this period after lock users cannot unlock tokens.
-    ///         By default period is 1 month.
-    uint256 public minLockPeriod = DAY * 30;
     /// @notice The minimum gap between two calls of `claim` function.
     ///         After that gap tokens are actually claimed
     uint256 public minClaimGap = DAY * 365;
@@ -99,9 +93,9 @@ contract Farming is IFarming, Ownable, Pausable {
     }
 
     /// @notice See {IFarming-getFarming}
-    function getFarming(address staker) external view returns (uint256, uint256, uint256, uint256) {
+    function getFarming(address staker) external view returns (uint256, uint256, uint256) {
         require(staker != address(0), "Farming: User cannot have zero address");
-        return (balanceOf[staker], farmingStart[staker], lockEnds[staker], rewards[staker]);
+        return (balanceOf[staker], farmingStart[staker], rewards[staker]);
     }
 
     /// @notice See {IFarming-getReward}
@@ -127,12 +121,6 @@ contract Farming is IFarming, Ownable, Pausable {
     ) external onlyOwner whenNotPaused updateReward(address(0)) {
         totalReward += amount;
         emit FundsAdded(amount);
-    }
-
-    /// @notice See {IFarming-setMinLockPeriod}
-    function setMinLockPeriod(uint256 period) external onlyOwner whenNotPaused {
-        minLockPeriod = period;
-        emit MinLockPeriodChanged(period);
     }
 
     /// @notice See {IFarming-setDailyRate}
@@ -215,11 +203,6 @@ contract Farming is IFarming, Ownable, Pausable {
         balanceOf[staker] += amount;
         totalSupply += amount;
 
-        if (lockEnds[staker] == 0) {
-            farmingStart[staker] = block.timestamp;
-            lockEnds[staker] = block.timestamp + minLockPeriod;
-        } else lockEnds[staker] += minLockPeriod;
-
         ERC20(core.maze()).safeTransferFrom(payer, address(this), amount);
     }
 
@@ -237,15 +220,10 @@ contract Farming is IFarming, Ownable, Pausable {
         require(amount > 0, "Farming: Unlock amount cannot be zero");
         require(balanceOf[staker] > 0, "Farming: No tokens to unlock");
         require(balanceOf[staker] >= amount, "Farming: Unlock greater than lock");
-        require(
-            lockEnds[staker] <= block.timestamp,
-            "Farming: Minimum lock period has not passed yet"
-        );
+
         balanceOf[staker] -= amount;
         totalSupply -= amount;
         ERC20(core.maze()).safeTransfer(staker, amount);
-
-        if (balanceOf[staker] == 0) lockEnds[staker] = 0;
 
         emit Unlocked(staker, amount);
     }
