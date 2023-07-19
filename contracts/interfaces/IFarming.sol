@@ -6,6 +6,17 @@ import "@openzeppelin/contracts/utils/structs/EnumerableMap.sol";
 
 /// @notice Interface of the Farming contract
 interface IFarming {
+    struct DelayedWithdrawal {
+        uint256 amount;
+        uint256 timeCreated;
+    }
+
+    /// @dev struct used to store a single stakers delayedWithdrawal data
+    struct StakerDelayedWithdrawals {
+        uint256 unlockDelayedWithdrawalsCompleted;
+        DelayedWithdrawal[] unlockDelayedWithdrawals;
+    }
+
     /// @notice Indicates that tokens have been locked by the admin
     ///         on behalf of the user
     /// @param admin The admin who locked the tokens
@@ -66,6 +77,19 @@ interface IFarming {
     /// @param user The user to get the reward of
     /// @return Farming reward of the user
     function getReward(address user) external returns (uint256);
+
+    /// @notice Getter function for fetching the delayedWithdrawal at the `index`th entry from the `_stakerWithdrawals[user].unlockDelayedWithdrawals` array
+    /// @param user The user to get the unlockDelayedWithdrawal of
+    /// @param index Index in unlockDelayedWithdrawals array
+    function getStakerUnlockDelayedWithdrawalByIndex(
+        address user,
+        uint256 index
+    ) external view returns (
+        DelayedWithdrawal memory
+    );
+
+    /// @notice Getter function for fetching the length of the delayedWithdrawals array of a specific user
+    function getStakerUnlockWithdrawalsLength(address user) external view returns (uint256);
 
     /// @notice Sets new daily period
     /// @param rate The new rate to set. Represented in Basis Points

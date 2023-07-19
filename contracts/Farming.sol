@@ -41,6 +41,9 @@ contract Farming is IFarming, Ownable, Pausable {
     mapping(address => uint256) public unlockCooldown;
     /// @notice First user lock timestamp
     mapping(address => uint256) public farmingStart;
+    /// @notice Mapping: user => struct storing all delayedWithdrawal info
+    mapping(address => StakerDelayedWithdrawals) internal _stakerWithdrawals;
+    uint256 public unlockWithdrawalDelay = DAY * 21;
 
     /// @notice The minimum gap between two calls of `claim` function.
     ///         After that gap tokens are actually claimed
@@ -104,6 +107,21 @@ contract Farming is IFarming, Ownable, Pausable {
         return
             ((balanceOf[staker] * (rewardPerToken() - userRewardPerTokenPaid[staker])) / 1e18) +
             rewards[staker];
+    }
+
+    /// @notice See {IFarming-getStakerUnlockDelayedWithdrawalByIndex}
+    function getStakerUnlockDelayedWithdrawalByIndex(
+        address staker,
+        uint256 index
+    ) external view returns (
+        DelayedWithdrawal memory
+    ) {
+        return _stakerWithdrawals[staker].unlockDelayedWithdrawals[index];
+    }
+
+    /// @notice See {IFarming-getStakerUnlockWithdrawalsLength}
+    function getStakerUnlockWithdrawalsLength(address staker) external view returns (uint256) {
+        return _stakerWithdrawals[staker].unlockDelayedWithdrawals.length;
     }
 
     /// @notice See {IFarming-rewardPerToken}
@@ -170,6 +188,24 @@ contract Farming is IFarming, Ownable, Pausable {
         _unlock(staker, amount);
     }
 
+    function withdrawDelayedUnlock() external {
+        DelayedWithdrawal[] memory delayedWithdrawals = _stakerWithdrawals[msg.sender].unlockDelayedWithdrawals;
+        
+        (
+            uint256 amountToSend,
+            uint256 newDelayedWithdrawalsCompletedBefore
+        ) = _calcDelayedWithdrawals(
+            delayedWithdrawals,
+            _stakerWithdrawals[msg.sender].unlockDelayedWithdrawalsCompleted,
+            unlockWithdrawalDelay
+        );
+
+        if (amountToSend != 0) {
+            _stakerWithdrawals[msg.sender].unlockDelayedWithdrawalsCompleted = newDelayedWithdrawalsCompletedBefore;
+            ERC20(core.maze()).safeTransfer(msg.sender, amountToSend);
+        }
+    }
+
     /// @notice See {IFarming-claim}
     function claim() external whenNotPaused updateReward(msg.sender) ifNotBlacklisted(msg.sender) {
         uint256 reward = rewards[msg.sender];
@@ -221,11 +257,42 @@ contract Farming is IFarming, Ownable, Pausable {
         require(balanceOf[staker] > 0, "Farming: No tokens to unlock");
         require(balanceOf[staker] >= amount, "Farming: Unlock greater than lock");
 
+        DelayedWithdrawal memory delayedWithdrawal = DelayedWithdrawal({
+            amount: amount,
+            timeCreated: block.timestamp
+        });
+        _stakerWithdrawals[staker].unlockDelayedWithdrawals.push(delayedWithdrawal);
+
         balanceOf[staker] -= amount;
         totalSupply -= amount;
-        ERC20(core.maze()).safeTransfer(staker, amount);
 
         emit Unlocked(staker, amount);
+    }
+
+    function _calcDelayedWithdrawals(
+        DelayedWithdrawal[] memory delayedWithdrawals,
+        uint256 delayedWithdrawalsCompletedBefore,
+        uint256 withdrawalDelay
+    ) internal view returns (uint256, uint256) {
+        uint256 amountToSend = 0;
+        uint256 _stakerWithdrawalsLength = delayedWithdrawals.length;
+        uint256 i = 0;
+        while ((delayedWithdrawalsCompletedBefore + i) < _stakerWithdrawalsLength) {
+            // copy delayedWithdrawal from storage to memory
+            DelayedWithdrawal memory delayedWithdrawal = delayedWithdrawals[delayedWithdrawalsCompletedBefore + i];
+            // check if delayedWithdrawal can be claimed. break the loop as soon as a delayedWithdrawal cannot be claimed
+            if (block.timestamp < delayedWithdrawal.timeCreated + withdrawalDelay) {
+                break;
+            }
+            // otherwise, the delayedWithdrawal can be claimed, in which case we increase the amountToSend and increment i
+            amountToSend += delayedWithdrawal.amount;
+            // increment i to account for the delayedWithdrawal being claimed
+            unchecked {
+                ++i;
+            }
+        }
+
+        return (amountToSend, i);
     }
 
     // calculate (1 - (1 - r)^t),
