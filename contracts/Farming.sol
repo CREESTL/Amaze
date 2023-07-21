@@ -214,7 +214,7 @@ contract Farming is IFarming, Ownable, Pausable {
         );
 
         if (amountToSend != 0) {
-            _stakerWithdrawals[msg.sender].unlockDelayedWithdrawalsCompleted = newDelayedWithdrawalsCompletedBefore;
+            _stakerWithdrawals[msg.sender].unlockDelayedWithdrawalsCompleted += newDelayedWithdrawalsCompletedBefore;
             ERC20(core.maze()).safeTransfer(msg.sender, amountToSend);
         }
 
@@ -235,7 +235,7 @@ contract Farming is IFarming, Ownable, Pausable {
         );
 
         if (amountToSend != 0) {
-            _stakerWithdrawals[msg.sender].claimDelayedWithdrawalsCompleted = newDelayedWithdrawalsCompletedBefore;
+            _stakerWithdrawals[msg.sender].claimDelayedWithdrawalsCompleted += newDelayedWithdrawalsCompletedBefore;
             ERC20(core.maze()).safeTransfer(msg.sender, amountToSend);
         }
 
