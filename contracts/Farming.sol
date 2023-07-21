@@ -37,13 +37,11 @@ contract Farming is IFarming, Ownable, Pausable {
     mapping(address => uint256) public balanceOf;
     /// @notice Vested amount of the user
     mapping(address => uint256) public vestedAmount;
-    /// @notice Time after full unlock until user can't claim his rewards
-    mapping(address => uint256) public unlockCooldown;
-    /// @notice First user lock timestamp
-    mapping(address => uint256) public farmingStart;
     /// @notice Mapping: user => struct storing all delayedWithdrawal info
     mapping(address => StakerDelayedWithdrawals) internal _stakerWithdrawals;
+    /// @notice Delay for completing any unlockDdelayedWithdrawal
     uint256 public unlockWithdrawalDelay = DAY * 21;
+    uint256 public claimWithdrawalDelay = DAY * 365;
 
     /// @notice The minimum gap between two calls of `claim` function.
     ///         After that gap tokens are actually claimed
@@ -96,9 +94,9 @@ contract Farming is IFarming, Ownable, Pausable {
     }
 
     /// @notice See {IFarming-getFarming}
-    function getFarming(address staker) external view returns (uint256, uint256, uint256) {
+    function getFarming(address staker) external view returns (uint256, uint256) {
         require(staker != address(0), "Farming: User cannot have zero address");
-        return (balanceOf[staker], farmingStart[staker], rewards[staker]);
+        return (balanceOf[staker], rewards[staker]);
     }
 
     /// @notice See {IFarming-getReward}
@@ -122,6 +120,21 @@ contract Farming is IFarming, Ownable, Pausable {
     /// @notice See {IFarming-getStakerUnlockWithdrawalsLength}
     function getStakerUnlockWithdrawalsLength(address staker) external view returns (uint256) {
         return _stakerWithdrawals[staker].unlockDelayedWithdrawals.length;
+    }
+
+    /// @notice See {IFarming-getStakerClaimDelayedWithdrawalByIndex}
+    function getStakerClaimDelayedWithdrawalByIndex(
+        address staker,
+        uint256 index
+    ) external view returns (
+        DelayedWithdrawal memory
+    ) {
+        return _stakerWithdrawals[staker].claimDelayedWithdrawals[index];
+    }
+
+    /// @notice See {IFarming-getStakerClaimWithdrawalsLength}
+    function getStakerClaimWithdrawalsLength(address staker) external view returns (uint256) {
+        return _stakerWithdrawals[staker].claimDelayedWithdrawals.length;
     }
 
     /// @notice See {IFarming-rewardPerToken}
@@ -204,29 +217,48 @@ contract Farming is IFarming, Ownable, Pausable {
             _stakerWithdrawals[msg.sender].unlockDelayedWithdrawalsCompleted = newDelayedWithdrawalsCompletedBefore;
             ERC20(core.maze()).safeTransfer(msg.sender, amountToSend);
         }
+
+        emit DelayedUnlockWithdrawed(msg.sender, amountToSend);
+    }
+
+    /// @notice See {IFarming-unlockFromVesting}
+    function withdrawDelayedClaim() external {
+        DelayedWithdrawal[] memory delayedWithdrawals = _stakerWithdrawals[msg.sender].claimDelayedWithdrawals;
+        
+        (
+            uint256 amountToSend,
+            uint256 newDelayedWithdrawalsCompletedBefore
+        ) = _calcDelayedWithdrawals(
+            delayedWithdrawals,
+            _stakerWithdrawals[msg.sender].claimDelayedWithdrawalsCompleted,
+            claimWithdrawalDelay
+        );
+
+        if (amountToSend != 0) {
+            _stakerWithdrawals[msg.sender].claimDelayedWithdrawalsCompleted = newDelayedWithdrawalsCompletedBefore;
+            ERC20(core.maze()).safeTransfer(msg.sender, amountToSend);
+        }
+
+        emit DelayedClaimWithdrawed(msg.sender, amountToSend);
     }
 
     /// @notice See {IFarming-claim}
     function claim() external whenNotPaused updateReward(msg.sender) ifNotBlacklisted(msg.sender) {
         uint256 reward = rewards[msg.sender];
         require(
-            balanceOf[msg.sender] == 0 && farmingStart[msg.sender] > 0,
-            "Farming: Unable to claim before full unlock"
+            reward > 0,
+            "Farming: No reward to claim"
         );
 
-        if (unlockCooldown[msg.sender] == 0) {
-            unlockCooldown[msg.sender] = block.timestamp + minClaimGap;
-            emit ClaimAttempt(msg.sender);
-            return;
-        }
+        rewards[msg.sender] = 0;
 
-        if (unlockCooldown[msg.sender] != 0 && unlockCooldown[msg.sender] <= block.timestamp) {
-            rewards[msg.sender] = 0;
-            ERC20(core.maze()).safeTransfer(msg.sender, reward);
-            unlockCooldown[msg.sender] = 0;
-            farmingStart[msg.sender] = 0;
-            emit Claimed(msg.sender, reward);
-        } else revert("Farming: Minimum interval between claimes not passed");
+        DelayedWithdrawal memory delayedWithdrawal = DelayedWithdrawal({
+            amount: reward,
+            timeCreated: block.timestamp
+        });
+        _stakerWithdrawals[msg.sender].claimDelayedWithdrawals.push(delayedWithdrawal);
+
+        emit Claimed(msg.sender, reward);
     }
 
     function _lock(
