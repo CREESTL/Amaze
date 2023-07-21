@@ -201,7 +201,7 @@ contract Farming is IFarming, Ownable, Pausable {
         _unlock(staker, amount);
     }
 
-    function withdrawDelayedUnlock() external {
+    function withdrawDelayedUnlock() whenNotPaused ifNotBlacklisted(msg.sender) external {
         DelayedWithdrawal[] memory delayedWithdrawals = _stakerWithdrawals[msg.sender].unlockDelayedWithdrawals;
         
         (
@@ -222,7 +222,7 @@ contract Farming is IFarming, Ownable, Pausable {
     }
 
     /// @notice See {IFarming-unlockFromVesting}
-    function withdrawDelayedClaim() external {
+    function withdrawDelayedClaim() whenNotPaused ifNotBlacklisted(msg.sender) external {
         DelayedWithdrawal[] memory delayedWithdrawals = _stakerWithdrawals[msg.sender].claimDelayedWithdrawals;
         
         (
