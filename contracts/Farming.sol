@@ -289,11 +289,15 @@ contract Farming is IFarming, Ownable, Pausable {
         require(balanceOf[staker] > 0, "Farming: No tokens to unlock");
         require(balanceOf[staker] >= amount, "Farming: Unlock greater than lock");
 
-        DelayedWithdrawal memory delayedWithdrawal = DelayedWithdrawal({
-            amount: amount,
-            timeCreated: block.timestamp
-        });
-        _stakerWithdrawals[staker].unlockDelayedWithdrawals.push(delayedWithdrawal);
+        if(msg.sender == core.vesting()) {
+            ERC20(core.maze()).safeTransfer(staker, amount);
+        } else {
+            DelayedWithdrawal memory delayedWithdrawal = DelayedWithdrawal({
+                amount: amount,
+                timeCreated: block.timestamp
+            });
+            _stakerWithdrawals[staker].unlockDelayedWithdrawals.push(delayedWithdrawal);
+        }
 
         balanceOf[staker] -= amount;
         totalSupply -= amount;
