@@ -20,7 +20,7 @@ contract Farming is IFarming, Ownable, Pausable {
     ICore public core;
     /// @notice Total available reward
     uint256 public totalReward;
-    /// @notice Daily reward rate 0.3% by default
+    /// @notice Daily reward rate 0.03% by default
     uint256 public dailyRate;
     /// @notice Last staking state update timestamp
     uint256 public updatedAt;
@@ -201,7 +201,7 @@ contract Farming is IFarming, Ownable, Pausable {
         _unlock(staker, amount);
     }
 
-    function withdrawDelayedUnlock() whenNotPaused ifNotBlacklisted(msg.sender) external {
+    function withdrawDelayedUnlock(uint256 maxNumberOfDelayedWithdrawalsToClaim) whenNotPaused ifNotBlacklisted(msg.sender) external {
         DelayedWithdrawal[] memory delayedWithdrawals = _stakerWithdrawals[msg.sender].unlockDelayedWithdrawals;
         
         (
@@ -209,6 +209,7 @@ contract Farming is IFarming, Ownable, Pausable {
             uint256 newDelayedWithdrawalsCompletedBefore
         ) = _calcDelayedWithdrawals(
             delayedWithdrawals,
+            maxNumberOfDelayedWithdrawalsToClaim,
             _stakerWithdrawals[msg.sender].unlockDelayedWithdrawalsCompleted,
             unlockWithdrawalDelay
         );
@@ -222,7 +223,7 @@ contract Farming is IFarming, Ownable, Pausable {
     }
 
     /// @notice See {IFarming-unlockFromVesting}
-    function withdrawDelayedClaim() whenNotPaused ifNotBlacklisted(msg.sender) external {
+    function withdrawDelayedClaim(uint256 maxNumberOfDelayedWithdrawalsToClaim) whenNotPaused ifNotBlacklisted(msg.sender) external {
         DelayedWithdrawal[] memory delayedWithdrawals = _stakerWithdrawals[msg.sender].claimDelayedWithdrawals;
         
         (
@@ -230,6 +231,7 @@ contract Farming is IFarming, Ownable, Pausable {
             uint256 newDelayedWithdrawalsCompletedBefore
         ) = _calcDelayedWithdrawals(
             delayedWithdrawals,
+            maxNumberOfDelayedWithdrawalsToClaim,
             _stakerWithdrawals[msg.sender].claimDelayedWithdrawalsCompleted,
             claimWithdrawalDelay
         );
@@ -307,13 +309,14 @@ contract Farming is IFarming, Ownable, Pausable {
 
     function _calcDelayedWithdrawals(
         DelayedWithdrawal[] memory delayedWithdrawals,
+        uint256 maxNumberOfDelayedWithdrawalsToClaim,
         uint256 delayedWithdrawalsCompletedBefore,
         uint256 withdrawalDelay
     ) internal view returns (uint256, uint256) {
         uint256 amountToSend = 0;
         uint256 _stakerWithdrawalsLength = delayedWithdrawals.length;
         uint256 i = 0;
-        while ((delayedWithdrawalsCompletedBefore + i) < _stakerWithdrawalsLength) {
+        while (i < maxNumberOfDelayedWithdrawalsToClaim && (delayedWithdrawalsCompletedBefore + i) < _stakerWithdrawalsLength) {
             // copy delayedWithdrawal from storage to memory
             DelayedWithdrawal memory delayedWithdrawal = delayedWithdrawals[delayedWithdrawalsCompletedBefore + i];
             // check if delayedWithdrawal can be claimed. break the loop as soon as a delayedWithdrawal cannot be claimed
