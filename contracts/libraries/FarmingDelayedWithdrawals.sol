@@ -60,6 +60,22 @@ abstract contract FarmingDelayedWithdrawals is IFarmingDelayedWithdrawals {
         );
     }
 
+    function getClaimableUserUnlocDelayedWithdrawals(address staker) external view returns (DelayedWithdrawal[] memory) {
+        return _getClaimableUserDelayedWithdrawals(
+            _stakerWithdrawals[staker].unlockDelayedWithdrawals,
+            _stakerWithdrawals[staker].unlockDelayedWithdrawalsCompleted,
+            unlockWithdrawalDelay
+        );
+    }
+
+    function getClaimableUserClaimDelayedWithdrawals(address staker) external view returns (DelayedWithdrawal[] memory) {
+        return _getClaimableUserDelayedWithdrawals(
+            _stakerWithdrawals[staker].claimDelayedWithdrawals,
+            _stakerWithdrawals[staker].claimDelayedWithdrawalsCompleted,
+            claimWithdrawalDelay
+        );
+    }
+
     function _createUnlockDelayedWithdraw(address staker, uint256 amount) internal {
         DelayedWithdrawal memory delayedWithdrawal = DelayedWithdrawal({
             amount: amount,
