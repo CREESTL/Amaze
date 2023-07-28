@@ -6,6 +6,8 @@ import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
+import '@uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol';
+import '@uniswap/v3-periphery/contracts/libraries/TransferHelper.sol';
 import "./interfaces/IMaze.sol";
 import "./interfaces/ICore.sol";
 
@@ -53,10 +55,22 @@ contract Maze is IMaze, Ownable, Pausable {
     /// @notice List of whitelisted accounts. Whitelisted accounts do not pay fees on token transfers.
     mapping(address => bool) public isWhitelisted;
 
+    /// @notice List of DEX pairs for which a sale fee for the buy and sale of tokens will be taken.
+    mapping(address => bool) public isSalePair;
+
+    ISwapRouter swapRouter;
+    uint24 public poolFee = 3000;
+    address public constant USDT = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
+    address public saleFeeReceiver;
+
     /// @notice The percentage of transferred tokens to be taken as fee for any token transfers
     ///         Fee is distributed among token holders
     ///         Expressed in basis points
     uint256 public feeInBP;
+    /// @notice The percentage of transferred tokens to be taken as fee for any token buy or sale in added DEX pairs 
+    ///         Fee is swapped to USDT to marketing address
+    ///         Expressed in basis points
+    uint256 public saleFeeInBP;
 
     /// @notice Checks that account is not blacklisted
     modifier ifNotBlacklisted(address account) {
@@ -64,9 +78,10 @@ contract Maze is IMaze, Ownable, Pausable {
         _;
     }
 
-    constructor(address core_) {
+    constructor(address core_, address swapRouter_) {
         require(core_ != address(0), "Maze: Core cannot have zero address");
         core = ICore(core_);
+        swapRouter = ISwapRouter(swapRouter_);
 
         // Whole supply of tokens is assigned to owner
         _rOwned[msg.sender] = _rTotal;
@@ -167,6 +182,13 @@ contract Maze is IMaze, Ownable, Pausable {
         emit SetFees(_feeInBP);
     }
 
+    /// @notice See {IMaze-setFees}
+    function setSaleFees(uint256 _saleFeeInBP) public whenNotPaused onlyOwner {
+        require(_saleFeeInBP < 1e4, "Maze: Sale fee too high");
+        saleFeeInBP = _saleFeeInBP;
+        emit SetSaleFees(_saleFeeInBP);
+    }
+
     /// @notice See {IMaze-addToWhitelist}
     function addToWhitelist(address account) external whenNotPaused onlyOwner {
         require(!isWhitelisted[account], "Maze: Account already whitelisted");
@@ -179,6 +201,32 @@ contract Maze is IMaze, Ownable, Pausable {
         require(isWhitelisted[account], "Maze: Account not whitelisted");
         isWhitelisted[account] = false;
         emit RemoveFromWhitelist(account);
+    }
+
+    /// @notice See {IMaze-addToPairlist}
+    function addToPairlist(address pair) external whenNotPaused onlyOwner {
+        require(!isSalePair[pair], "Maze: Pair already added");
+        isSalePair[pair] = true;
+        emit AddToPairlist(pair);
+    }
+
+    /// @notice See {IMaze-removeFromPairlist}
+    function removeFromPairlist(address pair) external whenNotPaused onlyOwner {
+        require(isSalePair[pair], "Maze: Pair not added");
+        isSalePair[pair] = false;
+        emit RemoveFromPairlist(pair);
+    }
+
+    function setSaleFeeReceiver(address receiver) external whenNotPaused onlyOwner {
+        require(receiver != address(0), "Maze: Cannot include zero address");
+        saleFeeReceiver = receiver;
+        emit SaleFeeReceiverChanged(receiver);
+    }
+
+    function setPoolFee(uint24 poolFee_) external whenNotPaused onlyOwner {
+        require(poolFee_ != 0, "Maze: Cannot be zero");
+        poolFee = poolFee_;
+        emit PoolFeeChanged(poolFee_);
     }
 
     /// @notice See {IMaze-pause}
@@ -237,54 +285,80 @@ contract Maze is IMaze, Ownable, Pausable {
     /// @return The whole transferred amount including fees (r-space)
     /// @return Amount of tokens to be transferred to the recipient (r-space)
     /// @return Amount of tokens to be takes as fees (r-space)
+    /// @return Amount of tokens to be takes as sale fees (r-space)
     /// @return The whole transferred amount including fees (t-space)
     /// @return Amount of tokens to be taken as fees (t-space)
+    /// @return Amount of tokens to be taken as sale fees (t-space)
     function _getValues(
-        uint256 tAmountNoFee
-    ) private view returns (uint256, uint256, uint256, uint256, uint256) {
-        (uint256 tAmountWithFee, uint256 tFee) = _getTValues(tAmountNoFee);
+        uint256 tAmountNoFee,
+        address to
+    ) private view returns (uint256, uint256, uint256, uint256, uint256, uint256, uint256) {
+        (uint256 tAmountWithFee, uint256 tFee, uint256 tSaleFee) = _getTValues(tAmountNoFee, to);
         uint256 rate = _getRate();
-        (uint256 rAmountWithFee, uint256 rAmountNoFee, uint256 rFee) = _getRValues(
+        (
+            uint256 rAmountWithFee,
+            uint256 rAmountNoFee,
+            uint256 rFee,
+            uint256 rSaleFee
+        ) = _getRValues(
             tAmountWithFee,
             tFee,
+            tSaleFee,
             rate
         );
-        return (rAmountWithFee, rAmountNoFee, rFee, tAmountWithFee, tFee);
+        return (
+            rAmountWithFee,
+            rAmountNoFee,
+            rFee,
+            rSaleFee,
+            tAmountWithFee,
+            tFee,
+            tSaleFee
+        );
     }
 
     /// @dev Calculates transferred amount and fee amount in t-space
     /// @param tAmountNoFee The transferred amount without fees (t-space)
     /// @return Amount of tokens to be withdrawn from sender including fees (t-space)
     /// @return Amount of tokens to be taken as fees (t-space)
-    function _getTValues(uint256 tAmountNoFee) private view returns (uint256, uint256) {
+    /// @return Amount of tokens to be taken as sale fees (t-space)
+    function _getTValues(uint256 tAmountNoFee, address to) private view returns (uint256, uint256, uint256) {
         uint256 tFee = 0;
+        uint256 tSaleFee = 0;
         // Whitelisted users don't pay fees
         if (!isWhitelisted[msg.sender]) {
             tFee = tAmountNoFee.mul(feeInBP).div(percentConverter);
         }
+        if (isSalePair[to]) {
+            tSaleFee = tAmountNoFee.mul(saleFeeInBP).div(percentConverter);
+        }
         // Withdrawn amount = whole amount + fees
-        uint256 tAmountWithFee = tAmountNoFee.add(tFee);
-        return (tAmountWithFee, tFee);
+        uint256 tAmountWithFee = tAmountNoFee.add(tFee).add(tSaleFee);
+        return (tAmountWithFee, tFee, tSaleFee);
     }
 
     /// @dev Calculates reflected amounts (from t-space) in r-space
     /// @param tAmountWithFee The whole transferred amount including fees (t-space)
     /// @param tFee Fee amount (t-space)
+    /// @param tSaleFee Sale fee amount (t-space)
     /// @param rate Rate of conversion between t-space and r-space
     /// @return The whole transferred amount including fees (r-space)
     /// @return Amount of tokens to be transferred to the recipient (r-space)
     /// @return Amount of tokens to be taken as fees (r-space)
+    /// @return Amount of tokens to be taken as sale fees (r-space)
     function _getRValues(
         uint256 tAmountWithFee,
         uint256 tFee,
+        uint256 tSaleFee,
         uint256 rate
-    ) private pure returns (uint256, uint256, uint256) {
+    ) private pure returns (uint256, uint256, uint256, uint256) {
         // Reflect whole amount and fee from t-space into r-space
         uint256 rAmountWithFee = tAmountWithFee.mul(rate);
         uint256 rFee = tFee.mul(rate);
+        uint256 rSaleFee = tSaleFee.mul(rate);
         // Received amount = whole amount - fees
-        uint256 rAmountNoFee = rAmountWithFee.sub(rFee);
-        return (rAmountWithFee, rAmountNoFee, rFee);
+        uint256 rAmountNoFee = rAmountWithFee.sub(rFee).sub(rSaleFee);
+        return (rAmountWithFee, rAmountNoFee, rFee, rSaleFee);
     }
 
     /// @dev Calculates current conversion rate
@@ -388,8 +462,17 @@ contract Maze is IMaze, Ownable, Pausable {
     /// @param to Recipient's address
     /// @param tAmountNoFee The amount of tokens to send without fees
     function _transferStandard(address from, address to, uint256 tAmountNoFee) private {
-        (uint256 rAmountWithFee, uint256 rAmountNoFee, uint256 rFee, , uint256 tFee) = _getValues(
-            tAmountNoFee
+        (
+            uint256 rAmountWithFee,
+            uint256 rAmountNoFee,
+            uint256 rFee,
+            uint256 rSaleFee,
+            ,
+            uint256 tFee,
+            uint256 tSaleFee
+        ) = _getValues(
+            tAmountNoFee,
+            to
         );
         require(_rOwned[from] >= rAmountWithFee, "Maze: not enough tokens to pay the fee");
         // Only change sender's and recipient's balances in r-space (they are both included)
@@ -398,6 +481,7 @@ contract Maze is IMaze, Ownable, Pausable {
         // Recipient recieves whole amount (fees are distributed automatically)
         _rOwned[to] = _rOwned[to].add(rAmountNoFee);
         _processFees(rFee, tFee);
+        _processSaleFees(rSaleFee, tSaleFee);
         emit Transfer(from, to, tAmountNoFee);
     }
 
@@ -406,8 +490,17 @@ contract Maze is IMaze, Ownable, Pausable {
     /// @param to Recipient's address
     /// @param tAmountNoFee The amount of tokens to send without fees
     function _transferToExcluded(address from, address to, uint256 tAmountNoFee) private {
-        (uint256 rAmountWithFee, uint256 rAmountNoFee, uint256 rFee, , uint256 tFee) = _getValues(
-            tAmountNoFee
+        (
+            uint256 rAmountWithFee,
+            uint256 rAmountNoFee,
+            uint256 rFee,
+            uint256 rSaleFee,
+            ,
+            uint256 tFee,
+            uint256 tSaleFee
+        ) = _getValues(
+            tAmountNoFee,
+            to
         );
         require(_rOwned[from] >= rAmountWithFee, "Maze: not enough tokens to pay the fee");
         // Only decrease sender's balance in r-space (he is included)
@@ -418,6 +511,7 @@ contract Maze is IMaze, Ownable, Pausable {
         _tOwned[to] = _tOwned[to].add(tAmountNoFee);
         _rOwned[to] = _rOwned[to].add(rAmountNoFee);
         _processFees(rFee, tFee);
+        _processSaleFees(rSaleFee, tSaleFee);
         emit Transfer(from, to, tAmountNoFee);
     }
 
@@ -430,9 +524,14 @@ contract Maze is IMaze, Ownable, Pausable {
             uint256 rAmountWithFee,
             uint256 rAmountNoFee,
             uint256 rFee,
+            uint256 rSaleFee,
             uint256 tAmountWithFee,
-            uint256 tFee
-        ) = _getValues(tAmountNoFee);
+            uint256 tFee,
+            uint256 tSaleFee
+        ) = _getValues(
+            tAmountNoFee,
+            to
+        );
         require(_rOwned[from] >= rAmountWithFee, "Maze: not enough tokens to pay the fee");
         require(_tOwned[from] >= tAmountWithFee, "Maze: not enough tokens to pay the fee");
         // Decrease sender's balances in both t-space and r-space
@@ -443,6 +542,7 @@ contract Maze is IMaze, Ownable, Pausable {
         // Recipient recieves whole amount (fees are distributed automatically)
         _rOwned[to] = _rOwned[to].add(rAmountNoFee);
         _processFees(rFee, tFee);
+        _processSaleFees(rSaleFee, tSaleFee);
         emit Transfer(from, to, tAmountNoFee);
     }
 
@@ -455,9 +555,14 @@ contract Maze is IMaze, Ownable, Pausable {
             uint256 rAmountWithFee,
             uint256 rAmountNoFee,
             uint256 rFee,
+            uint256 rSaleFee,
             uint256 tAmountWithFee,
-            uint256 tFee
-        ) = _getValues(tAmountNoFee);
+            uint256 tFee,
+            uint256 tSaleFee
+        ) = _getValues(
+            tAmountNoFee,
+            to
+        );
         require(_rOwned[from] >= rAmountWithFee, "Maze: not enough tokens to pay the fee");
         require(_tOwned[from] >= tAmountWithFee, "Maze: not enough tokens to pay the fee");
         // Decrease sender's balances in both t-space and r-space
@@ -469,6 +574,7 @@ contract Maze is IMaze, Ownable, Pausable {
         _tOwned[to] = _tOwned[to].add(tAmountNoFee);
         _rOwned[to] = _rOwned[to].add(rAmountNoFee);
         _processFees(rFee, tFee);
+        _processSaleFees(rSaleFee, tSaleFee);
         emit Transfer(from, to, tAmountNoFee);
     }
 
@@ -480,5 +586,29 @@ contract Maze is IMaze, Ownable, Pausable {
         // This is the fees distribution.
         _rTotal = _rTotal.sub(rFee);
         _tFeeTotal = _tFeeTotal.add(tFee);
+    }
+
+    /// @dev Swap fee tokens to USDT
+    /// @param rSaleFee Sale fee amount (r-space)
+    /// @param tSaleFee Sale fee amount (t-space)
+    function _processSaleFees(uint256 rSaleFee, uint256 tSaleFee) private {
+        if (tSaleFee > 0) {
+            _tOwned[address(this)] = _tOwned[address(this)].add(tSaleFee);
+            _rOwned[address(this)] = _rOwned[address(this)].add(rSaleFee);
+
+            _approve(address(this), address(swapRouter), balanceOf(address(this)));
+
+            swapRouter.exactInputSingle(
+                ISwapRouter.ExactInputSingleParams({
+                tokenIn: address(this),
+                tokenOut: USDT,
+                fee: poolFee,
+                recipient: saleFeeReceiver,
+                deadline: block.timestamp,
+                amountIn: balanceOf(address(this)),
+                amountOutMinimum: 0,
+                sqrtPriceLimitX96: 0
+            }));
+        }
     }
 }
