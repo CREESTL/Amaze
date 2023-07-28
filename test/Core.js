@@ -5,6 +5,8 @@ const { loadFixture } = require("@nomicfoundation/hardhat-network-helpers");
 const zeroAddress = ethers.constants.AddressZero;
 const parseEther = ethers.utils.parseEther;
 
+const swapRouterAddress = "0xE592427A0AEce92De3Edee1F18E0157C05861564";
+
 let BigNumber = ethers.BigNumber;
 
 describe("Core", () => {
@@ -19,7 +21,7 @@ describe("Core", () => {
 
         // Deploy token
         let mazeFactory = await ethers.getContractFactory("Maze");
-        let maze = await mazeFactory.deploy(core.address);
+        let maze = await mazeFactory.deploy(core.address, swapRouterAddress);
         await maze.deployed();
 
         // Deploy farming

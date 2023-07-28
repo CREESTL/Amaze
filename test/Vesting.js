@@ -7,6 +7,8 @@ const parseEther = ethers.utils.parseEther;
 
 let BigNumber = ethers.BigNumber;
 
+const swapRouterAddress = "0xE592427A0AEce92De3Edee1F18E0157C05861564";
+
 describe("Vesting contract", () => {
     // Deploy all contracts before each test suite
     async function deploys() {
@@ -19,7 +21,7 @@ describe("Vesting contract", () => {
 
         // Deploy token
         let mazeFactory = await ethers.getContractFactory("Maze");
-        let maze = await mazeFactory.deploy(core.address);
+        let maze = await mazeFactory.deploy(core.address, swapRouterAddress);
         await maze.deployed();
 
         // Deploy farming

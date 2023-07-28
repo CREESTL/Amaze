@@ -7,11 +7,13 @@ const math = require("mathjs");
 const zeroAddress = ethers.constants.AddressZero;
 const parseEther = ethers.utils.parseEther;
 
+const swapRouterAddress = "0xE592427A0AEce92De3Edee1F18E0157C05861564";
+
 let BigNumber = ethers.BigNumber;
 let toBN = BigNumber.from;
 let converter = 1e4;
 let initAmount = parseEther("45000000");
-let initRate = parseEther("0.003");
+let initRate = parseEther("0.0003");
 const DAY = 60 * 60 * 24;
 const EPSILON = parseEther("0.000001");
 
@@ -44,7 +46,7 @@ describe("Farming contract", () => {
 
         // Deploy token
         let mazeFactory = await ethers.getContractFactory("Maze");
-        let maze = await mazeFactory.deploy(core.address);
+        let maze = await mazeFactory.deploy(core.address, swapRouterAddress);
         await maze.deployed();
 
         // Deploy farming
@@ -108,13 +110,13 @@ describe("Farming contract", () => {
 
                 await farming.pause();
 
-                await expect(farming.connect(ownerAcc).setMinLockPeriod(555)).to.be.revertedWith(
+                await expect(farming.connect(ownerAcc).setDailyRate(555)).to.be.revertedWith(
                     "Pausable: paused"
                 );
 
                 await farming.unpause();
 
-                await expect(farming.connect(ownerAcc).setMinLockPeriod(555)).not.to.be.reverted;
+                await expect(farming.connect(ownerAcc).setDailyRate(555)).not.to.be.reverted;
             });
         });
         describe("Only Vesting", () => {
@@ -134,9 +136,7 @@ describe("Farming contract", () => {
         it("Should deploy and have correct parameters after", async () => {
             let { core, maze, farming, vesting } = await loadFixture(deploys);
             expect(await farming.core()).to.equal(core.address);
-            expect(await farming.minLockPeriod()).to.equal(3600 * 24 * 30);
-            expect(await farming.minClaimGap()).to.equal(3600 * 24 * 365);
-            expect(await farming.dailyRate()).to.equal(3 * 1e15);
+            expect(await farming.dailyRate()).to.equal(3 * 1e14);
         });
         describe("Fails", () => {
             it("Should fail to deploy with invalid parameters", async () => {
@@ -162,13 +162,11 @@ describe("Farming contract", () => {
                 await maze.connect(clientAcc1).approve(farming.address, lockAmount);
 
                 // Before any farming was started for the user
-                let [lockedAmount1, startTime1, endTime1, reward1] = await farming.getFarming(
+                let [lockedAmount1, reward1] = await farming.getFarming(
                     clientAcc1.address
                 );
 
                 expect(lockedAmount1).to.equal(0);
-                expect(startTime1).to.equal(0);
-                expect(endTime1).to.equal(0);
                 expect(reward1).to.equal(0);
 
                 // Lock and start farming
@@ -176,12 +174,10 @@ describe("Farming contract", () => {
                 let currentTime = await time.latest();
 
                 // Get info about the only one farming
-                let [lockedAmount2, startTime2, endTime2, reward2] = await farming.getFarming(
+                let [lockedAmount2, reward2] = await farming.getFarming(
                     clientAcc1.address
                 );
                 expect(lockedAmount2).to.equal(lockAmount);
-                // Farming not claimed and not ended yet
-                expect(endTime2).to.equal(currentTime + 30 * DAY);
                 // No rewards are assinged to user yet
                 expect(reward2).to.equal(0);
             });
@@ -242,28 +238,169 @@ describe("Farming contract", () => {
                 });
             });
         });
+
+        describe("Get delayed withdraw info", () => {
+            it("Should get unlock delayed withdraw info by index", async () => {
+                let { core, maze, farming, vesting } = await loadFixture(deploys);
+
+                let transferAmount = parseEther("6");
+                let lockAmount = parseEther("4");
+                let firstUnlock = parseEther("3");
+                let secondUnlock = parseEther("1");
+                await maze.connect(ownerAcc).transfer(clientAcc1.address, transferAmount);
+                await maze.connect(clientAcc1).approve(farming.address, lockAmount);
+
+                await farming.connect(clientAcc1).lock(lockAmount);
+
+                expect(await farming.getStakerUnlockWithdrawalsLength(clientAcc1.address)).to.be.equal(0);
+
+                let fiveYears = 3600 * 24 * 365 * 5;
+                await time.increase(fiveYears);
+                let unlockTime = await time.latest();
+                await expect(farming.connect(clientAcc1).unlock(firstUnlock)).to.emit(farming, "Unlocked");
+
+                expect(await farming.getStakerUnlockWithdrawalsLength(clientAcc1.address)).to.be.equal(1);
+
+                let withdrawal = await farming.getStakerUnlockDelayedWithdrawalByIndex(clientAcc1.address, 0);
+                
+                expect(withdrawal[0]).to.be.equal(firstUnlock);
+                expect(withdrawal[1]).to.be.closeTo(unlockTime, BigNumber.from(10));
+            });
+
+            it("Should get claim delayed withdraw info by index", async () => {
+                let { core, maze, farming, vesting } = await loadFixture(deploys);
+
+                // Lock tokens and start farming
+
+                let transferAmount = parseEther("2");
+                let lockAmount = parseEther("1");
+                await maze.connect(ownerAcc).transfer(clientAcc1.address, transferAmount);
+                await maze.connect(clientAcc1).approve(farming.address, lockAmount.mul(BigNumber.from(2)));
+
+                await farming.connect(clientAcc1).lock(lockAmount);
+
+                let fiveYears = 3600 * 24 * 365 * 5;
+                await time.increase(fiveYears);
+
+                // Unlock all tokens before claiming
+                await farming.connect(clientAcc1).unlockAll();
+
+                expect(await farming.getStakerClaimWithdrawalsLength(clientAcc1.address)).to.be.equal(0);
+
+                let expectedReward1 = await farming.getReward(clientAcc1.address);
+                let claimTime = await time.latest();
+                await expect(farming.connect(clientAcc1).claim()).to.emit(farming, "Claimed");
+
+                let withdrawal = await farming.getStakerClaimDelayedWithdrawalByIndex(clientAcc1.address, 0);
+                
+                expect(withdrawal[0]).to.be.equal(expectedReward1);
+                expect(withdrawal[1]).to.be.closeTo(claimTime, BigNumber.from(10));
+            });
+
+            it("Should get claimable unlock delayed withdraw", async () => {
+                let { core, maze, farming, vesting } = await loadFixture(deploys);
+
+                let transferAmount = parseEther("6");
+                let lockAmount = parseEther("4");
+                let firstUnlock = parseEther("3");
+                let secondUnlock = parseEther("1");
+                await maze.connect(ownerAcc).transfer(clientAcc1.address, transferAmount);
+                await maze.connect(clientAcc1).approve(farming.address, lockAmount);
+
+                await farming.connect(clientAcc1).lock(lockAmount);
+
+                expect(await farming.getStakerUnlockWithdrawalsLength(clientAcc1.address)).to.be.equal(0);
+
+                let fiveYears = 3600 * 24 * 365 * 5;
+                await time.increase(fiveYears);
+                await expect(farming.connect(clientAcc1).unlock(firstUnlock)).to.emit(farming, "Unlocked");
+
+                let halfPeriod = (3600 * 24 * 21) / 2;
+                await time.increase(halfPeriod);
+
+                await expect(farming.connect(clientAcc1).unlock(secondUnlock)).to.emit(farming, "Unlocked");
+
+                expect(await farming.getStakerUnlockWithdrawalsLength(clientAcc1.address)).to.be.equal(2);
+
+                await time.increase(halfPeriod);
+
+                let withdrawals = await farming.connect(clientAcc1).getClaimableUserUnlockDelayedWithdrawals(clientAcc1.address);
+
+                expect(withdrawals.length).to.be.equal(1);
+                expect(withdrawals[0][0]).to.be.equal(firstUnlock);
+            });
+
+            it("Should get claimable claim delayed withdraw", async () => {
+                let { core, maze, farming, vesting } = await loadFixture(deploys);
+
+                // Lock tokens and start farming
+
+                let transferAmount = parseEther("2");
+                let lockAmount = parseEther("1");
+                await maze.connect(ownerAcc).transfer(clientAcc1.address, transferAmount);
+                await maze.connect(clientAcc1).approve(farming.address, lockAmount.mul(BigNumber.from(2)));
+
+                await farming.connect(clientAcc1).lock(lockAmount);
+
+                let fiveYears = 3600 * 24 * 365 * 5;
+                await time.increase(fiveYears);
+
+                // Unlock all tokens before claiming
+                await farming.connect(clientAcc1).unlockAll();
+
+                expect(await farming.getStakerClaimWithdrawalsLength(clientAcc1.address)).to.be.equal(0);
+
+                let expectedReward1 = await farming.getReward(clientAcc1.address);
+                await expect(farming.connect(clientAcc1).claim()).to.emit(farming, "Claimed");
+
+                await farming.connect(clientAcc1).lock(lockAmount);
+                await time.increase(fiveYears);
+                await farming.connect(clientAcc1).unlockAll();
+                let expectedReward2 = await farming.getReward(clientAcc1.address);
+                await expect(farming.connect(clientAcc1).claim()).to.emit(farming, "Claimed");
+
+                expect(await farming.getStakerClaimWithdrawalsLength(clientAcc1.address)).to.be.equal(2);
+
+                let withdrawals = await farming.getClaimableUserClaimDelayedWithdrawals(clientAcc1.address);
+
+                expect(withdrawals.length).to.be.equal(1);
+                expect(withdrawals[0][0]).to.be.equal(expectedReward1);
+            });
+
+            it("Should return zero claimable unlock delayed withdraw if withdrawal time not yet come", async () => {
+                let { core, maze, farming, vesting } = await loadFixture(deploys);
+
+                let transferAmount = parseEther("6");
+                let lockAmount = parseEther("4");
+                let firstUnlock = parseEther("3");
+                let secondUnlock = parseEther("1");
+                await maze.connect(ownerAcc).transfer(clientAcc1.address, transferAmount);
+                await maze.connect(clientAcc1).approve(farming.address, lockAmount);
+
+                await farming.connect(clientAcc1).lock(lockAmount);
+
+                expect(await farming.getStakerUnlockWithdrawalsLength(clientAcc1.address)).to.be.equal(0);
+
+                let fiveYears = 3600 * 24 * 365 * 5;
+                await time.increase(fiveYears);
+                await expect(farming.connect(clientAcc1).unlock(firstUnlock)).to.emit(farming, "Unlocked");
+
+                let halfPeriod = (3600 * 24 * 21) / 2;
+                await time.increase(halfPeriod);
+
+                await expect(farming.connect(clientAcc1).unlock(secondUnlock)).to.emit(farming, "Unlocked");
+
+                expect(await farming.getStakerUnlockWithdrawalsLength(clientAcc1.address)).to.be.equal(2);
+
+
+                let withdrawals = await farming.connect(clientAcc1).getClaimableUserUnlockDelayedWithdrawals(clientAcc1.address);
+
+                expect(withdrawals.length).to.be.equal(0);
+            });
+        });
     });
 
     describe("Setters", () => {
-        describe("Set minimum lock period", () => {
-            it("Should set new minimum lock period", async () => {
-                let { core, maze, farming, vesting } = await loadFixture(deploys);
-
-                let oldPeriod = await farming.minLockPeriod();
-
-                let period = 3600 * 24 * 365;
-                await expect(farming.connect(ownerAcc).setMinLockPeriod(period)).to.emit(
-                    farming,
-                    "MinLockPeriodChanged"
-                );
-
-                let newPeriod = await farming.minLockPeriod();
-
-                expect(newPeriod).to.not.equal(oldPeriod);
-                expect(newPeriod).to.equal(period);
-            });
-        });
-
         describe("Set daily rate", () => {
             it("Should set new daily rate", async () => {
                 let { core, maze, farming, vesting } = await loadFixture(deploys);
@@ -306,13 +443,11 @@ describe("Farming contract", () => {
                 ).to.emit(farming, "LockedOnBehalf");
                 let currentTime = await time.latest();
 
-                let [lockedAmount, startTime, endTime, reward] = await farming.getFarming(
+                let [lockedAmount, reward] = await farming.getFarming(
                     clientAcc1.address
                 );
 
                 expect(lockedAmount).to.equal(amount);
-                // Farming not claimed and not ended yet
-                expect(endTime).to.equal(currentTime + 30 * DAY);
                 // No rewards are assinged to user yet
                 expect(reward).to.equal(0);
 
@@ -342,13 +477,11 @@ describe("Farming contract", () => {
                 );
                 let currentTime = await time.latest();
 
-                let [lockedAmount2, startTime2, endTime2, reward2] = await farming.getFarming(
+                let [lockedAmount2, reward2] = await farming.getFarming(
                     clientAcc1.address
                 );
 
                 expect(lockedAmount2).to.equal(lockAmount);
-                // Farming not claimed and not ended yet
-                expect(endTime2).to.equal(currentTime + 30 * DAY);
                 // No rewards are assinged to user yet
                 expect(reward2).to.equal(0);
 
@@ -388,18 +521,25 @@ describe("Farming contract", () => {
 
                 await farming.connect(clientAcc1).lock(lockAmount);
 
+                expect(await farming.getStakerUnlockWithdrawalsLength(clientAcc1.address)).to.be.equal(0);
+
                 let fiveYears = 3600 * 24 * 365 * 5;
+                let twentyOneDays = 3600 * 24 * 21;
                 await time.increase(fiveYears);
                 await expect(farming.connect(clientAcc1).unlock(unlockAmount)).to.emit(
                     farming,
                     "Unlocked"
                 );
 
+                expect(await farming.getStakerUnlockWithdrawalsLength(clientAcc1.address)).to.be.equal(1);
+                let withdrawals = await farming.getUserUnlockDelayedWithdrawals(clientAcc1.address);
+                let delayedUnlockAmount = withdrawals[0][0];
+
                 let clientEndBalance = await maze.balanceOf(clientAcc1.address);
                 let farmingEndBalance = await maze.balanceOf(farming.address);
 
-                expect(clientEndBalance).to.equal(clientStartBalance.sub(unlockAmount));
-                expect(farmingEndBalance).to.equal(farmingStartBalance.add(unlockAmount));
+                expect(delayedUnlockAmount).to.equal(unlockAmount);
+                expect(farmingEndBalance).to.equal(farmingStartBalance.add(lockAmount));
             });
             it("Should unlock all user's tokens", async () => {
                 let { core, maze, farming, vesting } = await loadFixture(deploys);
@@ -414,18 +554,24 @@ describe("Farming contract", () => {
 
                 await farming.connect(clientAcc1).lock(lockAmount);
 
+                expect(await farming.getStakerUnlockWithdrawalsLength(clientAcc1.address)).to.be.equal(0);
+
                 let fiveYears = 3600 * 24 * 365 * 5;
                 await time.increase(fiveYears);
                 await expect(farming.connect(clientAcc1).unlock(lockAmount)).to.emit(
                     farming,
                     "Unlocked"
                 );
+                
+                expect(await farming.getStakerUnlockWithdrawalsLength(clientAcc1.address)).to.be.equal(1);
+                let withdrawals = await farming.getUserUnlockDelayedWithdrawals(clientAcc1.address);
+                let delayedUnlockAmount = withdrawals[0][0];
 
                 let clientEndBalance = await maze.balanceOf(clientAcc1.address);
                 let farmingEndBalance = await maze.balanceOf(farming.address);
 
-                expect(clientEndBalance).to.equal(clientStartBalance);
-                expect(farmingEndBalance).to.equal(farmingStartBalance);
+                expect(delayedUnlockAmount).to.equal(lockAmount);
+                expect(farmingEndBalance).to.equal(farmingStartBalance.add(lockAmount));
             });
             describe("Fails", () => {
                 it("Should fail to unlock zero amount of tokens", async () => {
@@ -472,20 +618,6 @@ describe("Farming contract", () => {
                         farming.connect(clientAcc1).unlock(lockAmount.mul(2))
                     ).to.be.revertedWith("Farming: Insufficient funds");
                 });
-                it("Should fail to unlock too early", async () => {
-                    let { core, maze, farming, vesting } = await loadFixture(deploys);
-
-                    let transferAmount = parseEther("2");
-                    let lockAmount = parseEther("1");
-                    await maze.connect(ownerAcc).transfer(clientAcc1.address, transferAmount);
-                    await maze.connect(clientAcc1).approve(farming.address, lockAmount);
-
-                    await farming.connect(clientAcc1).lock(lockAmount);
-
-                    await expect(farming.connect(clientAcc1).unlock(lockAmount)).to.be.revertedWith(
-                        "Farming: Minimum lock period has not passed yet"
-                    );
-                });
             });
         });
         describe("Unlock all", () => {
@@ -502,15 +634,21 @@ describe("Farming contract", () => {
 
                 await farming.connect(clientAcc1).lock(lockAmount);
 
+                expect(await farming.getStakerUnlockWithdrawalsLength(clientAcc1.address)).to.be.equal(0);
+
                 let fiveYears = 3600 * 24 * 365 * 5;
                 await time.increase(fiveYears);
                 await expect(farming.connect(clientAcc1).unlockAll()).to.emit(farming, "Unlocked");
 
+                expect(await farming.getStakerUnlockWithdrawalsLength(clientAcc1.address)).to.be.equal(1);
+                let withdrawals = await farming.getUserUnlockDelayedWithdrawals(clientAcc1.address);
+                let delayedUnlockAmount = withdrawals[0][0];
+
                 let clientEndBalance = await maze.balanceOf(clientAcc1.address);
                 let farmingEndBalance = await maze.balanceOf(farming.address);
 
-                expect(clientEndBalance).to.equal(clientStartBalance);
-                expect(farmingEndBalance).to.equal(farmingStartBalance);
+                expect(delayedUnlockAmount).to.equal(lockAmount);
+                expect(farmingEndBalance).to.equal(farmingStartBalance.add(lockAmount));
             });
         });
         describe("Unlock from Vesting", () => {
@@ -554,6 +692,330 @@ describe("Farming contract", () => {
                 });
             });
         });
+        describe("Withdraw delayed unlock", () => {
+            it("Should withdraw user's unlocked tokens", async () => {
+                let { core, maze, farming, vesting } = await loadFixture(deploys);
+
+                let transferAmount = parseEther("2");
+                let lockAmount = parseEther("1");
+                await maze.connect(ownerAcc).transfer(clientAcc1.address, transferAmount);
+                await maze.connect(clientAcc1).approve(farming.address, lockAmount);
+
+                await farming.connect(clientAcc1).lock(lockAmount);
+
+                let clientStartBalance = await maze.balanceOf(clientAcc1.address);
+                let farmingStartBalance = await maze.balanceOf(farming.address);
+
+                let fiveYears = 3600 * 24 * 365 * 5;
+                await time.increase(fiveYears);
+                await expect(farming.connect(clientAcc1).unlockAll()).to.emit(farming, "Unlocked");
+
+                await expect(farming.connect(clientAcc1).withdrawDelayedUnlock(10)).to.be.revertedWith("Farming: No tokens ready for withdrawal");
+
+                let twentyOneDays = 3600 * 24 * 21;
+                await time.increase(twentyOneDays);
+
+                await expect(farming.connect(clientAcc1).withdrawDelayedUnlock(10)).to.be.emit(farming, "DelayedUnlockWithdrawed");
+
+                let clientEndBalance = await maze.balanceOf(clientAcc1.address);
+                let farmingEndBalance = await maze.balanceOf(farming.address);
+
+                expect(clientEndBalance).to.be.equal(clientStartBalance.add(lockAmount));
+                expect(farmingEndBalance).to.be.equal(farmingStartBalance.sub(lockAmount));
+            });
+
+            it("Should withdraw several user's unlocked tokens", async () => {
+                let { core, maze, farming, vesting } = await loadFixture(deploys);
+
+                let transferAmount = parseEther("2");
+                let lockAmount = parseEther("1");
+                await maze.connect(ownerAcc).transfer(clientAcc1.address, transferAmount);
+                await maze.connect(clientAcc1).approve(farming.address, lockAmount);
+
+                await farming.connect(clientAcc1).lock(lockAmount);
+
+                let clientStartBalance = await maze.balanceOf(clientAcc1.address);
+                let farmingStartBalance = await maze.balanceOf(farming.address);
+
+                expect(await farming.getStakerUnlockWithdrawalsLength(clientAcc1.address)).to.be.equal(0);
+
+                let fiveYears = 3600 * 24 * 365 * 5;
+                await time.increase(fiveYears);
+                await expect(farming.connect(clientAcc1).unlock(lockAmount.div(BigNumber.from(4)))).to.emit(farming, "Unlocked");
+                await expect(farming.connect(clientAcc1).unlock(lockAmount.div(BigNumber.from(4)))).to.emit(farming, "Unlocked");
+                await expect(farming.connect(clientAcc1).unlock(lockAmount.div(BigNumber.from(4)))).to.emit(farming, "Unlocked");
+                await expect(farming.connect(clientAcc1).unlock(lockAmount.div(BigNumber.from(4)))).to.emit(farming, "Unlocked");
+
+                expect(await farming.getStakerUnlockWithdrawalsLength(clientAcc1.address)).to.be.equal(4);
+
+                await expect(farming.connect(clientAcc1).withdrawDelayedUnlock(4)).to.be.revertedWith("Farming: No tokens ready for withdrawal");
+
+                let twentyOneDays = 3600 * 24 * 21;
+                await time.increase(twentyOneDays);
+
+                await expect(farming.connect(clientAcc1).withdrawDelayedUnlock(4)).to.be.emit(farming, "DelayedUnlockWithdrawed");
+
+                let clientEndBalance = await maze.balanceOf(clientAcc1.address);
+                let farmingEndBalance = await maze.balanceOf(farming.address);
+
+                expect(clientEndBalance).to.be.equal(clientStartBalance.add(lockAmount));
+                expect(farmingEndBalance).to.be.equal(farmingStartBalance.sub(lockAmount));
+            });
+
+            it("Should withdraw only claimable user's unlocked tokens", async () => {
+                let { core, maze, farming, vesting } = await loadFixture(deploys);
+
+                let transferAmount = parseEther("6");
+                let lockAmount = parseEther("4");
+                let firstUnlock = parseEther("3");
+                let secondUnlock = parseEther("1");
+                await maze.connect(ownerAcc).transfer(clientAcc1.address, transferAmount);
+                await maze.connect(clientAcc1).approve(farming.address, lockAmount);
+
+                await farming.connect(clientAcc1).lock(lockAmount);
+
+                let clientStartBalance = await maze.balanceOf(clientAcc1.address);
+                let farmingStartBalance = await maze.balanceOf(farming.address);
+
+                expect(await farming.getStakerUnlockWithdrawalsLength(clientAcc1.address)).to.be.equal(0);
+
+                let fiveYears = 3600 * 24 * 365 * 5;
+                await time.increase(fiveYears);
+                await expect(farming.connect(clientAcc1).unlock(firstUnlock)).to.emit(farming, "Unlocked");
+
+                let halfPeriod = (3600 * 24 * 21) / 2;
+                await time.increase(halfPeriod);
+
+                await expect(farming.connect(clientAcc1).unlock(secondUnlock)).to.emit(farming, "Unlocked");
+
+                expect(await farming.getStakerUnlockWithdrawalsLength(clientAcc1.address)).to.be.equal(2);
+
+                await expect(farming.connect(clientAcc1).withdrawDelayedUnlock(2)).to.be.revertedWith("Farming: No tokens ready for withdrawal");
+
+                await time.increase(halfPeriod);
+
+                await expect(farming.connect(clientAcc1).withdrawDelayedUnlock(2)).to.be.emit(farming, "DelayedUnlockWithdrawed");
+
+                let clientEndBalance = await maze.balanceOf(clientAcc1.address);
+                let farmingEndBalance = await maze.balanceOf(farming.address);
+
+                expect(clientEndBalance).to.be.equal(clientStartBalance.add(firstUnlock));
+                expect(farmingEndBalance).to.be.equal(farmingStartBalance.sub(firstUnlock));
+            });
+
+            it("Should withdraw only setted amount withdrawals", async () => {
+                let { core, maze, farming, vesting } = await loadFixture(deploys);
+
+                let transferAmount = parseEther("2");
+                let lockAmount = parseEther("1");
+                await maze.connect(ownerAcc).transfer(clientAcc1.address, transferAmount);
+                await maze.connect(clientAcc1).approve(farming.address, lockAmount);
+
+                await farming.connect(clientAcc1).lock(lockAmount);
+
+                let clientStartBalance = await maze.balanceOf(clientAcc1.address);
+                let farmingStartBalance = await maze.balanceOf(farming.address);
+
+                expect(await farming.getStakerUnlockWithdrawalsLength(clientAcc1.address)).to.be.equal(0);
+
+                let fiveYears = 3600 * 24 * 365 * 5;
+                await time.increase(fiveYears);
+                await expect(farming.connect(clientAcc1).unlock(lockAmount.div(BigNumber.from(4)))).to.emit(farming, "Unlocked");
+                await expect(farming.connect(clientAcc1).unlock(lockAmount.div(BigNumber.from(4)))).to.emit(farming, "Unlocked");
+                await expect(farming.connect(clientAcc1).unlock(lockAmount.div(BigNumber.from(4)))).to.emit(farming, "Unlocked");
+                await expect(farming.connect(clientAcc1).unlock(lockAmount.div(BigNumber.from(4)))).to.emit(farming, "Unlocked");
+
+                expect(await farming.getStakerUnlockWithdrawalsLength(clientAcc1.address)).to.be.equal(4);
+
+                await expect(farming.connect(clientAcc1).withdrawDelayedUnlock(4)).to.be.revertedWith("Farming: No tokens ready for withdrawal");
+
+                let twentyOneDays = 3600 * 24 * 21;
+                await time.increase(twentyOneDays);
+
+                await expect(farming.connect(clientAcc1).withdrawDelayedUnlock(1)).to.be.emit(farming, "DelayedUnlockWithdrawed");
+
+                let clientEndBalance = await maze.balanceOf(clientAcc1.address);
+                let farmingEndBalance = await maze.balanceOf(farming.address);
+
+                expect(clientEndBalance).to.be.equal(clientStartBalance.add(lockAmount.div(BigNumber.from(4))));
+                expect(farmingEndBalance).to.be.equal(farmingStartBalance.sub(lockAmount.div(BigNumber.from(4))));
+            });
+        });
+
+        describe("Withdraw delayed claim", () => {
+            it("Should withdraw user's claimed tokens", async () => {
+                let { core, maze, farming, vesting } = await loadFixture(deploys);
+
+                // Lock tokens and start farming
+
+                let transferAmount = parseEther("2");
+                let lockAmount = parseEther("1");
+                await maze.connect(ownerAcc).transfer(clientAcc1.address, transferAmount);
+                await maze.connect(clientAcc1).approve(farming.address, lockAmount);
+
+                await farming.connect(clientAcc1).lock(lockAmount);
+
+                let fiveYears = 3600 * 24 * 365 * 5;
+                await time.increase(fiveYears);
+
+                // Unlock all tokens before claiming
+                await farming.connect(clientAcc1).unlockAll();
+
+                let expectedReward = await farming.getReward(clientAcc1.address);
+                await expect(farming.connect(clientAcc1).claim()).to.emit(farming, "Claimed");
+
+                let clientStartBalance = await maze.balanceOf(clientAcc1.address);
+                let farmingStartBalance = await maze.balanceOf(farming.address);
+
+                await expect(farming.connect(clientAcc1).withdrawDelayedClaim(10)).to.be.revertedWith("Farming: No tokens ready for withdrawal");
+
+                let oneYear = 3600 * 24 * 365;
+                await time.increase(oneYear);
+
+                await expect(farming.connect(clientAcc1).withdrawDelayedClaim(10)).to.be.emit(farming, "DelayedClaimWithdrawed");
+
+                let clientEndBalance = await maze.balanceOf(clientAcc1.address);
+                let farmingEndBalance = await maze.balanceOf(farming.address);
+
+                expect(clientEndBalance).to.be.equal(clientStartBalance.add(expectedReward));
+                expect(farmingEndBalance).to.be.equal(farmingStartBalance.sub(expectedReward));
+            });
+
+            it("Should withdraw several user's claimed tokens", async () => {
+                let { core, maze, farming, vesting } = await loadFixture(deploys);
+
+                // Lock tokens and start farming
+
+                let transferAmount = parseEther("2");
+                let lockAmount = parseEther("1");
+                await maze.connect(ownerAcc).transfer(clientAcc1.address, transferAmount);
+                await maze.connect(clientAcc1).approve(farming.address, lockAmount.mul(BigNumber.from(2)));
+
+                await farming.connect(clientAcc1).lock(lockAmount);
+
+                let fiveYears = 3600 * 24 * 365 * 5;
+                await time.increase(fiveYears);
+
+                // Unlock all tokens before claiming
+                await farming.connect(clientAcc1).unlockAll();
+
+                expect(await farming.getStakerClaimWithdrawalsLength(clientAcc1.address)).to.be.equal(0);
+
+                let expectedReward1 = await farming.getReward(clientAcc1.address);
+                await expect(farming.connect(clientAcc1).claim()).to.emit(farming, "Claimed");
+
+                await farming.connect(clientAcc1).lock(lockAmount);
+                await time.increase(fiveYears);
+                await farming.connect(clientAcc1).unlockAll();
+                let expectedReward2 = await farming.getReward(clientAcc1.address);
+                await expect(farming.connect(clientAcc1).claim()).to.emit(farming, "Claimed");
+
+                expect(await farming.getStakerClaimWithdrawalsLength(clientAcc1.address)).to.be.equal(2);
+
+                let clientStartBalance = await maze.balanceOf(clientAcc1.address);
+                let farmingStartBalance = await maze.balanceOf(farming.address);
+
+                let oneYear = 3600 * 24 * 365;
+                await time.increase(oneYear);
+
+                await expect(farming.connect(clientAcc1).withdrawDelayedClaim(10)).to.be.emit(farming, "DelayedClaimWithdrawed");
+
+                let clientEndBalance = await maze.balanceOf(clientAcc1.address);
+                let farmingEndBalance = await maze.balanceOf(farming.address);
+
+                expect(clientEndBalance).to.be.equal(clientStartBalance.add(expectedReward1).add(expectedReward2));
+                expect(farmingEndBalance).to.be.equal(farmingStartBalance.sub(expectedReward1).sub(expectedReward2));
+            });
+
+            it("Should withdraw only claimable user's claimed tokens", async () => {
+                let { core, maze, farming, vesting } = await loadFixture(deploys);
+
+                // Lock tokens and start farming
+
+                let transferAmount = parseEther("2");
+                let lockAmount = parseEther("1");
+                await maze.connect(ownerAcc).transfer(clientAcc1.address, transferAmount);
+                await maze.connect(clientAcc1).approve(farming.address, lockAmount.mul(BigNumber.from(2)));
+
+                await farming.connect(clientAcc1).lock(lockAmount);
+
+                let fiveYears = 3600 * 24 * 365 * 5;
+                await time.increase(fiveYears);
+
+                // Unlock all tokens before claiming
+                await farming.connect(clientAcc1).unlockAll();
+
+                expect(await farming.getStakerClaimWithdrawalsLength(clientAcc1.address)).to.be.equal(0);
+
+                let expectedReward1 = await farming.getReward(clientAcc1.address);
+                await expect(farming.connect(clientAcc1).claim()).to.emit(farming, "Claimed");
+
+                await farming.connect(clientAcc1).lock(lockAmount);
+                await time.increase(fiveYears);
+                await farming.connect(clientAcc1).unlockAll();
+                let expectedReward2 = await farming.getReward(clientAcc1.address);
+                await expect(farming.connect(clientAcc1).claim()).to.emit(farming, "Claimed");
+
+                expect(await farming.getStakerClaimWithdrawalsLength(clientAcc1.address)).to.be.equal(2);
+
+                let clientStartBalance = await maze.balanceOf(clientAcc1.address);
+                let farmingStartBalance = await maze.balanceOf(farming.address);
+
+                await expect(farming.connect(clientAcc1).withdrawDelayedClaim(10)).to.be.emit(farming, "DelayedClaimWithdrawed");
+
+                let clientEndBalance = await maze.balanceOf(clientAcc1.address);
+                let farmingEndBalance = await maze.balanceOf(farming.address);
+
+                expect(clientEndBalance).to.be.equal(clientStartBalance.add(expectedReward1));
+                expect(farmingEndBalance).to.be.equal(farmingStartBalance.sub(expectedReward1));
+            });
+
+            it("Should withdraw only settet amount withdrawals", async () => {
+                let { core, maze, farming, vesting } = await loadFixture(deploys);
+
+                // Lock tokens and start farming
+
+                let transferAmount = parseEther("2");
+                let lockAmount = parseEther("1");
+                await maze.connect(ownerAcc).transfer(clientAcc1.address, transferAmount);
+                await maze.connect(clientAcc1).approve(farming.address, lockAmount.mul(BigNumber.from(2)));
+
+                await farming.connect(clientAcc1).lock(lockAmount);
+
+                let fiveYears = 3600 * 24 * 365 * 5;
+                await time.increase(fiveYears);
+
+                // Unlock all tokens before claiming
+                await farming.connect(clientAcc1).unlockAll();
+
+                expect(await farming.getStakerClaimWithdrawalsLength(clientAcc1.address)).to.be.equal(0);
+
+                let expectedReward1 = await farming.getReward(clientAcc1.address);
+                await expect(farming.connect(clientAcc1).claim()).to.emit(farming, "Claimed");
+
+                await farming.connect(clientAcc1).lock(lockAmount);
+                await time.increase(fiveYears);
+                await farming.connect(clientAcc1).unlockAll();
+                let expectedReward2 = await farming.getReward(clientAcc1.address);
+                await expect(farming.connect(clientAcc1).claim()).to.emit(farming, "Claimed");
+
+                expect(await farming.getStakerClaimWithdrawalsLength(clientAcc1.address)).to.be.equal(2);
+
+                let clientStartBalance = await maze.balanceOf(clientAcc1.address);
+                let farmingStartBalance = await maze.balanceOf(farming.address);
+
+                let oneYear = 3600 * 24 * 365;
+                await time.increase(oneYear);
+
+                await expect(farming.connect(clientAcc1).withdrawDelayedClaim(1)).to.be.emit(farming, "DelayedClaimWithdrawed");
+
+                let clientEndBalance = await maze.balanceOf(clientAcc1.address);
+                let farmingEndBalance = await maze.balanceOf(farming.address);
+
+                expect(clientEndBalance).to.be.equal(clientStartBalance.add(expectedReward1));
+                expect(farmingEndBalance).to.be.equal(farmingStartBalance.sub(expectedReward1));
+            });
+        });
     });
 
     describe("Claim", () => {
@@ -575,83 +1037,46 @@ describe("Farming contract", () => {
             // Unlock all tokens before claiming
             await farming.connect(clientAcc1).unlockAll();
 
-            // Claim #1
+            expect(await farming.getStakerClaimWithdrawalsLength(clientAcc1.address)).to.be.equal(0);
+
             // No tokens should be trasferred
-            let farmingStartBalance1 = await maze.balanceOf(farming.address);
-            await expect(farming.connect(clientAcc1).claim()).to.emit(farming, "ClaimAttempt");
-            let farmingEndBalance1 = await maze.balanceOf(farming.address);
-            expect(farmingStartBalance1).to.equal(farmingEndBalance1);
-
-            // Wait for 1 year (min gap between claims)
-            let oneYear = 3600 * 24 * 365;
-            await time.increase(oneYear);
-
-            // Claim #2
-            // Should transfer reward tokens
+            let farmingStartBalance = await maze.balanceOf(farming.address);
             let expectedReward = await farming.getReward(clientAcc1.address);
-            let clientStartBalance2 = await maze.balanceOf(clientAcc1.address);
-            let farmingStartBalance2 = await maze.balanceOf(farming.address);
             await expect(farming.connect(clientAcc1).claim()).to.emit(farming, "Claimed");
-            let clientEndBalance2 = await maze.balanceOf(clientAcc1.address);
-            let farmingEndBalance2 = await maze.balanceOf(farming.address);
+            let farmingEndBalance = await maze.balanceOf(farming.address);
+            expect(farmingStartBalance).to.equal(farmingEndBalance);
+            
+            expect(await farming.getStakerClaimWithdrawalsLength(clientAcc1.address)).to.be.equal(1);
+            let withdrawals = await farming.getUserClaimDelayedWithdrawals(clientAcc1.address);
+            let delayedClaimAmount = withdrawals[0][0];
 
-            expect(clientEndBalance2).to.equal(clientStartBalance2.add(expectedReward));
-            expect(farmingEndBalance2).to.equal(farmingStartBalance2.sub(expectedReward));
+            expect(delayedClaimAmount).to.equal(expectedReward);
+            expect(farmingEndBalance).to.equal(farmingStartBalance);
         });
 
-        describe("Fails", () => {
-            it("Should fail to claim before full unlock", async () => {
-                let { core, maze, farming, vesting } = await loadFixture(deploys);
+        // describe("Fails", () => {
+        //     it("Should fail to claim before full unlock", async () => {
+        //         let { core, maze, farming, vesting } = await loadFixture(deploys);
 
-                // Lock tokens and start farming
+        //         // Lock tokens and start farming
 
-                let transferAmount = parseEther("2");
-                let lockAmount = parseEther("1");
-                await maze.connect(ownerAcc).transfer(clientAcc1.address, transferAmount);
-                await maze.connect(clientAcc1).approve(farming.address, lockAmount);
+        //         let transferAmount = parseEther("2");
+        //         let lockAmount = parseEther("1");
+        //         await maze.connect(ownerAcc).transfer(clientAcc1.address, transferAmount);
+        //         await maze.connect(clientAcc1).approve(farming.address, lockAmount);
 
-                // Lock twice to recalculate reward
-                await farming.connect(clientAcc1).lock(lockAmount.div(2));
-                await farming.connect(clientAcc1).lock(lockAmount.div(2));
+        //         // Lock twice to recalculate reward
+        //         await farming.connect(clientAcc1).lock(lockAmount.div(2));
+        //         await farming.connect(clientAcc1).lock(lockAmount.div(2));
 
-                let fiveYears = 3600 * 24 * 365 * 5;
-                await time.increase(fiveYears);
+        //         let fiveYears = 3600 * 24 * 365 * 5;
+        //         await time.increase(fiveYears);
 
-                await expect(farming.connect(clientAcc1).claim()).to.be.revertedWith(
-                    "Farming: Unable to claim before full unlock"
-                );
-            });
-
-            it("Should fail to claim second time too soon", async () => {
-                let { core, maze, farming, vesting } = await loadFixture(deploys);
-
-                // Lock tokens and start farming
-
-                let transferAmount = parseEther("2");
-                let lockAmount = parseEther("1");
-                await maze.connect(ownerAcc).transfer(clientAcc1.address, transferAmount);
-                await maze.connect(clientAcc1).approve(farming.address, lockAmount);
-
-                await farming.connect(clientAcc1).lock(lockAmount);
-
-                let fiveYears = 3600 * 24 * 365 * 5;
-                await time.increase(fiveYears);
-
-                // Unlock all tokens before claiming
-                await farming.connect(clientAcc1).unlockAll();
-
-                // Claim #1
-                let farmingStartBalance1 = await maze.balanceOf(farming.address);
-                await expect(farming.connect(clientAcc1).claim()).to.emit(farming, "ClaimAttempt");
-                let farmingEndBalance1 = await maze.balanceOf(farming.address);
-                expect(farmingStartBalance1).to.equal(farmingEndBalance1);
-
-                // Claim #2
-                await expect(farming.connect(clientAcc1).claim()).to.be.revertedWith(
-                    "Farming: Minimum interval between claimes not passed"
-                );
-            });
-        });
+        //         await expect(farming.connect(clientAcc1).claim()).to.be.revertedWith(
+        //             "Farming: Unable to claim before full unlock"
+        //         );
+        //     });
+        // });
     });
 
     describe("Internal functions", () => {
@@ -1742,8 +2167,6 @@ describe("Farming contract", () => {
                 await maze.connect(clientAcc1).approve(farming.address, transferAmount);
 
                 await farming.connect(clientAcc1).lock(lockAmount);
-                let farmingStart = await farming.farmingStart(clientAcc1.address);
-                expect(farmingStart).to.equal(await time.latest());
 
                 let fiveYears = 3600 * 24 * 365 * 5;
                 await time.increase(fiveYears);
@@ -1752,20 +2175,10 @@ describe("Farming contract", () => {
                 await farming.connect(clientAcc1).unlockAll();
 
                 // Claim #1
-                await expect(farming.connect(clientAcc1).claim()).to.emit(farming, "ClaimAttempt");
-
-                // Wait for 1 year (min gap between claims)
-                let oneYear = 3600 * 24 * 365;
-                await time.increase(oneYear);
-
                 await expect(farming.connect(clientAcc1).claim()).to.emit(farming, "Claimed");
-                farmingStart = await farming.farmingStart(clientAcc1.address);
-                expect(farmingStart).to.equal(0);
 
                 // Do lock-claim routine again
                 await farming.connect(clientAcc1).lock(lockAmount);
-                farmingStart = await farming.farmingStart(clientAcc1.address);
-                expect(farmingStart).to.equal(await time.latest());
 
                 await time.increase(fiveYears);
 
@@ -1773,14 +2186,7 @@ describe("Farming contract", () => {
                 await farming.connect(clientAcc1).unlockAll();
 
                 // Claim #1
-                await expect(farming.connect(clientAcc1).claim()).to.emit(farming, "ClaimAttempt");
-
-                // Wait for 1 year (min gap between claims)
-                await time.increase(oneYear);
-
                 await expect(farming.connect(clientAcc1).claim()).to.emit(farming, "Claimed");
-                farmingStart = await farming.farmingStart(clientAcc1.address);
-                expect(farmingStart).to.equal(0);
             });
         });
     });

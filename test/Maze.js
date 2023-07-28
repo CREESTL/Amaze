@@ -7,6 +7,8 @@ const parseEther = ethers.utils.parseEther;
 
 let BigNumber = ethers.BigNumber;
 
+const swapRouterAddress = "0xE592427A0AEce92De3Edee1F18E0157C05861564";
+
 describe("Maze token", () => {
     // Deploy all contracts before each test suite
     async function deploys() {
@@ -19,7 +21,7 @@ describe("Maze token", () => {
 
         // Deploy token
         let mazeFactory = await ethers.getContractFactory("Maze");
-        let maze = await mazeFactory.deploy(core.address);
+        let maze = await mazeFactory.deploy(core.address, swapRouterAddress);
         await maze.deployed();
 
         // Set addresses of all contract into core
@@ -65,7 +67,7 @@ describe("Maze token", () => {
         describe("Fails", () => {
             it("Should fail to deploy with zero core address", async () => {
                 let mazeFactory = await ethers.getContractFactory("Maze");
-                await expect(mazeFactory.deploy(zeroAddress)).to.be.revertedWith(
+                await expect(mazeFactory.deploy(zeroAddress, swapRouterAddress)).to.be.revertedWith(
                     "Maze: Core cannot have zero address"
                 );
             });
