@@ -60,7 +60,7 @@ abstract contract FarmingDelayedWithdrawals is IFarmingDelayedWithdrawals {
         );
     }
 
-    function getClaimableUserUnlocDelayedWithdrawals(address staker) external view returns (DelayedWithdrawal[] memory) {
+    function getClaimableUserUnlockDelayedWithdrawals(address staker) external view returns (DelayedWithdrawal[] memory) {
         return _getClaimableUserDelayedWithdrawals(
             _stakerWithdrawals[staker].unlockDelayedWithdrawals,
             _stakerWithdrawals[staker].unlockDelayedWithdrawalsCompleted,
@@ -109,10 +109,11 @@ abstract contract FarmingDelayedWithdrawals is IFarmingDelayedWithdrawals {
             unlockWithdrawalDelay
         );
 
-        if (amountToSend != 0) {
-            _stakerWithdrawals[msg.sender].unlockDelayedWithdrawalsCompleted += newDelayedWithdrawalsCompletedBefore;
-            ERC20(token).safeTransfer(staker, amountToSend);
-        }
+
+        require(amountToSend > 0, "Farming: No tokens ready for withdrawal");
+        
+        _stakerWithdrawals[msg.sender].unlockDelayedWithdrawalsCompleted += newDelayedWithdrawalsCompletedBefore;
+        ERC20(token).safeTransfer(staker, amountToSend);
 
         emit DelayedUnlockWithdrawed(msg.sender, amountToSend);
     }
@@ -134,10 +135,10 @@ abstract contract FarmingDelayedWithdrawals is IFarmingDelayedWithdrawals {
             claimWithdrawalDelay
         );
 
-        if (amountToSend != 0) {
-            _stakerWithdrawals[msg.sender].claimDelayedWithdrawalsCompleted += newDelayedWithdrawalsCompletedBefore;
-            ERC20(token).safeTransfer(staker, amountToSend);
-        }
+        require(amountToSend > 0, "Farming: No tokens ready for withdrawal");
+
+        _stakerWithdrawals[msg.sender].claimDelayedWithdrawalsCompleted += newDelayedWithdrawalsCompletedBefore;
+        ERC20(token).safeTransfer(staker, amountToSend);
 
         emit DelayedClaimWithdrawed(msg.sender, amountToSend);
     }

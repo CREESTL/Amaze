@@ -38,11 +38,6 @@ contract Farming is IFarming, FarmingDelayedWithdrawals, Ownable, Pausable {
     mapping(address => uint256) public balanceOf;
     /// @notice Vested amount of the user
     mapping(address => uint256) public vestedAmount;
-    /// @notice Mapping: user => struct storing all delayedWithdrawal info
-
-    /// @notice The minimum gap between two calls of `claim` function.
-    ///         After that gap tokens are actually claimed
-    uint256 public minClaimGap = DAY * 365;
 
     /// @dev Allows only the Vesting contract to call functions
     modifier onlyVesting() {

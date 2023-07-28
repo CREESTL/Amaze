@@ -23,10 +23,6 @@ interface IFarming {
     /// @param newLock The new locked amount of the user
     event Unlocked(address user, uint256 newLock);
 
-    /// @notice Indicates that first call to claim function was made
-    /// @param user The user who is trying to claim tokens
-    event ClaimAttempt(address user);
-
     /// @notice Indicates that tokens were claimed by the user
     /// @param user The user who claimed the tokens
     /// @param amount The amount of claimed tokens
@@ -43,11 +39,6 @@ interface IFarming {
     /// @notice Indicates that funds were added to the staking for distribution
     /// @param amount Token amount added
     event FundsAdded(uint256 amount);
-
-    /// @notice Indicates that locked amount of the user has decreased
-    /// @param user The user whos locked amount was decreased
-    /// @param amount The new locked amount of the user
-    event UnlockedOnBehalf(address user, uint256 amount);
 
     /// @notice Pause the contract
     function pause() external;
