@@ -12,6 +12,8 @@ import '@uniswap/v3-periphery/contracts/libraries/TransferHelper.sol';
 import "./interfaces/IMaze.sol";
 import "./interfaces/ICore.sol";
 
+import "hardhat/console.sol";
+
 /// @title ERC20 token with RFI logic
 /// @dev NOTE: This contract uses the principals of RFI tokens
 ///            for detailed documentation please see:
@@ -34,9 +36,9 @@ contract Maze is ERC20, IMaze, Ownable, Pausable {
     /// @notice List of DEX pairs for which a sale fee for the buy and sale of tokens will be taken.
     mapping(address => bool) public isSalePair;
 
-    ISwapRouter swapRouter;
+    ISwapRouter public swapRouter;
     uint24 public poolFee = 3000;
-    address public constant USDT = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
+    address public USDT;
     address public saleFeeReceiver;
 
     /// @notice The percentage of transferred tokens to be taken as fee for any token buy or sale in added DEX pairs 
@@ -50,13 +52,23 @@ contract Maze is ERC20, IMaze, Ownable, Pausable {
         _;
     }
 
-    constructor(address core_, address swapRouter_) ERC20("Maze", "MAZE") {
+    constructor(
+        address core_,
+        address swapRouter_,
+        address usdt_
+    ) ERC20("Maze", "MAZE") {
         require(core_ != address(0), "Maze: Core cannot have zero address");
+        require(swapRouter_ != address(0), "Maze: SwapRouter cannot have zero address");
+        require(usdt_ != address(0), "Maze: USDT cannot have zero address");
         core = ICore(core_);
         swapRouter = ISwapRouter(swapRouter_);
+        USDT = usdt_;
 
         // Whole supply of tokens is assigned to owner
         _mint(msg.sender, 100_000_000 * 1e18);
+        saleFeeReceiver = msg.sender;
+
+        setSaleFees(300);
     }
 
     /// @notice See {IMaze-approve}
@@ -188,21 +200,31 @@ contract Maze is ERC20, IMaze, Ownable, Pausable {
         if (isSalePair[to] && !isWhitelisted[from]) {
             saleFeeAmount = amount.mul(saleFeeInBP).div(percentConverter);
         }
+        console.log("Sale fee amount", saleFeeAmount);
+        console.log("Amount: ", amount);
+        console.log("BalanceOf from: ", balanceOf(from));
+        console.log("Address from: ", from);
+        console.log("Address to: ", to);
         uint256 amountWithFee = amount.add(saleFeeAmount);
 
         require(balanceOf(from) >= amountWithFee, "Maze: not enough tokens to pay the fee");
 
+        console.log("Before transfer");
         super._transfer(from, to, amount);
+        console.log("After transfer");
 
         if (saleFeeAmount > 0) {
+            console.log("Before fee transfer");
             super._transfer(from, address(this), saleFeeAmount);
-            _processSaleFees(saleFeeAmount);
+            console.log("After fee transfer");
+            // _processSaleFees(saleFeeAmount);
         }
     }
 
-    function _processSaleFees(uint256 saleFeeAmount) private {
+    function processSaleFees(uint256 saleFeeAmount) external {
         _approve(address(this), address(swapRouter), saleFeeAmount);
-
+        console.log("BalanceOf address this: ", balanceOf(address(this)));
+        console.log("Approved: ", allowance(address(this), address(swapRouter)));
         swapRouter.exactInputSingle(
             ISwapRouter.ExactInputSingleParams({
             tokenIn: address(this),
@@ -214,5 +236,6 @@ contract Maze is ERC20, IMaze, Ownable, Pausable {
             amountOutMinimum: 0,
             sqrtPriceLimitX96: 0
         }));
+        console.log("Swapped");
     }
 }
