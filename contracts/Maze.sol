@@ -21,6 +21,8 @@ import "hardhat/console.sol";
 contract Maze is ERC20, IMaze, Ownable, Pausable {
     using SafeMath for uint256;
 
+    bool internal inSwap = false;
+
     /// @notice The address of the Core contract
     ICore public core;
 
@@ -198,7 +200,8 @@ contract Maze is ERC20, IMaze, Ownable, Pausable {
     ) internal override ifNotBlacklisted(from) ifNotBlacklisted(to) {
         uint256 saleFeeAmount = 0;
         if (isSalePair[to] && !isWhitelisted[from]) {
-            saleFeeAmount = amount.mul(saleFeeInBP).div(percentConverter);
+            if (!inSwap)
+                saleFeeAmount = amount.mul(saleFeeInBP).div(percentConverter);
         }
         console.log("Sale fee amount", saleFeeAmount);
         console.log("Amount: ", amount);
@@ -217,11 +220,13 @@ contract Maze is ERC20, IMaze, Ownable, Pausable {
             console.log("Before fee transfer");
             super._transfer(from, address(this), saleFeeAmount);
             console.log("After fee transfer");
-            // _processSaleFees(saleFeeAmount);
+            inSwap = true;
+            _processSaleFees(saleFeeAmount);
+            inSwap = false;
         }
     }
 
-    function processSaleFees(uint256 saleFeeAmount) external {
+    function _processSaleFees(uint256 saleFeeAmount) private {
         _approve(address(this), address(swapRouter), saleFeeAmount);
         console.log("BalanceOf address this: ", balanceOf(address(this)));
         console.log("Approved: ", allowance(address(this), address(swapRouter)));

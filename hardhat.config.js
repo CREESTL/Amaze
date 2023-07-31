@@ -25,7 +25,7 @@ module.exports = {
         hardhat: {
             allowUnlimitedContractSize: true,
             forking: {
-                url: `https://goerli.infura.io/v3/${INFURA_API_KEY}`,
+                url: `https://mainnet.infura.io/v3/${INFURA_API_KEY}`,
             }
         },
         localhost: {

@@ -59,11 +59,6 @@ describe("Farming contract", () => {
         let vesting = await vestingFactory.deploy(core.address);
         await vesting.deployed();
 
-        // Exlude contracts from stakers
-        await maze.excludeFromStakers(farming.address);
-        await maze.excludeFromStakers(vesting.address);
-        await maze.excludeFromStakers(ownerAcc.address);
-        await maze.excludeFromStakers(clientAcc1.address);
         // Contracts do not pay fees
         await maze.addToWhitelist(farming.address);
         await maze.addToWhitelist(vesting.address);
