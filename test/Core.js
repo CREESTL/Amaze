@@ -5,8 +5,6 @@ const { loadFixture } = require("@nomicfoundation/hardhat-network-helpers");
 const zeroAddress = ethers.constants.AddressZero;
 const parseEther = ethers.utils.parseEther;
 
-const swapRouterAddress = "0xE592427A0AEce92De3Edee1F18E0157C05861564";
-
 let BigNumber = ethers.BigNumber;
 
 describe("Core", () => {
@@ -21,7 +19,7 @@ describe("Core", () => {
 
         // Deploy token
         let mazeFactory = await ethers.getContractFactory("Maze");
-        let maze = await mazeFactory.deploy(core.address, swapRouterAddress);
+        let maze = await mazeFactory.deploy(core.address);
         await maze.deployed();
 
         // Deploy farming
@@ -33,10 +31,6 @@ describe("Core", () => {
         let vestingFactory = await ethers.getContractFactory("Vesting");
         let vesting = await vestingFactory.deploy(core.address);
         await vesting.deployed();
-
-        // Contracts do not pay fees
-        await maze.addToWhitelist(farming.address);
-        await maze.addToWhitelist(vesting.address);
 
         // Set addresses of all contract into core
         await core.setMaze(maze.address);

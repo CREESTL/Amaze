@@ -7,8 +7,6 @@ const math = require("mathjs");
 const zeroAddress = ethers.constants.AddressZero;
 const parseEther = ethers.utils.parseEther;
 
-const swapRouterAddress = "0xE592427A0AEce92De3Edee1F18E0157C05861564";
-
 let BigNumber = ethers.BigNumber;
 let toBN = BigNumber.from;
 let converter = 1e4;
@@ -46,7 +44,7 @@ describe("Farming contract", () => {
 
         // Deploy token
         let mazeFactory = await ethers.getContractFactory("Maze");
-        let maze = await mazeFactory.deploy(core.address, swapRouterAddress);
+        let maze = await mazeFactory.deploy(core.address);
         await maze.deployed();
 
         // Deploy farming
@@ -58,11 +56,6 @@ describe("Farming contract", () => {
         let vestingFactory = await ethers.getContractFactory("Vesting");
         let vesting = await vestingFactory.deploy(core.address);
         await vesting.deployed();
-
-        // Contracts do not pay fees
-        await maze.addToWhitelist(farming.address);
-        await maze.addToWhitelist(vesting.address);
-        await maze.addToWhitelist(ownerAcc.address);
 
         // Set addresses of all contracts into core
         await core.setMaze(maze.address);
@@ -499,6 +492,36 @@ describe("Farming contract", () => {
                         "Farming: Lock amount cannot be zero"
                     );
                 });
+
+                it("Should fail to lock if staker address is zero", async () => {
+                    let { core, maze, farming, vesting } = await loadFixture(deploys);
+
+                    await core.setVesting(clientAcc1.address);
+
+                    let transferAmount = parseEther("2");
+                    let lockAmount = parseEther("0");
+                    await maze.connect(ownerAcc).transfer(clientAcc1.address, transferAmount);
+                    await maze.connect(clientAcc1).approve(farming.address, lockAmount);
+
+                    await expect(farming.connect(clientAcc1).lockOnBehalf(clientAcc1.address, zeroAddress, lockAmount)).be.revertedWith(
+                        "Farming: User cannot have zero address"
+                    );
+                });
+
+                it("Should fail if staker blacklisted", async () => {
+                    let { core, maze, farming, vesting } = await loadFixture(deploys);
+
+                    let transferAmount = parseEther("2");
+                    let lockAmount = parseEther("1");
+                    await maze.connect(ownerAcc).transfer(clientAcc1.address, transferAmount);
+                    await maze.connect(clientAcc1).approve(farming.address, lockAmount);
+
+                    await core.addToBlacklist(clientAcc1.address);
+
+                    await expect(farming.connect(clientAcc1).lock(lockAmount)).be.revertedWith(
+                        "Farming: Account is blacklisted"
+                    );
+                });
             });
         });
         describe("Unlock", () => {
@@ -613,6 +636,38 @@ describe("Farming contract", () => {
                         farming.connect(clientAcc1).unlock(lockAmount.mul(2))
                     ).to.be.revertedWith("Farming: Insufficient funds");
                 });
+                it("Should fail if msg.sender is blacklisted", async () => {
+                    let { core, maze, farming, vesting } = await loadFixture(deploys);
+
+                    let transferAmount = parseEther("2");
+                    let lockAmount = parseEther("1");
+                    await maze.connect(ownerAcc).transfer(clientAcc1.address, transferAmount);
+                    await maze.connect(clientAcc1).approve(farming.address, lockAmount);
+
+                    await farming.connect(clientAcc1).lock(lockAmount);
+
+                    await core.addToBlacklist(clientAcc1.address);
+                    await expect(
+                        farming.connect(clientAcc1).unlock(lockAmount)
+                    ).to.be.revertedWith("Farming: Account is blacklisted");
+                });
+                it("Should fail if staker is blacklisted", async () => {
+                    let { core, maze, farming, vesting } = await loadFixture(deploys);
+
+                    await core.setVesting(clientAcc1.address);
+
+                    let transferAmount = parseEther("2");
+                    let lockAmount = parseEther("1");
+                    await maze.connect(ownerAcc).transfer(clientAcc2.address, transferAmount);
+                    await maze.connect(clientAcc2).approve(farming.address, lockAmount);
+
+                    await farming.connect(clientAcc1).lockOnBehalf(clientAcc2.address, clientAcc2.address, lockAmount);
+
+                    await core.addToBlacklist(clientAcc2.address);
+                    await expect(
+                        farming.connect(clientAcc1).unlockFromVesting(clientAcc2.address, lockAmount)
+                    ).to.be.revertedWith("Farming: Account is blacklisted");
+                });
             });
         });
         describe("Unlock all", () => {
@@ -684,6 +739,18 @@ describe("Farming contract", () => {
                             .connect(ownerAcc)
                             .unlockFromVesting(clientAcc1.address, parseEther("1"))
                     ).to.be.revertedWith("Farming: Caller is not Vesting");
+                });
+
+                it("Should fail to unlock if no vested amount", async () => {
+                    let { core, maze, farming, vesting } = await loadFixture(deploys);
+
+                    await core.setVesting(ownerAcc.address);
+
+                    await expect(
+                        farming
+                            .connect(ownerAcc)
+                            .unlockFromVesting(clientAcc1.address, parseEther("1"))
+                    ).to.be.revertedWith("Farming: Insufficient vested amount");
                 });
             });
         });
