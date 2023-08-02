@@ -234,3 +234,14 @@ All contracts are [Pausable](https://docs.openzeppelin.com/contracts/4.x/api/sec
 <a name="issues"/>
 
 **[Known Issues]**
+
+<a name="changes"/>
+
+**[Last Changes]**
+- Instead of 45M, 44.5M Maze tokens are sent to farming
+- dailyRate in farming changed to 0.03% = 3 * 10^14
+- Changed the unlock mechanism in farming. Removed 30 day minLock and its checks. Now unlock can be done at any time, but in two steps. First, the user withdraws money from staking (using the unlock, unlockAll function), and then after 21 days he can take it to his wallet (withdrawDelayedUnlock function), until that moment they are stored on the contract
+- Changed the mechanism of claiming in farming. Now you can claim at any time, without the need to unlock tokens first. The claim takes place similarly to unlock in two stages, first collecting the reward (claim function), after which it can be withdrawn to the wallet after 365 days, until that moment they are stored on the contract
+- Removed unreachable checks from _unlock function
+- Added a check to the unlockFromVesting function. Without this check, with incorrect data, you could get an underflow error
+- All commissions and everything connected with them have been removed from the maze token: whitelist, reflection mechanism (used to distribute commissions between stakers). could have missed something. The token actually became ERC20 Burnable Pausable with blacklist
