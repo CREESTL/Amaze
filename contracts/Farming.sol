@@ -159,6 +159,7 @@ contract Farming is IFarming, FarmingDelayedWithdrawals, Ownable, Pausable {
 
     /// @notice See {IFarming-unlockFromVesting}
     function unlockFromVesting(address staker, uint256 amount) external onlyVesting {
+        require(vestedAmount[staker] >= amount, "Farming: Insufficient vested amount");
         vestedAmount[staker] -= amount;
         _unlock(staker, amount);
     }
@@ -210,10 +211,7 @@ contract Farming is IFarming, FarmingDelayedWithdrawals, Ownable, Pausable {
         ifNotBlacklisted(msg.sender)
         ifNotBlacklisted(staker)
     {
-        require(staker != address(0), "Farming: User cannot have zero address");
         require(amount > 0, "Farming: Unlock amount cannot be zero");
-        require(balanceOf[staker] > 0, "Farming: No tokens to unlock");
-        require(balanceOf[staker] >= amount, "Farming: Unlock greater than lock");
 
         if(msg.sender == core.vesting()) {
             ERC20(core.maze()).safeTransfer(staker, amount);
