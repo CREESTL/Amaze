@@ -8,11 +8,12 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "./interfaces/IFarming.sol";
+import "./libraries/FarmingDelayedWithdrawals.sol";
 import "./interfaces/ICore.sol";
 import "./interfaces/IMaze.sol";
 
 /// @title The rewards farming contract
-contract Farming is IFarming, Ownable, Pausable {
+contract Farming is IFarming, FarmingDelayedWithdrawals, Ownable, Pausable {
     using SafeERC20 for ERC20;
     uint256 constant DAY = 1 days;
 
@@ -20,7 +21,7 @@ contract Farming is IFarming, Ownable, Pausable {
     ICore public core;
     /// @notice Total available reward
     uint256 public totalReward;
-    /// @notice Daily reward rate 0.3% by default
+    /// @notice Daily reward rate 0.03% by default
     uint256 public dailyRate;
     /// @notice Last staking state update timestamp
     uint256 public updatedAt;
@@ -37,20 +38,6 @@ contract Farming is IFarming, Ownable, Pausable {
     mapping(address => uint256) public balanceOf;
     /// @notice Vested amount of the user
     mapping(address => uint256) public vestedAmount;
-    /// @notice Time after full unlock until user can't claim his rewards
-    mapping(address => uint256) public unlockCooldown;
-    /// @notice Time after that unlock is available
-    mapping(address => uint256) public lockEnds;
-    /// @notice First user lock timestamp
-    mapping(address => uint256) public farmingStart;
-
-    /// @notice The minumum lock period.
-    ///         During this period after lock users cannot unlock tokens.
-    ///         By default period is 1 month.
-    uint256 public minLockPeriod = DAY * 30;
-    /// @notice The minimum gap between two calls of `claim` function.
-    ///         After that gap tokens are actually claimed
-    uint256 public minClaimGap = DAY * 365;
 
     /// @dev Allows only the Vesting contract to call functions
     modifier onlyVesting() {
@@ -84,8 +71,8 @@ contract Farming is IFarming, Ownable, Pausable {
     constructor(address core_) {
         require(core_ != address(0), "Farming: Core cannot have zero address");
         core = ICore(core_);
-        // default rate 0.3%
-        dailyRate = 0.003 ether; // 100% - 1e18, 10% - 1e17, 1% - 1e16
+        // rate 0.03%
+        dailyRate = 3 * 10**14; // 100% - 1e18, 10% - 1e17, 1% - 1e16
     }
 
     /// @notice See {IFarming-pause}
@@ -99,9 +86,9 @@ contract Farming is IFarming, Ownable, Pausable {
     }
 
     /// @notice See {IFarming-getFarming}
-    function getFarming(address staker) external view returns (uint256, uint256, uint256, uint256) {
+    function getFarming(address staker) external view returns (uint256, uint256) {
         require(staker != address(0), "Farming: User cannot have zero address");
-        return (balanceOf[staker], farmingStart[staker], lockEnds[staker], rewards[staker]);
+        return (balanceOf[staker], rewards[staker]);
     }
 
     /// @notice See {IFarming-getReward}
@@ -127,12 +114,6 @@ contract Farming is IFarming, Ownable, Pausable {
     ) external onlyOwner whenNotPaused updateReward(address(0)) {
         totalReward += amount;
         emit FundsAdded(amount);
-    }
-
-    /// @notice See {IFarming-setMinLockPeriod}
-    function setMinLockPeriod(uint256 period) external onlyOwner whenNotPaused {
-        minLockPeriod = period;
-        emit MinLockPeriodChanged(period);
     }
 
     /// @notice See {IFarming-setDailyRate}
@@ -178,31 +159,33 @@ contract Farming is IFarming, Ownable, Pausable {
 
     /// @notice See {IFarming-unlockFromVesting}
     function unlockFromVesting(address staker, uint256 amount) external onlyVesting {
+        require(vestedAmount[staker] >= amount, "Farming: Insufficient vested amount");
         vestedAmount[staker] -= amount;
         _unlock(staker, amount);
+    }
+
+    function withdrawDelayedUnlock(uint256 maxNumberOfDelayedWithdrawalsToClaim) whenNotPaused ifNotBlacklisted(msg.sender) external {
+        _withdrawDelayedUnlock(maxNumberOfDelayedWithdrawalsToClaim, core.maze(), msg.sender);
+    }
+
+    /// @notice See {IFarming-unlockFromVesting}
+    function withdrawDelayedClaim(uint256 maxNumberOfDelayedWithdrawalsToClaim) whenNotPaused ifNotBlacklisted(msg.sender) external {
+        _withdrawDelayedClaim(maxNumberOfDelayedWithdrawalsToClaim, core.maze(), msg.sender);
     }
 
     /// @notice See {IFarming-claim}
     function claim() external whenNotPaused updateReward(msg.sender) ifNotBlacklisted(msg.sender) {
         uint256 reward = rewards[msg.sender];
         require(
-            balanceOf[msg.sender] == 0 && farmingStart[msg.sender] > 0,
-            "Farming: Unable to claim before full unlock"
+            reward > 0,
+            "Farming: No reward to claim"
         );
 
-        if (unlockCooldown[msg.sender] == 0) {
-            unlockCooldown[msg.sender] = block.timestamp + minClaimGap;
-            emit ClaimAttempt(msg.sender);
-            return;
-        }
+        rewards[msg.sender] = 0;
 
-        if (unlockCooldown[msg.sender] != 0 && unlockCooldown[msg.sender] <= block.timestamp) {
-            rewards[msg.sender] = 0;
-            ERC20(core.maze()).safeTransfer(msg.sender, reward);
-            unlockCooldown[msg.sender] = 0;
-            farmingStart[msg.sender] = 0;
-            emit Claimed(msg.sender, reward);
-        } else revert("Farming: Minimum interval between claimes not passed");
+        _createClaimDelayedWithdraw(msg.sender, reward);
+
+        emit Claimed(msg.sender, reward);
     }
 
     function _lock(
@@ -214,11 +197,6 @@ contract Farming is IFarming, Ownable, Pausable {
         require(amount > 0, "Farming: Lock amount cannot be zero");
         balanceOf[staker] += amount;
         totalSupply += amount;
-
-        if (lockEnds[staker] == 0) {
-            farmingStart[staker] = block.timestamp;
-            lockEnds[staker] = block.timestamp + minLockPeriod;
-        } else lockEnds[staker] += minLockPeriod;
 
         ERC20(core.maze()).safeTransferFrom(payer, address(this), amount);
     }
@@ -233,19 +211,16 @@ contract Farming is IFarming, Ownable, Pausable {
         ifNotBlacklisted(msg.sender)
         ifNotBlacklisted(staker)
     {
-        require(staker != address(0), "Farming: User cannot have zero address");
         require(amount > 0, "Farming: Unlock amount cannot be zero");
-        require(balanceOf[staker] > 0, "Farming: No tokens to unlock");
-        require(balanceOf[staker] >= amount, "Farming: Unlock greater than lock");
-        require(
-            lockEnds[staker] <= block.timestamp,
-            "Farming: Minimum lock period has not passed yet"
-        );
+
+        if(msg.sender == core.vesting()) {
+            ERC20(core.maze()).safeTransfer(staker, amount);
+        } else {
+            _createUnlockDelayedWithdraw(staker, amount);
+        }
+
         balanceOf[staker] -= amount;
         totalSupply -= amount;
-        ERC20(core.maze()).safeTransfer(staker, amount);
-
-        if (balanceOf[staker] == 0) lockEnds[staker] = 0;
 
         emit Unlocked(staker, amount);
     }

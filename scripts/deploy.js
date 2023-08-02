@@ -9,7 +9,7 @@ const fileName = "./deployOutput.json";
 const OUTPUT_DEPLOY = require(fileName);
 
 let contractName;
-let amountToFarming = 45000000 * 1e18; //45 mil
+let amountToFarming = BigInt(44500000) * BigInt(1e18); //44.5 mil
 
 async function main() {
     console.log(`[NOTICE!] Chain of deployment: ${network.name}`);
@@ -158,15 +158,6 @@ async function main() {
     console.log(`[${contractName}]: Verification Finished!`);
 
     // ==========NOTICE=============
-
-    // Exlude contracts from stakers
-    await maze.excludeFromStakers(farming.address);
-    await maze.excludeFromStakers(vesting.address);
-
-    // Contracts do not pay fees
-    await maze.addToWhitelist(farming.address);
-    await maze.addToWhitelist(vesting.address);
-
     // Core contract is not added anywhere because it
     // cannot process tokens
 
@@ -175,7 +166,7 @@ async function main() {
     await core.setFarming(farming.address);
     await core.setVesting(vesting.address);
 
-    // Transfer 45M tokens to the farming
+    // Transfer 44.5M tokens to the farming
     await maze.transfer(farming.address, amountToFarming);
     await farming.notifyRewardAmount(amountToFarming);
 

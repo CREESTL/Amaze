@@ -23,10 +23,6 @@ interface IFarming {
     /// @param newLock The new locked amount of the user
     event Unlocked(address user, uint256 newLock);
 
-    /// @notice Indicates that first call to claim function was made
-    /// @param user The user who is trying to claim tokens
-    event ClaimAttempt(address user);
-
     /// @notice Indicates that tokens were claimed by the user
     /// @param user The user who claimed the tokens
     /// @param amount The amount of claimed tokens
@@ -44,11 +40,6 @@ interface IFarming {
     /// @param amount Token amount added
     event FundsAdded(uint256 amount);
 
-    /// @notice Indicates that locked amount of the user has decreased
-    /// @param user The user whos locked amount was decreased
-    /// @param amount The new locked amount of the user
-    event UnlockedOnBehalf(address user, uint256 amount);
-
     /// @notice Pause the contract
     function pause() external;
 
@@ -58,19 +49,13 @@ interface IFarming {
     /// @notice Returns information about user's farming
     /// @param user The user who is farming tokens
     /// @return The current locked amount
-    /// @return The time lock has started
-    /// @return The time lock will end
     /// @return The reward for farming
-    function getFarming(address user) external view returns (uint256, uint256, uint256, uint256);
+    function getFarming(address user) external view returns (uint256, uint256);
 
     /// @notice Returns the farming reward of the user
     /// @param user The user to get the reward of
     /// @return Farming reward of the user
     function getReward(address user) external returns (uint256);
-
-    /// @notice Sets a new minimum locking period
-    /// @param period A new locking period in seconds
-    function setMinLockPeriod(uint256 period) external;
 
     /// @notice Sets new daily period
     /// @param rate The new rate to set. Represented in Basis Points
